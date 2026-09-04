@@ -26,7 +26,7 @@ export function AgentPage() {
   return (
     <section className={styles['wrap']} aria-labelledby="agent-title">
       <h1 id="agent-title" className={styles['title']}>
-        智能助手
+        {/* 智能助手 */}
       </h1>
       <p className={styles['context']}>
         当前上下文：{pageContext.page}

@@ -1,0 +1,10 @@
+# bundle_size (bytes  path)
+51196 /Users/fangtao/strato_ui/fronted/dist/assets/useVariants-CpOA-WdN.js
+53314 /Users/fangtao/strato_ui/fronted/dist/assets/card-C5K1mtXf.js
+56669 /Users/fangtao/strato_ui/fronted/dist/assets/Form-DgMOTRrM.js
+107405 /Users/fangtao/strato_ui/fronted/dist/assets/Form-C6TBT2wi.js
+129473 /Users/fangtao/strato_ui/fronted/dist/assets/Input-BoOfMvCs.js
+226258 /Users/fangtao/strato_ui/fronted/dist/assets/Table-r1u2dTnZ.js
+252069 /Users/fangtao/strato_ui/fronted/dist/assets/useSize-BgT6dUsM.js
+254794 /Users/fangtao/strato_ui/fronted/dist/assets/index-BsKnmts2.js
+36026316 /Users/fangtao/strato_ui/backed/app/target/app.jar

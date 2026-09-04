@@ -4,7 +4,7 @@
 |---|---|
 | Change ID | feat-agent-tool-platform-20260903 |
 | 类型 | feat |
-| 状态 | IN REVIEW（阶段 4 通过，等待 HITL ③ 进入推送） |
+| 状态 | DEPLOY VERIFY（阶段 5/6 完成，阶段 7 进行中） |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | contracts / backed / fronted / harness |
 | 起止时间 | 2026-09-03 ~ — |
@@ -19,9 +19,9 @@
 | 2 | 需求评审 | DONE | 3/3 | v1 → v2 → v3 **APPROVED**（0 MUST FIX，7 SHOULD 已吸收为 v3.1）；HITL ② 用户确认「先完成 Phase B 之前的任务」 | 2026-09-03 |
 | 3 | 编码实现 | DONE | — | Phase A：9 schema + 20 example。Phase B（T05a–T11）：`e2e-backend.sh` 24/24。Phase C（T12–T17b）：`fronted ci` 0、`verify-examples` 16 OK、`e2e-frontend.mjs` 21/21、5 张截图。Phase D（T18）：`wiki/api-contracts.md`、`fronted/README.md`、本文契约段已同步；`doctor` 0、`run ci` 见下 | 2026-09-03 ~ 2026-09-04 |
 | 4 | 编码评审 | DONE | 2/2 | `code_review_v1.md`（机械项全绿）→ `code_review_v2.md` **REVISION REQUIRED**（3 MUST FIX：入站契约校验缺失 / 确认并发破坏 Run 状态 / 确认金额未重校验；12 SHOULD）→ 回修 + spec v3.2 回写 → `code_review_v3.md` **APPROVED**（0 MUST FIX，6 SHOULD：N1–N3 已修，N4/N6 推迟到下一 change，N5 在阶段 7 解决）。e2e-backend 47/47、e2e-frontend 21/21、`run ci` 0。**等待 HITL ③** | 2026-09-04 |
-| 5 | 代码推送 | TODO | — | — | — |
-| 6 | CI 验证 | TODO | — | — | — |
-| 7 | 部署验证 | TODO | — | — | — |
+| 5 | 代码推送 | DONE | — | HITL ③ 用户「继续」；`git init`（main）+ 根 `.gitignore`；首次提交 `a6c7a03`（309 文件，lefthook pre-commit / commit-msg 通过）；本轮阶段 5–7 产物随后追加提交。尚无远端 | 2026-09-04 |
+| 6 | CI 验证 | DONE | — | `pnpm -C .harness run ci` 四段 0 → `ci_result/ci_summary.md`（bundle baseline：最大 chunk 84 kB gzip；app.jar 34.4 MB） | 2026-09-04 |
+| 7 | 部署验证 | IN PROGRESS | — | 新增 `scripts/deploy-verify.sh` + `preview-console.mjs`（后端 health、vite preview 4173 代理、经预览走通一条 Run 至 `run.completed`、预览页 console.error、体积报告，一次性冻结 `deployment/`）。首次运行 8080 被 IDEA 手动实例占用 → 脚本增加端口独占前置检查（退出码 2）。**等待用户停掉 IDEA 实例后重跑** | 2026-09-04 |
 | 8 | 用户确认 | TODO | — | — | — |
 
 ## 契约变更
@@ -65,3 +65,4 @@
 - 阶段 4：机械 code-review 全绿，但独立评审仍找出 3 条 MUST FIX，且三条都是"机器查不到的语义问题"：`@Valid` 让人误以为契约已在边界生效（实际 `additionalProperties` / pattern / const 全部失效）；并发确认把成功退款报告成 FAILED；模型可填 `amount` 绕过"用户确认的就是执行的"。教训：(1) Controller 的 `@RequestBody` 必须走 `SchemaValidator.bind`，建议在 harness-doctor / check-module-deps 增加 "api 包内出现 `@Valid @RequestBody` 即红" 的机械检查；(2) 任何"一次性令牌 + 状态机"的确认路径都要有并发两次的 e2e 用例；(3) 有副作用步骤的金额类参数必须列为 trusted-only，模型与前端都不得决定。
 - 阶段 4：第 2 轮评审指出 `CompletableFuture.cancel(true)` 不会中断任务——第 1 轮的 S6 "修复" 只是让注释和实际行为相反。教训：涉及并发原语的修复必须写明依据（JDK 文档条目），评审 checklist 应加 "并发 / 取消 / 超时相关改动需引用 API 语义"。
 - 阶段 4：两轮评审共 15 + 6 条，5 条与 `deployment/` 证据不自洽有关（日志与事件不是同一次运行）。教训：验收产物必须由**一个**脚本一次性生成并冻结，阶段 7 的 deploy-verify 以此为门禁。
+- 阶段 7：deploy-verify 第一次跑在了用户 IDEA 里手动启动的后端上——health UP、自检行数 0、confirm 被拒（那个实例的内存状态不是干净的），4 项失败全是"验收对象不对"而不是代码问题。教训：任何验收脚本第一步必须确认端口归自己独占，已把该检查写进 `deploy-verify.sh`（退出码 2 并打印占用者 PID），`e2e-backend.sh` 亦应同样处理。

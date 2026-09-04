@@ -14,7 +14,8 @@
     "check-module-deps": "node scripts/check-module-deps.mjs",
     "ci": "node scripts/ci.mjs",
     "e2e-backend": "bash scripts/e2e-backend.sh",
-    "e2e-frontend": "node scripts/e2e-frontend.mjs"
+    "e2e-frontend": "node scripts/e2e-frontend.mjs",
+    "deploy-verify": "bash scripts/deploy-verify.sh"
   },
   "devDependencies": {
     "ajv": "^8.17.1",

@@ -17,7 +17,13 @@ json() { python3 -c "import sys,json;d=json.load(sys.stdin);print($1)"; }
 events() { node "$P" "$1" --events; }
 data() { node "$P" "$1" --data "$2"; }
 
-pkill -f "app.jar" 2>/dev/null; sleep 1
+pkill -f "app/target/app.jar" 2>/dev/null; sleep 1
+owner=$(lsof -tnP -iTCP:8080 -sTCP:LISTEN 2>/dev/null | head -1)
+if [ -n "${owner}" ]; then
+  echo "port 8080 is held by PID ${owner}: $(ps -o command= -p "${owner}" | cut -c1-80)"
+  echo "e2e-backend needs exclusive port 8080; stop that process and rerun."
+  exit 2
+fi
 (JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/backed/app/target/app.jar" > "$DEPLOY/backend.log" 2>&1 &)
 for i in $(seq 1 40); do sleep 1; grep -q "selfcheck: running" "$DEPLOY/backend.log" 2>/dev/null && break; grep -q "Application run failed" "$DEPLOY/backend.log" 2>/dev/null && break; done; sleep 2
 if grep -q "Application run failed" "$DEPLOY/backend.log"; then echo "BOOT FAILED"; grep -m1 -A2 "Application run failed" "$DEPLOY/backend.log"; exit 1; fi
@@ -132,6 +138,6 @@ check "§6.2.14 audit fields" 9 "$(grep -m1 'audit runId=' "$DEPLOY/backend.log"
 check "§6.2.15 user text in log" 0 "$(grep -c '帮我把这个订单退款' "$DEPLOY/backend.log")"
 check "ERROR lines" 0 "$(grep -c ' ERROR ' "$DEPLOY/backend.log")"
 
-pkill -f "app.jar"
+pkill -f "app/target/app.jar"
 echo; echo "e2e-backend: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

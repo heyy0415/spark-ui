@@ -33,5 +33,10 @@ export default defineConfig({
   preview: {
     port: 4173,
     strictPort: true,
+    // 预览（阶段 7 deploy-verify）与 dev 使用同一套代理规则
+    proxy: {
+      '/agent/runs': { target: 'http://localhost:8080', changeOrigin: true },
+      '/actuator': { target: 'http://localhost:8080', changeOrigin: true },
+    },
   },
 });

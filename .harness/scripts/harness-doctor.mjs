@@ -55,6 +55,8 @@ const required = [
   'scripts/sse-parse.mjs',
   'scripts/e2e-backend.sh',
   'scripts/e2e-frontend.mjs',
+  'scripts/deploy-verify.sh',
+  'scripts/preview-console.mjs',
   'package.json',
 ];
 for (const rel of ['fronted', 'backed']) {
