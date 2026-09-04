@@ -4,10 +4,10 @@
 |---|---|
 | Change ID | feat-agent-tool-platform-20260903 |
 | 类型 | feat |
-| 状态 | AWAITING USER CONFIRMATION（阶段 1–7 完成，等待阶段 8） |
+| 状态 | DONE |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | contracts / backed / fronted / harness |
-| 起止时间 | 2026-09-03 ~ — |
+| 起止时间 | 2026-09-03 ~ 2026-09-04 |
 | Spec | [request_analysis/spec.md](request_analysis/spec.md) |
 | Tasks | [request_analysis/tasks.md](request_analysis/tasks.md) |
 
@@ -22,7 +22,7 @@
 | 5 | 代码推送 | DONE | — | HITL ③ 用户「继续」；`git init`（main）+ 根 `.gitignore`；首次提交 `a6c7a03`（309 文件，lefthook pre-commit / commit-msg 通过）；本轮阶段 5–7 产物随后追加提交。尚无远端 | 2026-09-04 |
 | 6 | CI 验证 | DONE | — | `pnpm -C .harness run ci` 四段 0 → `ci_result/ci_summary.md`（bundle baseline：最大 chunk 84 kB gzip；app.jar 34.4 MB） | 2026-09-04 |
 | 7 | 部署验证 | DONE | — | 用户停掉 IDEA 实例后重跑 `deploy-verify` **12/12**：health UP、自检 4/4、预览 `/` 与 `/agent` console.error 0、经预览代理走通一条 Run 至 `run.completed`、体积报告；`deployment/preview_report.md`。**HITL ④**（环境 / 域名 / 灰度）留待阶段 8 与用户一并确认 | 2026-09-04 |
-| 8 | 用户确认 | WAITING | — | 等待用户最终确认：功能验收、是否关联远端推送、部署参数 | — |
+| 8 | 用户确认 | DONE | — | 用户「确认」：功能验收通过（真模型 47/47、规则 47/47、UI 21/21）；首期不部署、不关联远端（本地 main 4 commits）。后续排期：① 前端 monorepo + strato-ui 核心包 ② 分层领域路由 + 意图分类 ③ 真实 IdP 身份 ④ Run / 令牌 / 幂等 / 审计外置存储 | 2026-09-04 |
 
 ## 契约变更
 新增 9 个（`.harness/contracts/`，20 个示例全部通过 `check-contracts`）：
