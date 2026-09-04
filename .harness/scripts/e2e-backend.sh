@@ -10,6 +10,8 @@ BASE="http://localhost:8080"
 HDR=(-H 'Content-Type: application/json' -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' -H 'X-Trace-Id: trace_e2e')
 mkdir -p "$DEPLOY"
 pass=0; fail=0
+# 规则规划器毫秒级；接真实模型时规划 5–15s，SSE 读取超时随之放大
+if [ -n "${STRATO_LLM_API_KEY:-}" ]; then SSE_T=60; LIVE_LLM=1; else SSE_T=8; LIVE_LLM=0; fi
 check() { # $1 name  $2 expected  $3 actual
   if [ "$2" = "$3" ]; then echo "  ✓ $1: $3"; pass=$((pass+1)); else echo "  ✗ $1: expected [$2] got [$3]"; fail=$((fail+1)); fi
 }
@@ -30,7 +32,8 @@ if grep -q "Application run failed" "$DEPLOY/backend.log"; then echo "BOOT FAILE
 echo "boot: ready after ${i}s"
 
 echo "--- selfchecks"
-for s in "contracts 9 schemas, 20 examples OK" "refund.create idempotent OK" "plan 3 steps, step3 requiresConfirmation OK" "invalid toolId rejected OK" "token expired/replayed/digest-mismatch/extra-key rejected OK"; do
+PLAN_CHECK="plan 3 steps, step3 requiresConfirmation OK"; [ "$LIVE_LLM" = 1 ] && PLAN_CHECK="plan skipped (live LLM"
+for s in "contracts 9 schemas, 20 examples OK" "refund.create idempotent OK" "$PLAN_CHECK" "invalid toolId rejected OK" "token expired/replayed/digest-mismatch/extra-key rejected OK"; do
   check "selfcheck: $s" 1 "$(grep -v SelfCheckRunner "$DEPLOY/backend.log" | grep -c "selfcheck: $s")"
 done
 
@@ -73,7 +76,7 @@ code=$(curl -s -o /tmp/u.json -w '%{http_code}' -X POST "$BASE/agent/runs" -H 'C
 check "http" 401 "$code"; check "code" UNAUTHENTICATED "$(json "d['code']" < /tmp/u.json)"
 
 echo "--- §6.2.8 POST /agent/runs"
-curl -s -N --max-time 8 -X POST "$BASE/agent/runs" "${HDR[@]}" --data @"$ROOT/.harness/contracts/examples/intent-request.example.json" > "$DEPLOY/run_events.log"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" --data @"$ROOT/.harness/contracts/examples/intent-request.example.json" > "$DEPLOY/run_events.log"
 check "event sequence" "run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required" "$(events "$DEPLOY/run_events.log")"
 RUNID=$(data "$DEPLOY/run_events.log" run.started | json "d['runId']")
 TOKEN=$(data "$DEPLOY/run_events.log" ui.replace | json "[a for a in d['ui']['actions'] if a['id']=='confirm-refund'][0]['confirmationToken']")
@@ -85,7 +88,7 @@ curl -s "$BASE/agent/runs/$RUNID" -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: us
 check "state" WAITING_CONFIRMATION "$(json "d['state']" < "$DEPLOY/run_summary_waiting.json")"
 
 echo "--- §6.2.9 confirm"
-curl -s -N --max-time 8 -X POST "$BASE/agent/runs/$RUNID/actions/confirm-refund" "${HDR[@]}" -d "{\"confirmationToken\":\"$TOKEN\",\"formData\":{\"reason\":\"DAMAGED\"}}" > "$DEPLOY/confirm_events.log"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$RUNID/actions/confirm-refund" "${HDR[@]}" -d "{\"confirmationToken\":\"$TOKEN\",\"formData\":{\"reason\":\"DAMAGED\"}}" > "$DEPLOY/confirm_events.log"
 check "event sequence" "tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace run.completed" "$(events "$DEPLOY/confirm_events.log")"
 check "result components" "['ResultCard']" "$(data "$DEPLOY/confirm_events.log" ui.replace | json "[c['type'] for c in d['ui']['components']]")"
 
@@ -94,15 +97,15 @@ curl -s "$BASE/agent/runs/$RUNID" -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: us
 check "state" COMPLETED "$(json "d['state']" < "$DEPLOY/run_summary_done.json")"
 
 echo "--- §6.2.12 令牌重放"
-curl -s -N --max-time 5 -X POST "$BASE/agent/runs/$RUNID/actions/confirm-refund" "${HDR[@]}" -d "{\"confirmationToken\":\"$TOKEN\",\"formData\":{\"reason\":\"DAMAGED\"}}" > "$DEPLOY/replay_events.log"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$RUNID/actions/confirm-refund" "${HDR[@]}" -d "{\"confirmationToken\":\"$TOKEN\",\"formData\":{\"reason\":\"DAMAGED\"}}" > "$DEPLOY/replay_events.log"
 check "events" "run.failed" "$(events "$DEPLOY/replay_events.log")"
 check "code" CONFIRMATION_REJECTED "$(data "$DEPLOY/replay_events.log" run.failed | json "d['code']")"
 check "refund.create succeeded audit lines" 1 "$(grep -c 'toolId=refund.create .*status=succeeded' "$DEPLOY/backend.log")"
 
 echo "--- §6.2.12b formData 注入白名单外键（amount）"
-curl -s -N --max-time 8 -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_002","message":"这个订单退款","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10002"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","ResultCard","ConfirmationCard","OrderCard","RefundConfirmCard"]}}' > "$DEPLOY/run2_events.log"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_002","message":"这个订单退款","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10002"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","ResultCard","ConfirmationCard","OrderCard","RefundConfirmCard"]}}' > "$DEPLOY/run2_events.log"
 R2=$(data "$DEPLOY/run2_events.log" run.started | json "d['runId']"); T2=$(data "$DEPLOY/run2_events.log" ui.replace | json "[a for a in d['ui']['actions'] if a['id']=='confirm-refund'][0]['confirmationToken']")
-curl -s -N --max-time 5 -X POST "$BASE/agent/runs/$R2/actions/confirm-refund" "${HDR[@]}" -d "{\"confirmationToken\":\"$T2\",\"formData\":{\"reason\":\"DAMAGED\",\"amount\":\"0.01\"}}" > "$DEPLOY/inject_events.log"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$R2/actions/confirm-refund" "${HDR[@]}" -d "{\"confirmationToken\":\"$T2\",\"formData\":{\"reason\":\"DAMAGED\",\"amount\":\"0.01\"}}" > "$DEPLOY/inject_events.log"
 check "code" CONFIRMATION_REJECTED "$(data "$DEPLOY/inject_events.log" run.failed | json "d['code']")"
 gw() { curl -s -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -d "{\"toolId\":\"refund.status.get\",\"toolVersion\":\"1.0.0\",\"arguments\":{\"orderId\":\"$1\"},\"executionContext\":{\"runId\":\"run_probe\",\"toolCallId\":\"tc_$1\",\"userId\":\"user_001\",\"tenantId\":\"tenant_001\",\"idempotencyKey\":\"probe-$1\"}}" | json "len(d['output']['refunds'])"; }
 check "refunds for 10002 (injection must not create)" 0 "$(gw 10002)"
@@ -111,11 +114,11 @@ echo "--- §6.2.13 refunds for 10001"
 check "refunds.length" 1 "$(gw 10001)"
 
 echo "--- 评审 M2：并发两次确认，Run 仍 COMPLETED 且只有 1 笔退款（订单 10002）"
-curl -s -N --max-time 8 -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_m2","message":"这个订单退款","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10002"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","ResultCard","ConfirmationCard","OrderCard","RefundConfirmCard"]}}' > "$DEPLOY/run3_events.log"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_m2","message":"这个订单退款","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10002"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","ResultCard","ConfirmationCard","OrderCard","RefundConfirmCard"]}}' > "$DEPLOY/run3_events.log"
 R3=$(data "$DEPLOY/run3_events.log" run.started | json "d['runId']"); T3=$(data "$DEPLOY/run3_events.log" ui.replace | json "[a for a in d['ui']['actions'] if a['id']=='confirm-refund'][0]['confirmationToken']")
 BODY3="{\"confirmationToken\":\"$T3\",\"formData\":{\"reason\":\"DAMAGED\"}}"
-curl -s -N --max-time 8 -X POST "$BASE/agent/runs/$R3/actions/confirm-refund" "${HDR[@]}" -d "$BODY3" > "$DEPLOY/m2_a.log" &
-curl -s -N --max-time 8 -X POST "$BASE/agent/runs/$R3/actions/confirm-refund" "${HDR[@]}" -d "$BODY3" > "$DEPLOY/m2_b.log" &
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$R3/actions/confirm-refund" "${HDR[@]}" -d "$BODY3" > "$DEPLOY/m2_a.log" &
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$R3/actions/confirm-refund" "${HDR[@]}" -d "$BODY3" > "$DEPLOY/m2_b.log" &
 wait
 OUT_A=$(events "$DEPLOY/m2_a.log"); OUT_B=$(events "$DEPLOY/m2_b.log")
 check "exactly one stream completed" 1 "$(printf '%s\n%s\n' "$OUT_A" "$OUT_B" | grep -c 'run.completed')"
@@ -129,7 +132,7 @@ EXECUTED=$(data "$DEPLOY/confirm_events.log" ui.replace | json "[x for x in d['u
 check "shown amount" 128.00 "$SHOWN"; check "executed amount non-empty" 1 "$([ -n "$EXECUTED" ] && echo 1 || echo 0)"; check "executed amount equals shown" "$SHOWN" "$EXECUTED"
 
 echo "--- 无能力路径"
-curl -s -N --max-time 5 -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_003","message":"今天天气怎么样","clientCapabilities":{"uiSchemaVersion":"1.0","components":["Card"]}}' > "$DEPLOY/nocap_events.log"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_003","message":"今天天气怎么样","clientCapabilities":{"uiSchemaVersion":"1.0","components":["Card"]}}' > "$DEPLOY/nocap_events.log"
 check "events" "run.started message.delta run.completed" "$(events "$DEPLOY/nocap_events.log")"
 
 echo "--- 其他"

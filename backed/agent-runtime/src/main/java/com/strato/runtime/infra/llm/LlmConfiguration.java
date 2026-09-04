@@ -30,11 +30,29 @@ public class LlmConfiguration {
           "STRATO_LLM_BASE_URL / STRATO_LLM_API_KEY / STRATO_LLM_MODEL not fully set; using rule-based planner");
       return new RuleBasedLlmClient(ToolDisplayNames.all());
     }
-    OpenAiApi api = OpenAiApi.builder().baseUrl(baseUrl).apiKey(apiKey).build();
+    OpenAiApi api =
+        OpenAiApi.builder()
+            .baseUrl(baseUrl)
+            .apiKey(apiKey)
+            .completionsPath(completionsPath(baseUrl))
+            .build();
     OpenAiChatModel chatModel = OpenAiChatModel.builder().openAiApi(api).build();
     ChatClient chat = ChatClient.builder(chatModel).build();
     log.info(
-        "LLM planner enabled: spring-ai openai-compatible model={} baseUrl={}", model, baseUrl);
+        "LLM planner enabled: spring-ai openai-compatible model={} baseUrl={} completionsPath={}",
+        model,
+        baseUrl,
+        completionsPath(baseUrl));
     return new SpringAiLlmClient(chat, model, ToolDisplayNames.all());
+  }
+
+  /**
+   * Spring AI 默认把 "/v1/chat/completions" 拼到 baseUrl 后面。很多 OpenAI 兼容网关的 baseUrl 已含版本段（如
+   * ".../api/v1"）， 再拼 "/v1" 会变成 ".../api/v1/v1/chat/completions" → 404。规则：baseUrl 以 "/v{n}" 结尾则只拼
+   * "/chat/completions"。
+   */
+  static String completionsPath(String baseUrl) {
+    String trimmed = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+    return trimmed.matches(".*/v\\d+$") ? "/chat/completions" : "/v1/chat/completions";
   }
 }

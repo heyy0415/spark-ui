@@ -1,24 +1,24 @@
 event:tool.selected
-data:{"runId":"run_de6aa27e63d849e1","toolCallId":"tc_000009","toolId":"refund.eligibility.check","version":"1.2.0","displayName":"检查退款资格"}
+data:{"runId":"run_96c13d88c97c4c49","toolCallId":"tc_000009","toolId":"refund.eligibility.check","version":"1.2.0","displayName":"检查退款资格"}
 
 event:tool.started
-data:{"runId":"run_de6aa27e63d849e1","toolCallId":"tc_000009","at":"2026-09-04T09:19:53.627620Z"}
+data:{"runId":"run_96c13d88c97c4c49","toolCallId":"tc_000009","at":"2026-09-04T11:11:28.430836Z"}
 
 event:tool.completed
-data:{"runId":"run_de6aa27e63d849e1","toolCallId":"tc_000009","status":"succeeded","durationMs":0,"summary":"订单满足退款条件"}
+data:{"runId":"run_96c13d88c97c4c49","toolCallId":"tc_000009","status":"succeeded","durationMs":0,"summary":"订单满足退款条件"}
 
 event:tool.selected
-data:{"runId":"run_de6aa27e63d849e1","toolCallId":"tc_000010","toolId":"refund.create","version":"2.1.0","displayName":"创建退款"}
+data:{"runId":"run_96c13d88c97c4c49","toolCallId":"tc_000010","toolId":"refund.create","version":"2.1.0","displayName":"创建退款"}
 
 event:tool.started
-data:{"runId":"run_de6aa27e63d849e1","toolCallId":"tc_000010","at":"2026-09-04T09:19:53.628700Z"}
+data:{"runId":"run_96c13d88c97c4c49","toolCallId":"tc_000010","at":"2026-09-04T11:11:28.432918Z"}
 
 event:tool.completed
-data:{"runId":"run_de6aa27e63d849e1","toolCallId":"tc_000010","status":"succeeded","durationMs":0,"summary":"退款单 rf_0a8d7abdec76 已提交"}
+data:{"runId":"run_96c13d88c97c4c49","toolCallId":"tc_000010","status":"succeeded","durationMs":0,"summary":"退款单 rf_2a469da08f1b 已提交"}
 
 event:ui.replace
-data:{"runId":"run_de6aa27e63d849e1","ui":{"schemaVersion":"1.0","screenId":"refund-result","title":"退款已提交","components":[{"id":"result","type":"ResultCard","props":{"status":"success","title":"退款已提交","description":"退款 299.00 元将在 1-3 个工作日内原路退回。","details":[{"label":"订单号","value":"10002"},{"label":"退款单号","value":"rf_0a8d7abdec76"},{"label":"退款金额","value":"299.00"}]}}],"actions":[]}}
+data:{"runId":"run_96c13d88c97c4c49","ui":{"schemaVersion":"1.0","screenId":"refund-result","title":"退款已提交","components":[{"id":"result","type":"ResultCard","props":{"status":"success","title":"退款已提交","description":"退款 299.00 元将在 1-3 个工作日内原路退回。","details":[{"label":"订单号","value":"10002"},{"label":"退款单号","value":"rf_2a469da08f1b"},{"label":"退款金额","value":"299.00"}]}}],"actions":[]}}
 
 event:run.completed
-data:{"runId":"run_de6aa27e63d849e1","at":"2026-09-04T09:19:53.629742Z"}
+data:{"runId":"run_96c13d88c97c4c49","at":"2026-09-04T11:11:28.434653Z"}
 

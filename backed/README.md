@@ -44,6 +44,8 @@ bash .harness/scripts/e2e-backend.sh
 
 三者任一缺失 → 启动日志 WARN，规划器回退为 `RuleBasedLlmClient`（确定性模板），整条链路仍可跑通与验收。
 
+`STRATO_LLM_BASE_URL` 以 `/v{n}` 结尾（如 `https://gateway.example.com/api/v1`）时只追加 `/chat/completions`，否则按 Spring AI 默认追加 `/v1/chat/completions`；很多 OpenAI 兼容网关的 baseUrl 自带版本段，直接拼会 404。接真实模型时 `e2e-backend.sh` 自动把 SSE 读取超时放大到 60s 并把「plan 3 steps」自检改为「plan skipped (live LLM」。已用一个 OpenAI 兼容网关实测 47/47。
+
 ## 配置（`app/src/main/resources/application.yml`）
 
 - `strato.selfcheck.enabled`（默认 `true`）：启动自检（契约 / 幂等 / 规划 / 令牌）。**生产建议 `false`**。自检直接调 `ToolHandler`、不经 Gateway、不产生审计行，只使用订单 `10003`。
