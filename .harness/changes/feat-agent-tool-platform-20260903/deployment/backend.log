@@ -8,32 +8,51 @@
 
  :: Spring Boot ::               (v3.5.16)
 
-2026-09-04T17:43:24.605+08:00  INFO 23577 --- [           main] com.strato.app.StratoApplication         : Starting StratoApplication using Java 21.0.11 with PID 23577 (/Users/fangtao/strato_ui/backed/app/target/app.jar started by fangtao in /Users/fangtao/strato_ui)
-2026-09-04T17:43:24.605+08:00  INFO 23577 --- [           main] com.strato.app.StratoApplication         : No active profile set, falling back to 1 default profile: "default"
-2026-09-04T17:43:25.112+08:00  INFO 23577 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
-2026-09-04T17:43:25.118+08:00  INFO 23577 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-09-04T17:43:25.118+08:00  INFO 23577 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.55]
-2026-09-04T17:43:25.129+08:00  INFO 23577 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2026-09-04T17:43:25.129+08:00  INFO 23577 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 503 ms
-2026-09-04T17:43:25.249+08:00  WARN 23577 --- [           main] c.s.runtime.infra.llm.LlmConfiguration   : STRATO_LLM_BASE_URL / STRATO_LLM_API_KEY / STRATO_LLM_MODEL not fully set; using rule-based planner
-2026-09-04T17:43:25.253+08:00  INFO 23577 --- [           main] .a.i.InMemoryPrincipalPermissionResolver : permission table loaded: 2 principals
-2026-09-04T17:43:25.265+08:00  INFO 23577 --- [           main] c.s.g.application.InvokeToolUseCase      : gateway handlers registered: [order.detail.get@1.0.0, refund.status.get@1.0.0, refund.preview@1.3.0, refund.eligibility.check@1.2.0, refund.create@2.1.0, order.list.search@1.0.0]
-2026-09-04T17:43:25.472+08:00  INFO 23577 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
-2026-09-04T17:43:25.497+08:00  WARN 23577 --- [           main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException: Failed to start bean 'webServerStartStop'
-2026-09-04T17:43:25.506+08:00  INFO 23577 --- [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
-
-Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
-2026-09-04T17:43:25.512+08:00 ERROR 23577 --- [           main] o.s.b.d.LoggingFailureAnalysisReporter   : 
-
-***************************
-APPLICATION FAILED TO START
-***************************
-
-Description:
-
-Web server failed to start. Port 8080 was already in use.
-
-Action:
-
-Identify and stop the process that's listening on port 8080 or configure this application to listen on another port.
-
+2026-09-04T17:49:18.215+08:00  INFO 28017 --- [           main] com.strato.app.StratoApplication         : Starting StratoApplication using Java 21.0.11 with PID 28017 (/Users/fangtao/strato_ui/backed/app/target/app.jar started by fangtao in /Users/fangtao/strato_ui)
+2026-09-04T17:49:18.216+08:00  INFO 28017 --- [           main] com.strato.app.StratoApplication         : No active profile set, falling back to 1 default profile: "default"
+2026-09-04T17:49:18.679+08:00  INFO 28017 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-09-04T17:49:18.685+08:00  INFO 28017 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-09-04T17:49:18.685+08:00  INFO 28017 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.55]
+2026-09-04T17:49:18.696+08:00  INFO 28017 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-09-04T17:49:18.696+08:00  INFO 28017 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 463 ms
+2026-09-04T17:49:18.821+08:00  WARN 28017 --- [           main] c.s.runtime.infra.llm.LlmConfiguration   : STRATO_LLM_BASE_URL / STRATO_LLM_API_KEY / STRATO_LLM_MODEL not fully set; using rule-based planner
+2026-09-04T17:49:18.826+08:00  INFO 28017 --- [           main] .a.i.InMemoryPrincipalPermissionResolver : permission table loaded: 2 principals
+2026-09-04T17:49:18.837+08:00  INFO 28017 --- [           main] c.s.g.application.InvokeToolUseCase      : gateway handlers registered: [refund.status.get@1.0.0, refund.preview@1.3.0, refund.eligibility.check@1.2.0, refund.create@2.1.0, order.list.search@1.0.0, order.detail.get@1.0.0]
+2026-09-04T17:49:19.023+08:00  INFO 28017 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-09-04T17:49:19.047+08:00  INFO 28017 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-09-04T17:49:19.052+08:00  INFO 28017 --- [           main] com.strato.app.StratoApplication         : Started StratoApplication in 1.002 seconds (process running for 1.186)
+2026-09-04T17:49:19.105+08:00  INFO 28017 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.detail.get@1.0.0 domain=order risk=low
+2026-09-04T17:49:19.105+08:00  INFO 28017 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.list.search@1.0.0 domain=order risk=low
+2026-09-04T17:49:19.106+08:00  INFO 28017 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.eligibility.check@1.2.0 domain=refund risk=low
+2026-09-04T17:49:19.107+08:00  INFO 28017 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.preview@1.3.0 domain=refund risk=low
+2026-09-04T17:49:19.107+08:00  INFO 28017 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.create@2.1.0 domain=refund risk=high
+2026-09-04T17:49:19.107+08:00  INFO 28017 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.status.get@1.0.0 domain=refund risk=low
+2026-09-04T17:49:19.107+08:00  INFO 28017 --- [           main] c.s.r.infra.StartupManifestRegistrar     : startup registration done: 6 tools from 2 sources
+2026-09-04T17:49:19.107+08:00  INFO 28017 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: running 4 checks
+2026-09-04T17:49:19.126+08:00  INFO 28017 --- [           main] c.s.c.i.selfcheck.ContractsSelfCheck     : selfcheck: contracts 9 schemas, 20 examples OK
+2026-09-04T17:49:19.126+08:00  INFO 28017 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: contracts OK
+2026-09-04T17:49:19.126+08:00  INFO 28017 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
+2026-09-04T17:49:19.127+08:00  INFO 28017 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: plan 3 steps, step3 requiresConfirmation OK
+2026-09-04T17:49:19.127+08:00  INFO 28017 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: invalid toolId rejected OK
+2026-09-04T17:49:19.127+08:00  INFO 28017 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: plan OK
+2026-09-04T17:49:19.128+08:00  INFO 28017 --- [           main] c.s.r.infra.selfcheck.TokenSelfCheck     : selfcheck: token expired/replayed/digest-mismatch/extra-key rejected OK
+2026-09-04T17:49:19.128+08:00  INFO 28017 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: confirmation token OK
+2026-09-04T17:49:19.129+08:00  INFO 28017 --- [           main] c.s.d.refund.application.RefundService   : refund created refundId=rf_0f6d72fa8ecd orderId=10003 tenant=tenant_001
+2026-09-04T17:49:19.129+08:00  INFO 28017 --- [           main] c.s.d.r.i.s.RefundIdempotencySelfCheck   : selfcheck: refund.create idempotent OK
+2026-09-04T17:49:19.129+08:00  INFO 28017 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: refund.create idempotent OK
+2026-09-04T17:49:19.921+08:00  INFO 28017 --- [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-09-04T17:49:19.921+08:00  INFO 28017 --- [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-09-04T17:49:19.921+08:00  INFO 28017 --- [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
+2026-09-04T17:49:21.048+08:00  INFO 28017 --- [nio-8080-exec-5] c.strato.runtime.api.AgentRunController  : start_run, conversationId=conv_001 userId=user_001 tenantId=tenant_001
+2026-09-04T17:49:21.051+08:00  INFO 28017 --- [    agent-run-1] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
+2026-09-04T17:49:21.051+08:00  INFO 28017 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_6693cf5bc0dd496d domain=refund steps=3 planner=rule-based
+2026-09-04T17:49:21.058+08:00  INFO 28017 --- [    agent-run-1] AUDIT                                    : audit runId=run_6693cf5bc0dd496d toolCallId=tc_000001 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=3 traceId=trace_deploy
+2026-09-04T17:49:21.060+08:00  INFO 28017 --- [    agent-run-1] AUDIT                                    : audit runId=run_6693cf5bc0dd496d toolCallId=tc_000002 toolId=refund.preview version=1.3.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_deploy
+2026-09-04T17:49:21.156+08:00  INFO 28017 --- [nio-8080-exec-7] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_6693cf5bc0dd496d actionId=confirm-refund userId=user_001
+2026-09-04T17:49:21.157+08:00  INFO 28017 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_6693cf5bc0dd496d step=3 tool=refund.create
+2026-09-04T17:49:21.158+08:00  INFO 28017 --- [    agent-run-2] AUDIT                                    : audit runId=run_6693cf5bc0dd496d toolCallId=tc_000003 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_deploy
+2026-09-04T17:49:21.159+08:00  INFO 28017 --- [ gateway-tool-4] c.s.d.refund.application.RefundService   : refund created refundId=rf_366b8decfc66 orderId=10001 tenant=tenant_001
+2026-09-04T17:49:21.160+08:00  INFO 28017 --- [    agent-run-2] AUDIT                                    : audit runId=run_6693cf5bc0dd496d toolCallId=tc_000004 toolId=refund.create version=2.1.0 principal=user_001@tenant_001 argsDigest=524c5f36375537fdb1ff539459f71ed4 status=succeeded durationMs=0 traceId=trace_deploy
+2026-09-04T17:49:21.160+08:00  INFO 28017 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmed step executed runId=run_6693cf5bc0dd496d tokenStep=3
+2026-09-04T17:49:23.906+08:00  INFO 28017 --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-09-04T17:49:23.911+08:00  INFO 28017 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete

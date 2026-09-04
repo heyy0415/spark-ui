@@ -4,7 +4,7 @@
 |---|---|
 | Change ID | feat-agent-tool-platform-20260903 |
 | 类型 | feat |
-| 状态 | DEPLOY VERIFY（阶段 5/6 完成，阶段 7 进行中） |
+| 状态 | AWAITING USER CONFIRMATION（阶段 1–7 完成，等待阶段 8） |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | contracts / backed / fronted / harness |
 | 起止时间 | 2026-09-03 ~ — |
@@ -21,8 +21,8 @@
 | 4 | 编码评审 | DONE | 2/2 | `code_review_v1.md`（机械项全绿）→ `code_review_v2.md` **REVISION REQUIRED**（3 MUST FIX：入站契约校验缺失 / 确认并发破坏 Run 状态 / 确认金额未重校验；12 SHOULD）→ 回修 + spec v3.2 回写 → `code_review_v3.md` **APPROVED**（0 MUST FIX，6 SHOULD：N1–N3 已修，N4/N6 推迟到下一 change，N5 在阶段 7 解决）。e2e-backend 47/47、e2e-frontend 21/21、`run ci` 0。**等待 HITL ③** | 2026-09-04 |
 | 5 | 代码推送 | DONE | — | HITL ③ 用户「继续」；`git init`（main）+ 根 `.gitignore`；首次提交 `a6c7a03`（309 文件，lefthook pre-commit / commit-msg 通过）；本轮阶段 5–7 产物随后追加提交。尚无远端 | 2026-09-04 |
 | 6 | CI 验证 | DONE | — | `pnpm -C .harness run ci` 四段 0 → `ci_result/ci_summary.md`（bundle baseline：最大 chunk 84 kB gzip；app.jar 34.4 MB） | 2026-09-04 |
-| 7 | 部署验证 | IN PROGRESS | — | 新增 `scripts/deploy-verify.sh` + `preview-console.mjs`（后端 health、vite preview 4173 代理、经预览走通一条 Run 至 `run.completed`、预览页 console.error、体积报告，一次性冻结 `deployment/`）。首次运行 8080 被 IDEA 手动实例占用 → 脚本增加端口独占前置检查（退出码 2）。**等待用户停掉 IDEA 实例后重跑** | 2026-09-04 |
-| 8 | 用户确认 | TODO | — | — | — |
+| 7 | 部署验证 | DONE | — | 用户停掉 IDEA 实例后重跑 `deploy-verify` **12/12**：health UP、自检 4/4、预览 `/` 与 `/agent` console.error 0、经预览代理走通一条 Run 至 `run.completed`、体积报告；`deployment/preview_report.md`。**HITL ④**（环境 / 域名 / 灰度）留待阶段 8 与用户一并确认 | 2026-09-04 |
+| 8 | 用户确认 | WAITING | — | 等待用户最终确认：功能验收、是否关联远端推送、部署参数 | — |
 
 ## 契约变更
 新增 9 个（`.harness/contracts/`，20 个示例全部通过 `check-contracts`）：
