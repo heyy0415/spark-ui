@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strato.local/contracts/v1/error-response.schema.json",
+  "title": "ErrorResponse",
+  "description": "所有 HTTP 4xx / 5xx 的统一响应体。code 为稠密枚举，status 与 code 的对应见 spec §4.2。message 面向开发者，不含堆栈与内部实现细节。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "message", "traceId"],
+  "properties": {
+    "code": {
+      "type": "string",
+      "enum": [
+        "REQUEST_INVALID",
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "TOOL_VERSION_CONFLICT",
+        "INTERNAL_ERROR"
+      ],
+      "description": "REQUEST_INVALID=400 Schema 校验失败；UNAUTHENTICATED=401 缺身份头；FORBIDDEN=403 权限不足；NOT_FOUND=404；TOOL_VERSION_CONFLICT=409 重复注册同 toolId@version；INTERNAL_ERROR=500"
+    },
+    "message": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "traceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "details": {
+      "type": "array",
+      "maxItems": 64,
+      "description": "可选的字段级错误明细（如 Schema 校验的 instancePath 与原因）",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "message"],
+        "properties": {
+          "path": { "type": "string", "maxLength": 256 },
+          "message": { "type": "string", "maxLength": 256 }
+        }
+      }
+    }
+  }
+}

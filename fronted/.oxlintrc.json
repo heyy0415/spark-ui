@@ -1,0 +1,152 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "ignorePatterns": ["dist/**", "node_modules/**"],
+  "rules": {
+    "typescript/no-explicit-any": "error",
+    "typescript/consistent-type-imports": [
+      "error",
+      {
+        "prefer": "type-imports"
+      }
+    ],
+    "typescript/consistent-type-definitions": ["error", "interface"],
+    "typescript/no-non-null-assertion": "error",
+    "typescript/no-namespace": "error",
+    "typescript/prefer-as-const": "error",
+    "typescript/array-type": [
+      "error",
+      {
+        "default": "array"
+      }
+    ],
+    "typescript/no-inferrable-types": "error",
+    "typescript/ban-ts-comment": "error",
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "no-console": [
+      "error",
+      {
+        "allow": ["warn", "error"]
+      }
+    ],
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+    "react/only-export-components": [
+      "warn",
+      {
+        "allowConstantExport": true
+      }
+    ],
+    "react/jsx-key": "error",
+    "react/jsx-no-useless-fragment": "warn",
+    "react/react-in-jsx-scope": "off",
+    "no-underscore-dangle": [
+      "error",
+      {
+        "allow": ["__dirname", "__filename"]
+      }
+    ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["../../*"],
+            "message": "Use path aliases (@shared/*, @entities/*, ...) instead of ../../ paths."
+          },
+          {
+            "group": [
+              "@features/*/api/*",
+              "@features/*/model/*",
+              "@features/*/ui/*",
+              "@entities/*/api/*",
+              "@entities/*/model/*",
+              "@entities/*/ui/*"
+            ],
+            "message": "Import slice public API via its index.ts (e.g. @entities/user)."
+          },
+          {
+            "group": ["antd", "antd/*", "antd-mobile", "antd-mobile/*", "@ant-design/*"],
+            "message": "UI libraries may only be imported inside src/shared/ui/**. Use the wrappers exported from @shared/ui."
+          },
+          {
+            "group": ["@contracts/*"],
+            "message": "@contracts/* (example JSON) may only be imported from src/pages/** or scripts/**."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["scripts/**/*.{mjs,ts}"],
+      "env": {
+        "node": true
+      },
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["src/shared/ui/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["../../*"],
+                "message": "Use path aliases instead of ../../ paths."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/pages/**", "scripts/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["../../*"],
+                "message": "Use path aliases instead of ../../ paths."
+              },
+              {
+                "group": [
+                  "@features/*/api/*",
+                  "@features/*/model/*",
+                  "@features/*/ui/*",
+                  "@entities/*/api/*",
+                  "@entities/*/model/*",
+                  "@entities/*/ui/*"
+                ],
+                "message": "Import slice public API via its index.ts."
+              },
+              {
+                "group": ["antd", "antd/*", "antd-mobile", "antd-mobile/*", "@ant-design/*"],
+                "message": "UI libraries may only be imported inside src/shared/ui/**."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

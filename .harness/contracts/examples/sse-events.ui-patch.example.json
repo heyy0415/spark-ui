@@ -1,0 +1,10 @@
+{
+  "event": "ui.patch",
+  "data": {
+    "runId": "run_20260903_000001",
+    "screenId": "refund-confirmation",
+    "components": [
+      { "id": "refund-summary", "type": "RefundConfirmCard", "props": { "orderId": "10001", "amount": "128.00", "currency": "CNY", "eligible": true, "estimatedDays": 3 } }
+    ]
+  }
+}

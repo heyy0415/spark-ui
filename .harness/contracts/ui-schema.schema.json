@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strato.local/contracts/v1/ui-schema.schema.json",
+  "title": "UiSchema",
+  "description": "Runtime → 前端。声明式 UI 描述：前端只渲染 components[].type 白名单内的组件，actions[] 通过 actionId 提交；confirmationToken 为不透明字符串，前端只回传不解析。禁止出现 URL / HTML / 脚本字段。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "screenId", "title", "components", "actions"],
+  "properties": {
+    "schemaVersion": { "const": "1.0", "description": "UI Schema 协议版本" },
+    "screenId": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z0-9-]+$" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "components": {
+      "type": "array",
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/component" }
+    },
+    "actions": {
+      "type": "array",
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/action" }
+    }
+  },
+  "$defs": {
+    "componentType": {
+      "description": "前端白名单组件。新增 = 改本 enum + 前端注册表 + 后端生成逻辑，三处同一 change。",
+      "type": "string",
+      "enum": ["Form", "Card", "Table", "ResultCard", "ConfirmationCard", "OrderCard", "RefundConfirmCard"]
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "props"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z0-9-]+$" },
+        "type": { "$ref": "#/$defs/componentType" },
+        "props": {
+          "type": "object",
+          "description": "组件专属属性，自由 JSON；各组件 props 的前端约束在 fronted/src/shared/ui/generate/types.ts 中定义"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "type": "object", "properties": { "type": { "const": "Form" } }, "required": ["type"] },
+          "then": { "type": "object", "properties": { "props": { "$ref": "#/$defs/formProps" } } }
+        }
+      ]
+    },
+    "formProps": {
+      "type": "object",
+      "required": ["fields"],
+      "properties": {
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/formField" }
+        }
+      }
+    },
+    "formField": {
+      "description": "Form 字段声明。确认时 formData 只允许包含这里声明的 name（agent-safety §3）。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type", "label"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$" },
+        "type": { "type": "string", "enum": ["text", "select", "number"] },
+        "label": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "required": { "type": "boolean", "default": false },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "value"],
+            "properties": {
+              "label": { "type": "string", "minLength": 1, "maxLength": 80 },
+              "value": { "type": "string", "minLength": 1, "maxLength": 64 }
+            }
+          }
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "label", "style"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z0-9-]+$" },
+        "type": { "type": "string", "enum": ["submit", "cancel"] },
+        "label": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "style": { "type": "string", "enum": ["default", "primary", "danger"] },
+        "confirmationToken": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 256,
+          "description": "后端签发的不透明 Token，绑定 runId / actionId / argsDigest / 过期时间，一次性"
+        }
+      }
+    }
+  }
+}

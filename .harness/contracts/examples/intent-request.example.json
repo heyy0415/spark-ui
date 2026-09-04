@@ -1,0 +1,12 @@
+{
+  "conversationId": "conv_001",
+  "message": "帮我把这个订单退款",
+  "pageContext": {
+    "page": "order-detail",
+    "selectedEntity": { "type": "order", "id": "10001" }
+  },
+  "clientCapabilities": {
+    "uiSchemaVersion": "1.0",
+    "components": ["Form", "Card", "Table", "ResultCard", "ConfirmationCard", "OrderCard", "RefundConfirmCard"]
+  }
+}

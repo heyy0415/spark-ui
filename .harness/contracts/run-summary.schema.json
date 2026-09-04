@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strato.local/contracts/v1/run-summary.schema.json",
+  "title": "RunSummary",
+  "description": "Runtime → 前端，GET /agent/runs/{runId} 响应。Run 的当前状态与最近一次下发的 UI Schema；不含执行计划、工具参数、模型输出。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["runId", "conversationId", "state", "createdAt", "updatedAt"],
+  "properties": {
+    "runId": { "type": "string", "pattern": "^run_[A-Za-z0-9_-]{1,60}$" },
+    "conversationId": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "state": {
+      "type": "string",
+      "enum": ["CREATED", "PLANNING", "EXECUTING", "WAITING_CONFIRMATION", "COMPLETED", "FAILED"]
+    },
+    "currentUi": {
+      "$ref": "https://strato.local/contracts/v1/ui-schema.schema.json",
+      "description": "最近一次 ui.replace 的内容；WAITING_CONFIRMATION 时必有"
+    },
+    "failureCode": {
+      "type": "string",
+      "enum": ["CONFIRMATION_REJECTED", "TOOL_SELECTION_INVALID", "TOOL_OUTPUT_INVALID", "TOOL_EXECUTION_FAILED", "INTERNAL_ERROR"],
+      "description": "state = FAILED 时必有"
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": { "type": "object", "properties": { "state": { "const": "FAILED" } }, "required": ["state"] },
+      "then": { "type": "object", "properties": { "failureCode": true }, "required": ["failureCode"] }
+    },
+    {
+      "if": { "type": "object", "properties": { "state": { "const": "WAITING_CONFIRMATION" } }, "required": ["state"] },
+      "then": { "type": "object", "properties": { "currentUi": true }, "required": ["currentUi"] }
+    }
+  ]
+}

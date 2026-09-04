@@ -1,0 +1,18 @@
+{
+  "toolId": "order.list.search", "version": "1.0.0", "domain": "order",
+  "name": "搜索订单", "description": "按状态筛选当前租户下的订单列表。只读，无副作用。",
+  "protocol": "in-process",
+  "inputSchema": { "type": "object", "additionalProperties": false,
+    "properties": { "status": { "type": "string", "enum": ["PAID", "SHIPPED", "COMPLETED", "REFUNDED", "CANCELLED"] },
+                    "limit": { "type": "integer", "minimum": 1, "maximum": 50 } } },
+  "outputSchema": { "type": "object", "additionalProperties": false, "required": ["items", "total"],
+    "properties": {
+      "items": { "type": "array", "items": { "type": "object", "required": ["orderId", "productName", "amount", "status"],
+        "properties": { "orderId": { "type": "string" }, "productName": { "type": "string" },
+          "amount": { "type": "string" }, "status": { "type": "string" } } } },
+      "total": { "type": "integer", "minimum": 0 } } },
+  "risk": { "level": "low", "sideEffect": false, "reversible": true, "confirmation": "never" },
+  "authorization": { "permission": "order:read" },
+  "execution": { "timeoutMs": 3000, "maxRetries": 1, "idempotency": "none" },
+  "owner": { "team": "order-platform" }, "status": "active"
+}

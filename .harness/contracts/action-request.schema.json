@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strato.local/contracts/v1/action-request.schema.json",
+  "title": "ActionRequest",
+  "description": "前端 → Agent Runtime，POST /agent/runs/{runId}/actions/{actionId} 请求体。confirmationToken 原样回传；formData 只允许包含当前屏 Form.props.fields[] 声明的字段名，其余键被拒绝（CONFIRMATION_REJECTED）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["confirmationToken", "formData"],
+  "properties": {
+    "confirmationToken": { "type": "string", "minLength": 16, "maxLength": 256 },
+    "formData": {
+      "type": "object",
+      "description": "用户在确认屏填写的字段；键名白名单由后端按 UI Schema 校验",
+      "maxProperties": 16,
+      "propertyNames": { "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$" },
+      "additionalProperties": {
+        "description": "只允许标量值",
+        "anyOf": [{ "type": "string", "maxLength": 512 }, { "type": "number" }, { "type": "boolean" }]
+      }
+    }
+  }
+}

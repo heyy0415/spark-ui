@@ -1,0 +1,97 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::               (v3.5.16)
+
+2026-09-04T17:19:49.069+08:00  INFO 4941 --- [           main] com.strato.app.StratoApplication         : Starting StratoApplication using Java 21.0.11 with PID 4941 (/Users/fangtao/strato_ui/backed/app/target/app.jar started by fangtao in /Users/fangtao/strato_ui)
+2026-09-04T17:19:49.070+08:00  INFO 4941 --- [           main] com.strato.app.StratoApplication         : No active profile set, falling back to 1 default profile: "default"
+2026-09-04T17:19:49.571+08:00  INFO 4941 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-09-04T17:19:49.578+08:00  INFO 4941 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-09-04T17:19:49.578+08:00  INFO 4941 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.55]
+2026-09-04T17:19:49.588+08:00  INFO 4941 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-09-04T17:19:49.589+08:00  INFO 4941 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 495 ms
+2026-09-04T17:19:49.720+08:00  WARN 4941 --- [           main] c.s.runtime.infra.llm.LlmConfiguration   : STRATO_LLM_BASE_URL / STRATO_LLM_API_KEY / STRATO_LLM_MODEL not fully set; using rule-based planner
+2026-09-04T17:19:49.724+08:00  INFO 4941 --- [           main] .a.i.InMemoryPrincipalPermissionResolver : permission table loaded: 2 principals
+2026-09-04T17:19:49.736+08:00  INFO 4941 --- [           main] c.s.g.application.InvokeToolUseCase      : gateway handlers registered: [order.list.search@1.0.0, order.detail.get@1.0.0, refund.status.get@1.0.0, refund.preview@1.3.0, refund.eligibility.check@1.2.0, refund.create@2.1.0]
+2026-09-04T17:19:49.939+08:00  INFO 4941 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-09-04T17:19:49.970+08:00  INFO 4941 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-09-04T17:19:49.976+08:00  INFO 4941 --- [           main] com.strato.app.StratoApplication         : Started StratoApplication in 1.131 seconds (process running for 1.346)
+2026-09-04T17:19:50.033+08:00  INFO 4941 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.detail.get@1.0.0 domain=order risk=low
+2026-09-04T17:19:50.033+08:00  INFO 4941 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.list.search@1.0.0 domain=order risk=low
+2026-09-04T17:19:50.034+08:00  INFO 4941 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.eligibility.check@1.2.0 domain=refund risk=low
+2026-09-04T17:19:50.035+08:00  INFO 4941 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.preview@1.3.0 domain=refund risk=low
+2026-09-04T17:19:50.035+08:00  INFO 4941 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.create@2.1.0 domain=refund risk=high
+2026-09-04T17:19:50.035+08:00  INFO 4941 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.status.get@1.0.0 domain=refund risk=low
+2026-09-04T17:19:50.035+08:00  INFO 4941 --- [           main] c.s.r.infra.StartupManifestRegistrar     : startup registration done: 6 tools from 2 sources
+2026-09-04T17:19:50.035+08:00  INFO 4941 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: running 4 checks
+2026-09-04T17:19:50.054+08:00  INFO 4941 --- [           main] c.s.c.i.selfcheck.ContractsSelfCheck     : selfcheck: contracts 9 schemas, 20 examples OK
+2026-09-04T17:19:50.054+08:00  INFO 4941 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: contracts OK
+2026-09-04T17:19:50.055+08:00  INFO 4941 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
+2026-09-04T17:19:50.055+08:00  INFO 4941 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: plan 3 steps, step3 requiresConfirmation OK
+2026-09-04T17:19:50.055+08:00  INFO 4941 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: invalid toolId rejected OK
+2026-09-04T17:19:50.055+08:00  INFO 4941 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: plan OK
+2026-09-04T17:19:50.056+08:00  INFO 4941 --- [           main] c.s.r.infra.selfcheck.TokenSelfCheck     : selfcheck: token expired/replayed/digest-mismatch/extra-key rejected OK
+2026-09-04T17:19:50.056+08:00  INFO 4941 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: confirmation token OK
+2026-09-04T17:19:50.057+08:00  INFO 4941 --- [           main] c.s.d.refund.application.RefundService   : refund created refundId=rf_8416e6f7fcbf orderId=10003 tenant=tenant_001
+2026-09-04T17:19:50.057+08:00  INFO 4941 --- [           main] c.s.d.r.i.s.RefundIdempotencySelfCheck   : selfcheck: refund.create idempotent OK
+2026-09-04T17:19:50.057+08:00  INFO 4941 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: refund.create idempotent OK
+2026-09-04T17:19:52.710+08:00  INFO 4941 --- [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-09-04T17:19:52.710+08:00  INFO 4941 --- [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-09-04T17:19:52.711+08:00  INFO 4941 --- [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-09-04T17:19:52.731+08:00  INFO 4941 --- [nio-8080-exec-1] c.s.registry.api.ToolRegistryController  : search_tools, domain=refund userId=user_001
+2026-09-04T17:19:52.731+08:00  INFO 4941 --- [nio-8080-exec-1] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
+2026-09-04T17:19:52.783+08:00  INFO 4941 --- [nio-8080-exec-2] c.s.registry.api.ToolRegistryController  : search_tools, domain=refund userId=user_002
+2026-09-04T17:19:52.784+08:00  INFO 4941 --- [nio-8080-exec-2] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_002 tenant=tenant_001 candidates=3
+2026-09-04T17:19:52.903+08:00  INFO 4941 --- [nio-8080-exec-4] c.s.registry.api.ToolRegistryController  : register_tool, toolId=refund.create
+2026-09-04T17:19:52.941+08:00  INFO 4941 --- [nio-8080-exec-6] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=refund.eligibility.check version=1.2.0 runId=run_probe toolCallId=tc_p1
+2026-09-04T17:19:52.948+08:00  INFO 4941 --- [nio-8080-exec-6] AUDIT                                    : audit runId=run_probe toolCallId=tc_p1 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=44136fa355b3678a1146ad16f7e8649e status=failed:INPUT_INVALID durationMs=6 traceId=null
+2026-09-04T17:19:52.979+08:00  INFO 4941 --- [nio-8080-exec-7] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=refund.create version=2.1.0 runId=run_probe toolCallId=tc_p2
+2026-09-04T17:19:52.980+08:00  INFO 4941 --- [nio-8080-exec-7] AUDIT                                    : audit runId=run_probe toolCallId=tc_p2 toolId=refund.create version=2.1.0 principal=user_002@tenant_001 argsDigest=9abfdec0371d3b10f5a869eba78f81b6 status=failed:FORBIDDEN durationMs=0 traceId=null
+2026-09-04T17:19:53.113+08:00  INFO 4941 --- [nio-8080-exec-6] c.strato.runtime.api.AgentRunController  : start_run, conversationId=conv_001 userId=user_001 tenantId=tenant_001
+2026-09-04T17:19:53.115+08:00  INFO 4941 --- [    agent-run-1] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
+2026-09-04T17:19:53.115+08:00  INFO 4941 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_772d8ce4f75641d9 domain=refund steps=3 planner=rule-based
+2026-09-04T17:19:53.120+08:00  INFO 4941 --- [    agent-run-1] AUDIT                                    : audit runId=run_772d8ce4f75641d9 toolCallId=tc_000001 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-04T17:19:53.122+08:00  INFO 4941 --- [    agent-run-1] AUDIT                                    : audit runId=run_772d8ce4f75641d9 toolCallId=tc_000002 toolId=refund.preview version=1.3.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-04T17:19:53.272+08:00  INFO 4941 --- [nio-8080-exec-1] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_772d8ce4f75641d9 actionId=confirm-refund userId=user_001
+2026-09-04T17:19:53.273+08:00  INFO 4941 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_772d8ce4f75641d9 step=3 tool=refund.create
+2026-09-04T17:19:53.274+08:00  INFO 4941 --- [    agent-run-2] AUDIT                                    : audit runId=run_772d8ce4f75641d9 toolCallId=tc_000003 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-04T17:19:53.275+08:00  INFO 4941 --- [ gateway-tool-4] c.s.d.refund.application.RefundService   : refund created refundId=rf_8a79a1486c55 orderId=10001 tenant=tenant_001
+2026-09-04T17:19:53.275+08:00  INFO 4941 --- [    agent-run-2] AUDIT                                    : audit runId=run_772d8ce4f75641d9 toolCallId=tc_000004 toolId=refund.create version=2.1.0 principal=user_001@tenant_001 argsDigest=524c5f36375537fdb1ff539459f71ed4 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-04T17:19:53.276+08:00  INFO 4941 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmed step executed runId=run_772d8ce4f75641d9 tokenStep=3
+2026-09-04T17:19:53.369+08:00  INFO 4941 --- [nio-8080-exec-6] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_772d8ce4f75641d9 actionId=confirm-refund userId=user_001
+2026-09-04T17:19:53.370+08:00  WARN 4941 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : confirmation rejected runId=run_772d8ce4f75641d9 state=COMPLETED reason=run not waiting for confirmation: COMPLETED
+2026-09-04T17:19:53.426+08:00  INFO 4941 --- [nio-8080-exec-9] c.strato.runtime.api.AgentRunController  : start_run, conversationId=conv_002 userId=user_001 tenantId=tenant_001
+2026-09-04T17:19:53.427+08:00  INFO 4941 --- [    agent-run-4] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
+2026-09-04T17:19:53.427+08:00  INFO 4941 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_7e7161de7de84ffb domain=refund steps=3 planner=rule-based
+2026-09-04T17:19:53.428+08:00  INFO 4941 --- [    agent-run-4] AUDIT                                    : audit runId=run_7e7161de7de84ffb toolCallId=tc_000005 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-04T17:19:53.428+08:00  INFO 4941 --- [    agent-run-4] AUDIT                                    : audit runId=run_7e7161de7de84ffb toolCallId=tc_000006 toolId=refund.preview version=1.3.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-04T17:19:53.484+08:00  INFO 4941 --- [nio-8080-exec-2] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_7e7161de7de84ffb actionId=confirm-refund userId=user_001
+2026-09-04T17:19:53.485+08:00  WARN 4941 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : run failed runId=run_7e7161de7de84ffb code=CONFIRMATION_REJECTED reason=formData key not allowed: amount
+2026-09-04T17:19:53.516+08:00  INFO 4941 --- [nio-8080-exec-5] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=refund.status.get version=1.0.0 runId=run_probe toolCallId=tc_10002
+2026-09-04T17:19:53.517+08:00  INFO 4941 --- [nio-8080-exec-5] AUDIT                                    : audit runId=run_probe toolCallId=tc_10002 toolId=refund.status.get version=1.0.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=null
+2026-09-04T17:19:53.540+08:00  INFO 4941 --- [nio-8080-exec-7] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=refund.status.get version=1.0.0 runId=run_probe toolCallId=tc_10001
+2026-09-04T17:19:53.541+08:00  INFO 4941 --- [nio-8080-exec-7] AUDIT                                    : audit runId=run_probe toolCallId=tc_10001 toolId=refund.status.get version=1.0.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=null
+2026-09-04T17:19:53.564+08:00  INFO 4941 --- [nio-8080-exec-9] c.strato.runtime.api.AgentRunController  : start_run, conversationId=conv_m2 userId=user_001 tenantId=tenant_001
+2026-09-04T17:19:53.565+08:00  INFO 4941 --- [    agent-run-6] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
+2026-09-04T17:19:53.565+08:00  INFO 4941 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_de6aa27e63d849e1 domain=refund steps=3 planner=rule-based
+2026-09-04T17:19:53.566+08:00  INFO 4941 --- [    agent-run-6] AUDIT                                    : audit runId=run_de6aa27e63d849e1 toolCallId=tc_000007 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-04T17:19:53.567+08:00  INFO 4941 --- [    agent-run-6] AUDIT                                    : audit runId=run_de6aa27e63d849e1 toolCallId=tc_000008 toolId=refund.preview version=1.3.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-04T17:19:53.626+08:00  INFO 4941 --- [nio-8080-exec-3] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_de6aa27e63d849e1 actionId=confirm-refund userId=user_001
+2026-09-04T17:19:53.626+08:00  INFO 4941 --- [nio-8080-exec-2] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_de6aa27e63d849e1 actionId=confirm-refund userId=user_001
+2026-09-04T17:19:53.626+08:00  WARN 4941 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : confirmation rejected runId=run_de6aa27e63d849e1 state=WAITING_CONFIRMATION reason=another confirmation is in progress
+2026-09-04T17:19:53.626+08:00  INFO 4941 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_de6aa27e63d849e1 step=3 tool=refund.create
+2026-09-04T17:19:53.628+08:00  INFO 4941 --- [    agent-run-8] AUDIT                                    : audit runId=run_de6aa27e63d849e1 toolCallId=tc_000009 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-04T17:19:53.629+08:00  INFO 4941 --- [gateway-tool-12] c.s.d.refund.application.RefundService   : refund created refundId=rf_0a8d7abdec76 orderId=10002 tenant=tenant_001
+2026-09-04T17:19:53.629+08:00  INFO 4941 --- [    agent-run-8] AUDIT                                    : audit runId=run_de6aa27e63d849e1 toolCallId=tc_000010 toolId=refund.create version=2.1.0 principal=user_001@tenant_001 argsDigest=1512eba97d21fc43fc900d029c0090a3 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-04T17:19:53.629+08:00  INFO 4941 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : confirmed step executed runId=run_de6aa27e63d849e1 tokenStep=3
+2026-09-04T17:19:53.708+08:00  INFO 4941 --- [io-8080-exec-10] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=refund.status.get version=1.0.0 runId=run_probe toolCallId=tc_10002
+2026-09-04T17:19:53.709+08:00  INFO 4941 --- [io-8080-exec-10] AUDIT                                    : audit runId=run_probe toolCallId=tc_10002 toolId=refund.status.get version=1.0.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=null
+2026-09-04T17:19:53.778+08:00  INFO 4941 --- [nio-8080-exec-3] c.strato.runtime.api.AgentRunController  : start_run, conversationId=conv_003 userId=user_001 tenantId=tenant_001
+2026-09-04T17:19:53.809+08:00  INFO 4941 --- [nio-8080-exec-5] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_nope actionId=x userId=user_001
+2026-09-04T17:19:53.831+08:00  INFO 4941 --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-09-04T17:19:53.835+08:00  INFO 4941 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete

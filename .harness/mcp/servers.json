@@ -1,0 +1,16 @@
+{
+  "$schema": "https://example.com/mcp-servers.schema.json",
+  "_comment": "在你接入实际 MCP server 之前，把对应配置补全。",
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/fangtao/strato_ui"],
+      "purpose": "受限文件读写沙箱（仓库根）"
+    },
+    "fetch": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-fetch"],
+      "purpose": "Agent 自主拉取 PRD / 设计稿 / API 文档"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0",
+  "screenId": "playground-unknown",
+  "title": "未知组件夹具",
+  "components": [
+    {
+      "id": "known",
+      "type": "Card",
+      "props": { "title": "这个能渲染", "description": "白名单内组件" }
+    },
+    { "id": "mystery", "type": "Foo", "props": { "anything": true } }
+  ],
+  "actions": []
+}

@@ -1,0 +1,27 @@
+event:run.started
+data:{"runId":"run_de6aa27e63d849e1","conversationId":"conv_m2","at":"2026-09-04T09:19:53.564812Z"}
+
+event:tool.selected
+data:{"runId":"run_de6aa27e63d849e1","toolCallId":"tc_000007","toolId":"refund.eligibility.check","version":"1.2.0","displayName":"检查退款资格"}
+
+event:tool.started
+data:{"runId":"run_de6aa27e63d849e1","toolCallId":"tc_000007","at":"2026-09-04T09:19:53.565572Z"}
+
+event:tool.completed
+data:{"runId":"run_de6aa27e63d849e1","toolCallId":"tc_000007","status":"succeeded","durationMs":0,"summary":"订单满足退款条件"}
+
+event:tool.selected
+data:{"runId":"run_de6aa27e63d849e1","toolCallId":"tc_000008","toolId":"refund.preview","version":"1.3.0","displayName":"退款试算"}
+
+event:tool.started
+data:{"runId":"run_de6aa27e63d849e1","toolCallId":"tc_000008","at":"2026-09-04T09:19:53.566612Z"}
+
+event:tool.completed
+data:{"runId":"run_de6aa27e63d849e1","toolCallId":"tc_000008","status":"succeeded","durationMs":0,"summary":"可退 299.00 元，预计 3 天到账"}
+
+event:ui.replace
+data:{"runId":"run_de6aa27e63d849e1","ui":{"schemaVersion":"1.0","screenId":"refund-confirmation","title":"确认退款","components":[{"id":"order","type":"OrderCard","props":{"orderId":"10002","productName":"订单 10002","amount":"299.00","currency":"CNY","status":"PAID"}},{"id":"refund-summary","type":"RefundConfirmCard","props":{"orderId":"10002","amount":"299.00","currency":"CNY","eligible":true,"estimatedDays":3}},{"id":"refund-form","type":"Form","props":{"fields":[{"name":"reason","type":"select","label":"退款原因","required":true,"options":[{"label":"商品破损","value":"DAMAGED"},{"label":"未收到货","value":"NOT_RECEIVED"},{"label":"买错了","value":"CHANGED_MIND"}]}]}}],"actions":[{"id":"confirm-refund","type":"submit","label":"确认退款","style":"danger","confirmationToken":"ct_yHExrE3X09_HSuX9BS-UK7Zqo_Rb62TX"},{"id":"cancel","type":"cancel","label":"取消","style":"default"}]}}
+
+event:confirmation.required
+data:{"runId":"run_de6aa27e63d849e1","actionId":"confirm-refund","expiresAt":"2026-09-04T09:29:53.567387Z"}
+

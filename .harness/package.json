@@ -1,0 +1,24 @@
+{
+  "name": "strato-harness",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Harness 自用脚本的依赖。不是业务工程；fronted/ 与 backed/ 各自独立。",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "doctor": "node scripts/harness-doctor.mjs",
+    "new-change": "node scripts/new-change.mjs",
+    "check-contracts": "node scripts/check-contracts.mjs",
+    "check-module-deps": "node scripts/check-module-deps.mjs",
+    "ci": "node scripts/ci.mjs",
+    "e2e-backend": "bash scripts/e2e-backend.sh",
+    "e2e-frontend": "node scripts/e2e-frontend.mjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "puppeteer-core": "^25.10.0"
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strato.local/contracts/v1/tool-manifest.schema.json",
+  "title": "ToolManifest",
+  "description": "领域服务 → Tool Registry 的工具注册清单。toolId@version 一经注册不可变。description 视为不可信文本（≤ 500 字符，注入 prompt 前转义）。约束：risk.level=high ⇒ risk.confirmation=required；risk.sideEffect=true ⇒ execution.idempotency=required。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["toolId", "version", "domain", "name", "description", "protocol", "inputSchema", "outputSchema", "risk", "authorization", "execution", "owner", "status"],
+  "properties": {
+    "toolId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*){1,3}$",
+      "description": "形如 {domain}.{resource}.{verb}，小写点分"
+    },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$", "description": "semver，已发布不可变" },
+    "domain": { "type": "string", "pattern": "^[a-z][a-z0-9]*$", "maxLength": 32 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 80, "description": "用户可读名称，用于 tool.selected.displayName" },
+    "description": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "protocol": { "type": "string", "enum": ["in-process", "http", "mcp"], "description": "首期只实现 in-process" },
+    "inputSchema": { "$ref": "#/$defs/jsonSchemaObject" },
+    "outputSchema": { "$ref": "#/$defs/jsonSchemaObject" },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "sideEffect", "reversible", "confirmation"],
+      "properties": {
+        "level": { "type": "string", "enum": ["low", "medium", "high"] },
+        "sideEffect": { "type": "boolean" },
+        "reversible": { "type": "boolean" },
+        "confirmation": { "type": "string", "enum": ["never", "required"] }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["permission"],
+      "properties": {
+        "permission": { "type": "string", "pattern": "^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$", "description": "如 refund:create" }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timeoutMs", "maxRetries", "idempotency"],
+      "properties": {
+        "timeoutMs": { "type": "integer", "minimum": 100, "maximum": 60000 },
+        "maxRetries": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "idempotency": { "type": "string", "enum": ["none", "required"] }
+      }
+    },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["team"],
+      "properties": {
+        "team": { "type": "string", "minLength": 1, "maxLength": 64 }
+      }
+    },
+    "status": { "type": "string", "enum": ["draft", "canary", "active", "deprecated"], "description": "只有 active / canary 可被 Registry 搜索发现" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "properties": { "risk": { "type": "object", "properties": { "level": { "const": "high" } }, "required": ["level"] } },
+        "required": ["risk"]
+      },
+      "then": {
+        "type": "object",
+        "properties": { "risk": { "type": "object", "properties": { "confirmation": { "const": "required" } } } }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": { "risk": { "type": "object", "properties": { "sideEffect": { "const": true } }, "required": ["sideEffect"] } },
+        "required": ["risk"]
+      },
+      "then": {
+        "type": "object",
+        "properties": { "execution": { "type": "object", "properties": { "idempotency": { "const": "required" } } } }
+      }
+    }
+  ],
+  "$defs": {
+    "jsonSchemaObject": {
+      "description": "内嵌的 JSON Schema（对象类型），由 Gateway 用来校验工具输入 / 输出",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "object" }
+      }
+    }
+  }
+}

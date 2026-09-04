@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strato.local/contracts/v1/tool-invoke.schema.json",
+  "title": "ToolInvoke",
+  "description": "Agent Runtime ↔ Tool Gateway，POST /internal/tool-gateway/invoke 的请求与响应对。Gateway 负责输入 / 输出 Schema 校验、鉴权、幂等、超时重试、审计。arguments / output 为按 Manifest inputSchema / outputSchema 校验的自由 JSON。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["request", "response"],
+  "properties": {
+    "request": { "$ref": "#/$defs/request" },
+    "response": { "$ref": "#/$defs/response" }
+  },
+  "$defs": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["toolId", "toolVersion", "arguments", "executionContext"],
+      "properties": {
+        "toolId": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*){1,3}$" },
+        "toolVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "arguments": { "type": "object", "description": "按 Manifest inputSchema 校验" },
+        "executionContext": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runId", "toolCallId", "userId", "tenantId", "idempotencyKey"],
+          "properties": {
+            "runId": { "type": "string", "pattern": "^run_[A-Za-z0-9_-]{1,60}$" },
+            "toolCallId": { "type": "string", "pattern": "^tc_[A-Za-z0-9_-]{1,60}$" },
+            "userId": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "tenantId": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 128, "description": "格式 {runId}-{toolId}-{seq}" },
+            "traceId": { "type": "string", "minLength": 1, "maxLength": 128 }
+          }
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["toolCallId", "status", "durationMs"],
+      "properties": {
+        "toolCallId": { "type": "string", "pattern": "^tc_[A-Za-z0-9_-]{1,60}$" },
+        "status": { "type": "string", "enum": ["succeeded", "failed"] },
+        "durationMs": { "type": "integer", "minimum": 0 },
+        "output": { "type": "object", "description": "status=succeeded 时存在；已按 outputSchema 校验并脱敏" },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message"],
+          "description": "status=failed 时存在",
+          "properties": {
+            "code": { "type": "string", "enum": ["INPUT_INVALID", "OUTPUT_INVALID", "FORBIDDEN", "TOOL_NOT_FOUND", "TIMEOUT", "HANDLER_ERROR"] },
+            "message": { "type": "string", "minLength": 1, "maxLength": 512 }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "type": "object", "properties": { "status": { "const": "succeeded" } }, "required": ["status"] },
+          "then": { "type": "object", "properties": { "output": true }, "required": ["output"] }
+        },
+        {
+          "if": { "type": "object", "properties": { "status": { "const": "failed" } }, "required": ["status"] },
+          "then": { "type": "object", "properties": { "error": true }, "required": ["error"] }
+        }
+      ]
+    }
+  }
+}

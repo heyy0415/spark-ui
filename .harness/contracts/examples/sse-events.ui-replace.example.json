@@ -1,0 +1,20 @@
+{
+  "event": "ui.replace",
+  "data": {
+    "runId": "run_20260903_000001",
+    "ui": {
+      "schemaVersion": "1.0",
+      "screenId": "refund-confirmation",
+      "title": "确认退款",
+      "components": [
+        { "id": "order", "type": "OrderCard", "props": { "orderId": "10001", "productName": "示例商品", "amount": "128.00", "currency": "CNY", "status": "PAID" } },
+        { "id": "refund-summary", "type": "RefundConfirmCard", "props": { "orderId": "10001", "amount": "128.00", "currency": "CNY", "eligible": true } },
+        { "id": "refund-form", "type": "Form", "props": { "fields": [ { "name": "reason", "type": "select", "label": "退款原因", "required": true, "options": [ { "label": "商品破损", "value": "DAMAGED" } ] } ] } }
+      ],
+      "actions": [
+        { "id": "confirm-refund", "type": "submit", "label": "确认退款", "style": "danger", "confirmationToken": "ct_9f8e7d6c5b4a39281706f5e4d3c2b1a0" },
+        { "id": "cancel", "type": "cancel", "label": "取消", "style": "default" }
+      ]
+    }
+  }
+}

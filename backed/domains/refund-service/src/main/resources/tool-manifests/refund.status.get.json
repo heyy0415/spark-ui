@@ -1,0 +1,16 @@
+{
+  "toolId": "refund.status.get", "version": "1.0.0", "domain": "refund",
+  "name": "查询退款状态", "description": "查询订单下的退款单列表与状态。只读。",
+  "protocol": "in-process",
+  "inputSchema": { "type": "object", "additionalProperties": false, "required": ["orderId"],
+    "properties": { "orderId": { "type": "string", "minLength": 1, "maxLength": 64 } } },
+  "outputSchema": { "type": "object", "additionalProperties": false, "required": ["orderId", "refunds"],
+    "properties": { "orderId": { "type": "string" },
+      "refunds": { "type": "array", "items": { "type": "object", "required": ["refundId", "amount", "status", "createdAt"],
+        "properties": { "refundId": { "type": "string" }, "amount": { "type": "string" },
+          "status": { "type": "string" }, "createdAt": { "type": "string", "format": "date-time" } } } } } },
+  "risk": { "level": "low", "sideEffect": false, "reversible": true, "confirmation": "never" },
+  "authorization": { "permission": "refund:read" },
+  "execution": { "timeoutMs": 3000, "maxRetries": 1, "idempotency": "none" },
+  "owner": { "team": "refund-platform" }, "status": "active"
+}

@@ -1,0 +1,19 @@
+{
+  "toolId": "order.detail.get", "version": "1.0.0", "domain": "order",
+  "name": "查询订单详情", "description": "按订单号查询订单基本信息、金额与状态。只读，无副作用。",
+  "protocol": "in-process",
+  "inputSchema": { "type": "object", "additionalProperties": false, "required": ["orderId"],
+    "properties": { "orderId": { "type": "string", "minLength": 1, "maxLength": 64 } } },
+  "outputSchema": { "type": "object", "additionalProperties": false,
+    "required": ["orderId", "productName", "amount", "currency", "status", "createdAt"],
+    "properties": {
+      "orderId": { "type": "string" }, "productName": { "type": "string" },
+      "amount": { "type": "string", "pattern": "^\\d+(\\.\\d{1,2})?$" },
+      "currency": { "type": "string", "enum": ["CNY"] },
+      "status": { "type": "string", "enum": ["PAID", "SHIPPED", "COMPLETED", "REFUNDED", "CANCELLED"] },
+      "createdAt": { "type": "string", "format": "date-time" } } },
+  "risk": { "level": "low", "sideEffect": false, "reversible": true, "confirmation": "never" },
+  "authorization": { "permission": "order:read" },
+  "execution": { "timeoutMs": 3000, "maxRetries": 1, "idempotency": "none" },
+  "owner": { "team": "order-platform" }, "status": "active"
+}

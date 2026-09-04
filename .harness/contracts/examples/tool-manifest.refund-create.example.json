@@ -1,0 +1,49 @@
+{
+  "toolId": "refund.create",
+  "version": "2.1.0",
+  "domain": "refund",
+  "name": "创建退款",
+  "description": "为满足条件的订单创建退款单。有副作用、不可逆，必须经用户确认，调用需携带幂等键。",
+  "protocol": "in-process",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["orderId", "amount", "reason"],
+    "properties": {
+      "orderId": { "type": "string", "minLength": 1, "maxLength": 64 },
+      "amount": { "type": "string", "pattern": "^\\d+(\\.\\d{1,2})?$" },
+      "reason": { "type": "string", "enum": ["DAMAGED", "NOT_RECEIVED", "CHANGED_MIND"] }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["refundId", "orderId", "amount", "currency", "status", "createdAt"],
+    "properties": {
+      "refundId": { "type": "string" },
+      "orderId": { "type": "string" },
+      "amount": { "type": "string", "pattern": "^\\d+(\\.\\d{1,2})?$" },
+      "currency": { "type": "string", "enum": ["CNY"] },
+      "status": { "type": "string", "enum": ["SUBMITTED", "PROCESSING", "COMPLETED", "REJECTED"] },
+      "createdAt": { "type": "string", "format": "date-time" }
+    }
+  },
+  "risk": {
+    "level": "high",
+    "sideEffect": true,
+    "reversible": false,
+    "confirmation": "required"
+  },
+  "authorization": {
+    "permission": "refund:create"
+  },
+  "execution": {
+    "timeoutMs": 5000,
+    "maxRetries": 0,
+    "idempotency": "required"
+  },
+  "owner": {
+    "team": "refund-platform"
+  },
+  "status": "active"
+}

@@ -1,0 +1,1 @@
+{ "event": "tool.completed", "data": { "runId": "run_20260903_000001", "toolCallId": "tc_000001", "status": "succeeded", "durationMs": 42, "summary": "订单 10001 满足退款条件" } }
