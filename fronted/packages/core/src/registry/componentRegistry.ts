@@ -17,7 +17,8 @@ type Registry = Readonly<Record<string, RegisteredComponent>>;
 const asRegistered = <P>(c: ReactComponentType<RenderedComponentProps<P>>): RegisteredComponent =>
   c as unknown as RegisteredComponent;
 
-export const desktopRegistry: Registry = {
+// Object.freeze：宿主运行期不得向白名单写入（agent-safety §4「随包走」的保证之一）
+export const desktopRegistry: Registry = Object.freeze({
   Form: asRegistered(
     lazy(() => import('../components/desktop/Form').then((m) => ({ default: m.FormDesktop }))),
   ),
@@ -51,9 +52,9 @@ export const desktopRegistry: Registry = {
       })),
     ),
   ),
-};
+});
 
-export const mobileRegistry: Registry = {
+export const mobileRegistry: Registry = Object.freeze({
   Form: asRegistered(
     lazy(() => import('../components/mobile/Form').then((m) => ({ default: m.FormMobile }))),
   ),
@@ -87,6 +88,6 @@ export const mobileRegistry: Registry = {
       })),
     ),
   ),
-};
+});
 
 export const REGISTRY_KEYS: readonly string[] = Object.keys(desktopRegistry);

@@ -40,7 +40,13 @@ export function SchemaRenderer({ ui, onFormChange }: SchemaRendererProps) {
               <UnknownComponent key={c.id} id={c.id} type={type} reason="组件未在白名单注册表中" />
             );
           }
-          const schema = PROPS_SCHEMAS[type as keyof typeof PROPS_SCHEMAS];
+          const schema: (typeof PROPS_SCHEMAS)[keyof typeof PROPS_SCHEMAS] | undefined =
+            PROPS_SCHEMAS[type as keyof typeof PROPS_SCHEMAS];
+          if (!schema) {
+            // 注册表与 PROPS_SCHEMAS 不一致（理论上被 check-registry 拦截）：走占位而不是抛 TypeError
+            console.error('[strato-ui] no props schema for', type, 'id=', c.id);
+            return <UnknownComponent key={c.id} id={c.id} type={type} reason="组件缺少属性约定" />;
+          }
           const parsed = schema.safeParse(c.props);
           if (!parsed.success) {
             console.error('[strato-ui] invalid props for', type, c.id, parsed.error.issues);

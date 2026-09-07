@@ -26,7 +26,7 @@
 - **金额、ID 一律 `string`**；时间 ISO-8601 字符串。
 - 所有跨边界数据（HTTP、SSE、LLM 输出、工具输出）进入应用前必须按 `.harness/contracts/` 中的 Schema 校验。
 - **Agent Runtime 不得直连领域服务**，只能经 Tool Gateway；Registry 只做发现，不转发业务流量。
-- 前端只渲染白名单组件，**不执行模型生成的代码**，不自行决定调用哪个工具。antd / antd-mobile 只在 `shared/ui/**` 内出现。
+- 前端只渲染白名单组件，**不执行模型生成的代码**，不自行决定调用哪个工具。antd / antd-mobile 只在 `fronted/packages/core/src/components/**` 与 `theme/**` 内出现；`apps/chat` 只用 `@strato-ui/core` 包入口。
 - 高风险工具必须经 `confirmationToken` 二次确认，Token 由后端签发并校验。
 
 ---

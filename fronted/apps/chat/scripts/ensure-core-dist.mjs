@@ -6,8 +6,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const styleCss = join(here, '..', '..', '..', 'packages', 'core', 'dist', 'style.css');
-if (!existsSync(styleCss)) {
+const distDir = join(here, '..', '..', '..', 'packages', 'core', 'dist');
+if (!existsSync(join(distDir, 'style.css')) || !existsSync(join(distDir, 'index.js'))) {
   console.error(
     '[strato-chat] @strato-ui/core dist not found. Run `pnpm -C fronted build:core` first.',
   );

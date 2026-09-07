@@ -8,7 +8,7 @@ import { z } from 'zod';
 
 const idPattern = /^[a-z0-9-]+$/;
 
-/** 白名单组件（与契约 componentType enum 一致；check-registry 校验注册表键集合等于此列表）。 */
+/** 白名单组件（与契约 componentType enum 一致；check-registry 校验此列表 == 契约 enum == 注册表键集合 == PROPS_SCHEMAS 键）。 */
 export const COMPONENT_TYPES = [
   'Form',
   'Card',

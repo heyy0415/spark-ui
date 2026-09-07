@@ -65,3 +65,24 @@ rm -rf */dist && pnpm -C .harness run ci                 check-contracts 0 / che
 ## 与 spec 的偏差
 - `peerDependencyRules`（决策 1）：spec §2.1 未提；建议评审后回写。
 - `tsconfig.node.json` 不含 `scripts/*.ts`（决策 2）：spec T01 未细化 typecheck 范围；verify-examples 由运行 + 反例证明，无静态 typecheck。
+
+---
+
+# 阶段 4 回修记录（响应 `coding/review/code_review_v2.md`：REVISION REQUIRED，1 MUST FIX / 7 SHOULD）
+
+| # | 意见 | 处理 | 证据 |
+|---|---|---|---|
+| M1 | `CLAUDE.md` / `AGENTS.md` / `platform-owner.md` L1 硬约束仍写 antd 只在 `shared/ui/**` | 三处改为「`fronted/packages/core/src/components/**` 与 `theme/**`；`apps/chat` 只用 `@strato-ui/core` 包入口」 | grep `shared/ui/**` 三文件 0 行 |
+| S1 | spec §6.1 第 3 条相对 filter 从仓库根执行 No projects matched | spec 改为 `cd fronted && pnpm -r --filter … exec` | — |
+| S2 | change-dir 终态只有 DONE，dev-workflow 阶段 8 用 DELIVERED | `TERMINAL = {DONE, DELIVERED}`；spec / deploy-verify SKILL 同步 | — |
+| S3 | doctor 硬编码检查不递归 `scripts/lib/`，且自身字面量命中 | 递归 `scripts/**`；needle 用拼接字串 | 植入 `lib/change-dir.sh` 一行 → doctor 红；`grep changes/feat- scripts/**` 排除 doctor 后 0 行 |
+| S4 | verify-pack (g) 抓不到 tsc 推断类型发射的内联 `import("antd/…")` | 正则改 `(from ['"]|import\(['"])(antd|@ant-design)` | 植入 `export function leakedFn(){return AntBtn}` → d.ts 出现 2 处 `import("antd")` → (g) ✗ |
+| S5 | 「peer 主版本 == catalog 主版本」断言未实现 | (b) 新增：解析 `pnpm-workspace.yaml` catalog 比对 6 peer 主版本 | 植入 `zod ^3` → ✗ `zod ^3 vs catalog 4` |
+| S6 | `COMPONENT_TYPES` 未被机械比对 | check-registry 增加第 4 方（文本解析 `COMPONENT_TYPES = [...] as const`）；注释修正 | 删 `'Table'` → ✗ |
+| S7 | 注册表可被宿主运行期写入；PROPS_SCHEMAS 缺键时 renderer 抛 TypeError | `Object.freeze` 两张表；renderer 对 `schema === undefined` 走占位 + `console.error`；check-registry 正则兼容 freeze 写法 | ci 绿；e2e 21/21 |
+| LOW | `allowedVersions react: '19'` 作用域全局 | 改精确 `@react-spring/*>react` / `>react-dom`、`staged-components>react`（本轮 `pnpm install` 通过，首次失败原因是当时 `.npmrc` 与 lock 未同步） | install exit 0，unmet 0 |
+| LOW | `--strato-color-surface-hover` Provider 值与 CSS fallback 不一致 | Provider 固定 `#f0f2f5`（与 chat global.css 同值） | — |
+| LOW | `ensure-core-dist` 只查 style.css | 同时查 `index.js` | — |
+| 未处理 | check-deps 漏 `export … from`、Form 字段 schema 与 ActionBarProps 重复定义、空 `<h1>` a11y、基线缺失静默重写 | 记入 summary 待下一 change | — |
+
+复验：`rm -rf */dist && pnpm -C fronted run ci` 0；`pnpm -C .harness run ci` 四段 0；doctor 0；e2e-frontend 21/21；deploy-verify 12/12。

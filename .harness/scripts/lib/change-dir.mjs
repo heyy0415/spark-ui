@@ -2,7 +2,7 @@
 /**
  * 统一定位当前 change 的目录（spec feat-strato-ui-monorepo §2.5）。
  *   - 设置了 STRATO_CHANGE=<change-id> → .harness/changes/<id>
- *   - 未设置 → 在 .harness/changes/ 中按 summary.md 的 `| 状态 | X |` 行读状态，选状态 ∉ {DONE} 的目录；
+ *   - 未设置 → 在 .harness/changes/ 中按 summary.md 的 `| 状态 | X |` 行读状态，选状态 ∉ {DONE, DELIVERED} 的目录；
  *     恰 1 个则用之；0 或 >1 个 → 退出码 2 并列出候选（并行多个 change 时必须显式指定，这是预期用法）。
  * 作为模块：import { changeDir, deploymentDir }；作为 CLI：打印 deployment 目录绝对路径。
  */
@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const changesRoot = join(root, '.harness', 'changes');
-const TERMINAL = new Set(['DONE']);
+const TERMINAL = new Set(['DONE', 'DELIVERED']);
 
 function statusOf(dir) {
   const summary = join(dir, 'summary.md');

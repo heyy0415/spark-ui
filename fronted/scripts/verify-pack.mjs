@@ -137,6 +137,23 @@ try {
     '(b) peerDependencies = 6 expected peers',
     `(b) peerDependencies = ${Object.keys(pkg.peerDependencies ?? {}).join(', ')}`,
   );
+  // peer range 主版本必须与 workspace catalog 的主版本一致（spec §7：防两处漂移）
+  const catalog = Object.fromEntries(
+    [
+      ...readFileSync(join(fronted, 'pnpm-workspace.yaml'), 'utf-8').matchAll(
+        /^ {2}'?([@\w./-]+)'?: \^?(\d+)/gm,
+      ),
+    ].map((m) => [m[1], m[2]]),
+  );
+  const peerMajorMismatch = Object.entries(pkg.peerDependencies ?? {}).filter(([name, range]) => {
+    const major = /^\^?(\d+)/.exec(String(range))?.[1];
+    return catalog[name] !== undefined && major !== catalog[name];
+  });
+  check(
+    peerMajorMismatch.length === 0,
+    '(b) peer ranges match catalog major versions',
+    `(b) peer/catalog major mismatch: ${peerMajorMismatch.map(([n, r]) => `${n} ${r} vs catalog ${catalog[n]}`).join(', ')}`,
+  );
   check(
     pkg.dependencies === undefined || Object.keys(pkg.dependencies).length === 0,
     '(b) no dependencies',
@@ -161,7 +178,8 @@ try {
   // (g) — checked before (e) because (e) relies on it
   const dtsLeak = [...walk(join(pkgDir, 'dist'))]
     .filter((f) => f.endsWith('.d.ts'))
-    .filter((f) => /from ['"](antd|antd-mobile|@ant-design)/.test(readFileSync(f, 'utf-8')));
+    // 既抓显式 `from 'antd…'`，也抓 tsc 为推断类型发射的内联 `import("antd/…")`
+    .filter((f) => /(from ['"]|import\(['"])(antd|@ant-design)/.test(readFileSync(f, 'utf-8')));
   check(
     dtsLeak.length === 0,
     '(g) no antd / antd-mobile / @ant-design types leaked into dist .d.ts',

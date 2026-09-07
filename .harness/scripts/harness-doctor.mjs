@@ -189,12 +189,21 @@ for (const name of skillNames) {
 {
   const { readdir: rd } = await import('node:fs/promises');
   const scriptsDir = join(H, 'scripts');
+  const needle = 'changes/' + 'feat-'; // 拼接以免本文件自身命中
+  const walkScripts = async (dir) => {
+    const out = [];
+    for (const e of await rd(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) out.push(...(await walkScripts(p)));
+      else if (/\.(sh|mjs)$/.test(e.name) && e.name !== 'harness-doctor.mjs') out.push(p);
+    }
+    return out;
+  };
   let hits = 0;
-  for (const e of await rd(scriptsDir, { withFileTypes: true })) {
-    if (!e.isFile() || !/\.(sh|mjs)$/.test(e.name) || e.name === 'harness-doctor.mjs') continue;
-    const text = await readFile(join(scriptsDir, e.name), 'utf-8');
-    if (text.includes('changes/feat-')) {
-      err(`script hard-codes a change dir: scripts/${e.name} — use scripts/lib/change-dir`);
+  for (const f of await walkScripts(scriptsDir)) {
+    const text = await readFile(f, 'utf-8');
+    if (text.includes(needle)) {
+      err(`script hard-codes a change dir: ${f.replace(H + '/', '')} — use scripts/lib/change-dir`);
       hits++;
     }
   }

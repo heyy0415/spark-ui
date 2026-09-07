@@ -128,7 +128,7 @@ FSD 不变（`app → pages → features → entities → shared`），内容：
 
 ### 2.5 Harness（M3 / S7）
 
-- 新增 `.harness/scripts/lib/change-dir.mjs` 与 `change-dir.sh`：读 `STRATO_CHANGE`；未设置时在 `.harness/changes/` 中按正则 `^\| 状态 \| (\S+) \|` 读 `summary.md` 状态，选状态 ∉ {`DONE`} 的目录，恰 1 个则用之，0 或 >1 个则退出码 2 并列出候选。**并行第二个 change 时必须显式 `STRATO_CHANGE=<id>`，这是预期用法**，写进 `dev-workflow.md` 阶段 7 与 `deploy-verify/SKILL.md`。`e2e-frontend.mjs` / `e2e-backend.sh` / `deploy-verify.sh` 全部经此 lib 取 `deployment/`，脚本中不得再出现 `changes/feat-`（doctor 机械检查）。
+- 新增 `.harness/scripts/lib/change-dir.mjs` 与 `change-dir.sh`：读 `STRATO_CHANGE`；未设置时在 `.harness/changes/` 中按正则 `^\| 状态 \| (\S+) \|` 读 `summary.md` 状态，选状态 ∉ {`DONE`, `DELIVERED`} 的目录，恰 1 个则用之，0 或 >1 个则退出码 2 并列出候选。**并行第二个 change 时必须显式 `STRATO_CHANGE=<id>`，这是预期用法**，写进 `dev-workflow.md` 阶段 7 与 `deploy-verify/SKILL.md`。`e2e-frontend.mjs` / `e2e-backend.sh` / `deploy-verify.sh` 全部经此 lib 取 `deployment/`，脚本中不得再出现 `changes/feat-`（doctor 机械检查）。
 - `e2e-frontend.mjs`：步骤 5 URL `/agent?…` → `/?…`；其余 21 项不变（I1）。
 - `deploy-verify.sh`：preview cwd → `fronted/apps/chat`；「preview /agent (SPA) 200」改为「preview 主页面含 `#agent-input`」（由 `preview-console.mjs` 输出解析）；bundle 统计改 `fronted/apps/chat/dist/assets/*.js` + `fronted/packages/core/dist/**/*.js`。断言清单固定为 12 项：health、selfcheck 4/4、preview `/` 200、preview 主页面含 `#agent-input`、preview 代理 `/actuator/health` 200、事件序列、confirm 到 `run.completed`、summary COMPLETED、backend.log 含本 run、用户原文 0、preview console.error 0、bundle_size 写出。
 - `preview-console.mjs`：页面改为 `/?page=order-detail&entityType=order&entityId=10001`（截图 `preview-chat.png`；stdout 独立一行 `agent-input=1` 或 `agent-input=0`；退出码仍 = console.error 总数；deploy-verify 用 `tee deployment/preview-console.log` 落盘后 `grep -o 'agent-input=[01]'` 解析）与 `/does-not-exist`（截图 `preview-notfound.png`，验证 NotFound 页无 error）。
@@ -187,7 +187,7 @@ ui-schema 的前端 Zod 投影从 `entities` 迁到 `packages/core/src/schema/ui
 
 - [ ] `ls fronted/pnpm-workspace.yaml fronted/.npmrc fronted/packages/core/package.json fronted/apps/chat/package.json` 全部存在；`test ! -d fronted/src`。
 - [ ] 仓库根无 `package.json` / `pnpm-lock.yaml` / `node_modules` / `tsconfig.json`（doctor 现有检查）。
-- [ ] `pnpm -C fronted --filter './packages/**' --filter './apps/**' -r exec node -p "require('./package.json').name"` 恰输出 `@strato-ui/core` 与 `strato-chat` 两行。
+- [ ] `cd fronted && pnpm -r --filter './packages/**' --filter './apps/**' exec node -p "require('./package.json').name"` 恰输出 `@strato-ui/core` 与 `strato-chat` 两行（相对 filter 按 cwd 解析，必须在 `fronted/` 下执行）。
 - [ ] `grep -rn "Generate UI\|shared/ui/generate\|AppThemeProvider\|\[schema-renderer\]\|fronted/src\b\|fronted/src/\|fronted/dist" CLAUDE.md AGENTS.md .harness/rules .harness/skills .harness/wiki .harness/agents .harness/contracts .harness/scripts fronted --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.verify-pack --exclude=harness-doctor.mjs` 输出 0 行（doctor 自身含 `fronted/src` 字面量用于「存在即 err」检查，故排除）。
 - [ ] `pnpm -C .harness run doctor` 的「文档引用路径存在」与「脚本无硬编码 change」两项检查为 ✓。
 

@@ -54,7 +54,8 @@ export function StratoThemeProvider({ tokens, children }: StratoThemeProviderPro
         '--strato-color-text': token.colorText,
         '--strato-color-text-muted': token.colorTextSecondary,
         '--strato-color-border': token.colorBorder,
-        '--strato-color-surface-hover': token.colorBgLayout,
+        // 占位块背景：介于 layout 与 container 之间的一层，首期与 chat global.css 的 --color-surface-hover 同值
+        '--strato-color-surface-hover': '#f0f2f5',
         '--strato-radius-md': `${token.borderRadius}px`,
       }) as CSSProperties,
     [token],

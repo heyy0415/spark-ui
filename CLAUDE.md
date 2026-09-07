@@ -44,7 +44,7 @@
 - 金额 / ID / Token 一律 `string`；时间 ISO-8601。
 - 跨边界数据按 `.harness/contracts/` Schema 校验；契约先改，两端后改。
 - Agent Runtime 不直连领域服务；Registry 不转发调用。
-- 前端只渲染白名单组件，不执行模型生成代码；antd / antd-mobile 只在 `shared/ui/**` 内 import。
+- 前端只渲染白名单组件，不执行模型生成代码；antd / antd-mobile 只在 `fronted/packages/core/src/components/**` 与 `theme/**` 内 import；`apps/chat` 只用 `@strato-ui/core` 包入口。
 - 高风险工具必须经后端签发的 `confirmationToken` 确认。
 - 前端 TS strict、禁 `any`、FSD 单向依赖；后端 `domain/` 不依赖 Spring，金额 / ID 用 `String`。
 

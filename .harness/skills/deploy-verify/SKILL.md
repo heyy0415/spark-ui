@@ -14,7 +14,7 @@ description: 阶段 7 — 部署 / 预览验证。触发场景："部署验证"�
 
 ## 步骤
 
-全部步骤已脚本化：`pnpm -C .harness run deploy-verify`（= `scripts/deploy-verify.sh`，一次性生成并冻结 `deployment/` 全部产物；要求 8080 / 4173 未被其他进程占用，否则退出码 2）。`deployment/` 由 `scripts/lib/change-dir` 定位：默认取唯一非 DONE 的 change，**并行多个 change 时必须显式 `STRATO_CHANGE=<change-id>`**。以下为脚本做的事：
+全部步骤已脚本化：`pnpm -C .harness run deploy-verify`（= `scripts/deploy-verify.sh`，一次性生成并冻结 `deployment/` 全部产物；要求 8080 / 4173 未被其他进程占用，否则退出码 2）。`deployment/` 由 `scripts/lib/change-dir` 定位：默认取唯一非 DONE / DELIVERED 的 change，**并行多个 change 时必须显式 `STRATO_CHANGE=<change-id>`**。以下为脚本做的事：
 
 ```bash
 # 1. 后端启动与健康

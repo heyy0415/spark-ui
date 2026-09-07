@@ -7,6 +7,7 @@
  *   == packages/core/src/registry/componentRegistry.ts 的 desktopRegistry 键
  *   == mobileRegistry 键
  *   == packages/core/src/registry/types.ts 的 PROPS_SCHEMAS 键
+ *   == packages/core/src/schema/uiSchema.ts 的 COMPONENT_TYPES（整体校验白名单 / clientCapabilities）
  * 并检查 components/desktop/ 与 components/mobile/ 下每个 type 都有对应实现文件。
  * 纯文本解析，不执行 TS；退出码 0 = 一致。
  */
@@ -20,6 +21,7 @@ const schemaPath = join(fronted, '..', '.harness', 'contracts', 'ui-schema.schem
 const core = join(fronted, 'packages', 'core', 'src');
 const registryPath = join(core, 'registry', 'componentRegistry.ts');
 const typesPath = join(core, 'registry', 'types.ts');
+const uiSchemaPath = join(core, 'schema', 'uiSchema.ts');
 
 let errors = 0;
 const fail = (m) => {
@@ -33,7 +35,10 @@ const contractTypes = schema.$defs.componentType.enum;
 const registrySrc = readFileSync(registryPath, 'utf-8');
 function keysOf(constName) {
   const m = registrySrc.match(
-    new RegExp(`export const ${constName}: Registry = \\{([\\s\\S]*?)\\n\\};`),
+    // 接受 `= {…};` 与 `= Object.freeze({…});` 两种写法
+    new RegExp(
+      `export const ${constName}: Registry = (?:Object\\.freeze\\()?\\{([\\s\\S]*?)\\n\\}\\)?;`,
+    ),
   );
   if (!m) {
     fail(`cannot find ${constName} in componentRegistry.ts`);
@@ -63,6 +68,15 @@ if (!same(contractTypes, mobile))
   fail(
     `mobileRegistry keys ${JSON.stringify(mobile)} != contract enum ${JSON.stringify(contractTypes)}`,
   );
+const uiSrc = readFileSync(uiSchemaPath, 'utf-8');
+const cm = uiSrc.match(/export const COMPONENT_TYPES = \[([\s\S]*?)\] as const;/);
+const componentTypes = cm
+  ? [...cm[1].matchAll(/'([A-Za-z]+)'/g)].map((x) => x[1])
+  : (fail('cannot find COMPONENT_TYPES in schema/uiSchema.ts'), []);
+if (!same(contractTypes, componentTypes))
+  fail(
+    `COMPONENT_TYPES ${JSON.stringify(componentTypes)} != contract enum ${JSON.stringify(contractTypes)}`,
+  );
 if (!same(contractTypes, propsKeys))
   fail(
     `PROPS_SCHEMAS keys ${JSON.stringify(propsKeys)} != contract enum ${JSON.stringify(contractTypes)}`,
@@ -80,5 +94,5 @@ if (errors > 0) {
   process.exit(1);
 }
 console.log(
-  `✓ check-registry: ${contractTypes.length} component types consistent across contract / desktop / mobile / props`,
+  `✓ check-registry: ${contractTypes.length} component types consistent across contract / COMPONENT_TYPES / desktop / mobile / props`,
 );
