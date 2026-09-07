@@ -3,41 +3,32 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "description": "Strato UI 前端 workspace 根：packages/core 可发包引擎 + apps/chat 唯一应用。无业务代码。",
   "engines": {
     "node": ">=20.19.0",
     "pnpm": ">=10"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "build:core": "pnpm --filter @strato-ui/core build",
+    "build:chat": "pnpm --filter strato-chat build",
+    "build": "pnpm build:core && pnpm build:chat",
+    "dev": "pnpm --filter strato-chat dev",
+    "preview": "pnpm --filter strato-chat preview",
+    "typecheck": "pnpm --filter @strato-ui/core exec tsc -p tsconfig.json --noEmit && pnpm --filter strato-chat exec tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "lint": "oxlint --deny-warnings && node scripts/check-deps.mjs && node scripts/check-registry.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "ci": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm build",
-    "verify-examples": "vite-node scripts/verify-examples.ts"
-  },
-  "dependencies": {
-    "@ant-design/icons": "6.3.4",
-    "@tanstack/react-query": "5.102.8",
-    "antd": "6.6.2",
-    "antd-mobile": "5.42.3",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "react-router": "7.18.3",
-    "zod": "^4.5.4",
-    "zustand": "5.0.15"
+    "verify-examples": "vite-node -c apps/chat/vite.config.ts scripts/verify-examples.ts",
+    "verify-pack": "node scripts/verify-pack.mjs",
+    "ci": "pnpm build:core && pnpm typecheck && pnpm lint && pnpm format:check && pnpm verify-examples && pnpm build:chat && pnpm verify-pack"
   },
   "devDependencies": {
+    "@strato-ui/core": "workspace:*",
     "@types/node": "^20.19.0",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.5",
-    "@vitejs/plugin-react": "^6.1.1",
+    "es-module-lexer": "^2.3.2",
     "oxlint": "1.81.0",
     "prettier": "^3.9.6",
-    "typescript": "7.0.2",
-    "vite": "8.2.2",
+    "typescript": "catalog:",
     "vite-node": "6.0.0"
   }
 }

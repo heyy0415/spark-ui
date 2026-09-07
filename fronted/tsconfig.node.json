@@ -1,18 +1,12 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2023",
     "lib": ["ES2023"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "jsx": "preserve",
     "types": ["node"],
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "isolatedModules": true,
-    "verbatimModuleSyntax": true,
-    "skipLibCheck": true,
-    "noEmit": true,
-    "allowImportingTsExtensions": true
+    "paths": {
+      "@entities/*": ["./apps/chat/src/entities/*"]
+    }
   },
-  "include": ["vite.config.ts"]
+  "include": ["scripts/**/*.ts", "apps/chat/vite.config.ts", "packages/core/vite.config.ts"]
 }

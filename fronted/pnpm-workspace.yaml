@@ -1,0 +1,17 @@
+packages:
+  - 'packages/*'
+  - 'apps/*'
+
+# 统一版本真源：core 的 peer/devDeps 与 chat 的 deps 都写 "catalog:"，防两处漂移（spec §2.1）
+catalog:
+  react: 19.2.8
+  react-dom: 19.2.8
+  antd: 6.6.2
+  antd-mobile: 5.42.3
+  '@ant-design/icons': 6.3.4
+  zod: ^4.5.4
+  '@types/react': ^19.2.18
+  '@types/react-dom': ^19.2.5
+  vite: 8.2.2
+  '@vitejs/plugin-react': ^6.1.1
+  typescript: 7.0.2

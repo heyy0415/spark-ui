@@ -5,7 +5,6 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "types": ["vite/client"],
 
     "strict": true,
     "noUncheckedIndexedAccess": true,
@@ -23,17 +22,6 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "useDefineForClassFields": true,
-
-    "paths": {
-      "@/*": ["./src/*"],
-      "@app/*": ["./src/app/*"],
-      "@pages/*": ["./src/pages/*"],
-      "@features/*": ["./src/features/*"],
-      "@entities/*": ["./src/entities/*"],
-      "@shared/*": ["./src/shared/*"],
-      "@contracts/*": ["../.harness/contracts/*"]
-    }
-  },
-  "include": ["src"]
+    "useDefineForClassFields": true
+  }
 }
