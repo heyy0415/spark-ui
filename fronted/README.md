@@ -1,42 +1,65 @@
-# fronted — Strato Agent Tool Platform 前端（Generate UI）
+# fronted — Strato 前端 workspace
 
-React 19 / TypeScript 7 strict / Vite 6 / TanStack Query / Zod / antd 6（桌面）+ antd-mobile 5（移动）。
+pnpm workspace，两个包：
+
+| 包                | 路径            | 说明                                                                                                                                                                |
+| ----------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@strato-ui/core` | `packages/core` | **Strato UI 渲染引擎**，可 npm 发包。把后端下发的 UI Schema 渲染为白名单组件（antd 桌面 / antd-mobile 移动）。见 [packages/core/README.md](packages/core/README.md) |
+| `strato-chat`     | `apps/chat`     | 唯一应用：一个 chat 页面（路由 `/`），把用户意图发给 Agent Runtime、消费 SSE、用 core 渲染确认屏 / 结果屏                                                           |
+
+React 19 / TypeScript 7 strict / Vite 8 / TanStack Query / Zod 4 / antd 6 / antd-mobile 5 / oxlint / prettier。版本由 `pnpm-workspace.yaml` 的 `catalog` 统一。
 
 > 一句话：前端只负责交互。它把用户意图与页面上下文发给 Agent Runtime，消费 SSE 事件流，并**只渲染白名单组件**描述的 UI Schema；不执行任何模型生成的代码，不自行决定调用哪个工具。
 
-## 目录（FSD，单向依赖 `app → pages → features → entities → shared`）
-
-| 层                              | 内容                                                                                           |
-| ------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `src/app`                       | 路由（`/`、`/agent`、DEV-only `/dev/schema`）、Providers（QueryClient → Device → AppTheme）    |
-| `src/pages/agent`               | 智能助手页：从 URL 读 `page / entityType / entityId` 组成 pageContext                          |
-| `src/pages/schema-playground`   | 开发用：直接渲染契约示例（`?example=` 取 `confirm` / `result` / `unknown`）                    |
-| `src/features/agent-chat`       | `useAgentRun`（发起 / 确认、SSE 归约为 `AgentRunView`）、`AgentChatPanel`                      |
-| `src/entities/agent-run`        | 契约的 Zod 投影（intent / action / ui-schema / run-summary / sse-events / error）与纯 API 构造 |
-| `src/shared/api`                | `httpClient`（`HttpError`）、`sseClient`（fetch + ReadableStream 分帧）                        |
-| `src/shared/ui/generate`        | `SchemaRenderer`、`desktopRegistry` / `mobileRegistry`、7 个组件的双端实现、`UnknownComponent` |
-| `src/shared/ui/theme`、`device` | antd / antd-mobile 主题封装与端型判定（`MOBILE_MAX_WIDTH = 768`）                              |
-
-**antd / antd-mobile 只允许在 `src/shared/ui/**` 内 import**，`@contracts/*` 只读别名只允许在 `src/pages/**` 与 `scripts/**` 使用；两条都由 oxlint `no-restricted-imports` 机械拦截。
-
-## 命令
+## 命令（在 `fronted/` 下）
 
 ```bash
 pnpm install
-pnpm dev              # http://localhost:5173，/agent/runs 与 /actuator 代理到 8080
-pnpm ci               # typecheck + lint(oxlint + check-deps + check-registry) + format:check + build
-pnpm verify-examples  # 用 Zod 投影校验 .harness/contracts/examples（期望 "16 examples OK"）
+pnpm run dev              # apps/chat dev server http://localhost:5173（自动检查 core dist，缺失则提示先 build:core）
+pnpm run build:core       # packages/core → dist（vite lib + tsc d.ts）
+pnpm run build            # build:core → build:chat
+pnpm run ci               # build:core → typecheck → lint → format:check → verify-examples → build:chat → verify-pack
+pnpm run verify-examples  # 用 Zod 投影校验 .harness/contracts/examples（期望 "16 examples OK"）
+pnpm run verify-pack      # pnpm pack 解包后断言：文件清单 / exports / 17 导出名 / d.ts 双 EOPT 消费 / antd 未打包 / 体积基线
 ```
 
-`check-registry.mjs` 保证 `ui-schema.schema.json` 的 componentType enum、desktopRegistry、mobileRegistry、`PROPS_SCHEMAS` 以及 `desktop/`、`mobile/` 下的实现文件五方一致。
+`pnpm -C fronted run ci` 是 Harness `ci.mjs` 的前端入口。
+
+## `@strato-ui/core` 如何被解析
+
+| 场景                                  | 解析到                                                                          |
+| ------------------------------------- | ------------------------------------------------------------------------------- |
+| tsc / oxlint / `vite dev` / vite-node | core **src**（`package.json` 的 `exports` 指 `./src/index.ts`，改源码即热更新） |
+| `apps/chat` 的 `vite build`           | core **dist**（`vite.config.ts` 正则精确 alias），生产吃可发布产物              |
+| `pnpm pack` / publish                 | `publishConfig` 覆盖 `exports` / `types` 为 dist                                |
+| `@strato-ui/core/style.css`           | 始终 dist；chat 的 `predev` / `prebuild` 守护其存在                             |
+
+## 目录（`apps/chat/src`，FSD 单向 `app → pages → features → entities → shared`）
+
+| 层                        | 内容                                                                                                                                                                                            |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app`                     | 路由（`/` = chat、DEV-only `/dev/schema`）、Providers（QueryClient → `StratoDeviceProvider` → `StratoThemeProvider tokens`）、`global.css`（首行 import core 的 style.css）、`styles/tokens.ts` |
+| `pages/chat`              | 从 URL 读 `page / entityType / entityId` 组成 pageContext                                                                                                                                       |
+| `pages/schema-playground` | 开发用：直接渲染契约示例（`?example=` 取 `confirm` / `result` / `unknown`）                                                                                                                     |
+| `features/agent-chat`     | `useAgentRun`（发起 / 确认、SSE 归约为 `AgentRunView`）、`AgentChatPanel`                                                                                                                       |
+| `entities/agent-run`      | intent / action / run-summary / sse-events / error 的 Zod 投影（ui-schema 投影来自 core）                                                                                                       |
+| `shared/api`              | `httpClient`（`HttpError`）、`sseClient`（fetch + ReadableStream 分帧）                                                                                                                         |
+| `shared/ui/Button`        | 纯 CSS 按钮                                                                                                                                                                                     |
+
+**红线**（oxlint + `scripts/check-deps.mjs` + `scripts/check-registry.mjs` 机械守护）：
+
+- `apps/chat` 任何文件不得 import `antd` / `antd-mobile` / `@ant-design`，只能用 `@strato-ui/core` 包入口；禁止 `@strato-ui/core/src/*` 深路径。
+- antd / antd-mobile 只允许出现在 `packages/core/src/components/**` 与 `theme/**`。
+- 注册表键集合 == 契约 `componentType` enum == desktop / mobile 实现文件。
+- `@contracts/*` 只读别名只在 `apps/chat/src/pages/**` 与 `scripts/**`。
 
 ## 与后端联调
 
 1. 启动后端（见 [backed/README.md](../backed/README.md)），确认 `curl localhost:8080/actuator/health`。
-2. `pnpm dev`，打开 `http://localhost:5173/agent?page=order-detail&entityType=order&entityId=10001`。
+2. `pnpm run dev`，打开 `http://localhost:5173/?page=order-detail&entityType=order&entityId=10001`。
 3. 输入「帮我把这个订单退款」→ 两条工具进度 → 确认卡片（OrderCard + RefundConfirmCard + Form）→ 选原因 → 确认 → ResultCard。
 
-自动化版本：`pnpm -C .harness run e2e-frontend`（需要本机 Google Chrome，后端 8080 与 vite 5173 已启动），产出截图到 change 的 `deployment/`。
+自动化版本：`pnpm -C .harness run e2e-frontend`（需要本机 Google Chrome，后端 8080 与 vite 5173 已启动），产出截图到当前 change 的 `deployment/`。
 
 ## 环境变量
 
@@ -44,11 +67,8 @@ pnpm verify-examples  # 用 Zod 投影校验 .harness/contracts/examples（期�
 | ------------------- | ------------ | --------------------------------------------------------- |
 | `VITE_API_BASE_URL` | `''`（同源） | 后端端点已带完整前缀（`/agent/runs`），生产可指向网关地址 |
 
-首期身份固定为 `X-Tenant-Id: tenant_001` / `X-User-Id: user_001`（`pages/agent/AgentPage.tsx`），真实登录为后续 change。
+首期身份固定为 `X-Tenant-Id: tenant_001` / `X-User-Id: user_001`（`apps/chat/src/pages/chat/ChatPage.tsx`），真实登录为后续 change。
 
-## 安全边界（agent-safety §4）
+## 发包（占位）
 
-- 未知 `componentType` 渲染 `UnknownComponent` 占位并 `console.error`，其余组件照常渲染。
-- 组件 props 经 Zod 校验后才交给实现；UI Schema 不含 URL / HTML 字段。
-- 确认动作只回传 `confirmationToken` 与表单值；表单键白名单由后端校验。
-- pageContext 只是提示，不参与鉴权。
+本 change 只保证 `pnpm run verify-pack` 通过，未接 registry。发布流程、`license`、版本管理为后续 change；`packages/core` 的 `prepublishOnly` 会先跑 verify-pack 挡误发。

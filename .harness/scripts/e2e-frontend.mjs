@@ -7,16 +7,17 @@
  *   2. 视口 1280 /dev/schema?example=confirm → ant-* > 0 且 adm-* = 0
  *   3. 视口 375  同 URL               → adm-* > 0 且 ant-* = 0
  *   4. /dev/schema?example=unknown     → UnknownComponent 占位且 console.error 恰 1
- *   5. 视口 1280 /agent 主链路：输入 → 两条工具进度 + 确认卡片 → 选原因 → 确认 → 结果卡片；console 无 error
+ *   5. 视口 1280 / 主链路（chat 即首页）：输入 → 两条工具进度 + 确认卡片 → 选原因 → 确认 → 结果卡片；console 无 error
  */
 import { mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
+import { deploymentDir } from './lib/change-dir.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..', '..');
-const DEPLOY = join(root, '.harness', 'changes', 'feat-agent-tool-platform-20260903', 'deployment');
+const DEPLOY = deploymentDir();
 mkdirSync(DEPLOY, { recursive: true });
 const BASE = 'http://localhost:5173';
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -103,10 +104,10 @@ try {
   }
 
   // ---- step 5: agent main flow
-  console.log('--- §6.3.4 step 5: /agent main flow @1280');
+  console.log('--- §6.3.4 step 5: / (chat) main flow @1280');
   {
     const { page, errors } = await newPage(1280);
-    await page.goto(`${BASE}/agent?page=order-detail&entityType=order&entityId=10001`, { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE}/?page=order-detail&entityType=order&entityId=10001`, { waitUntil: 'networkidle0' });
     await page.waitForSelector('#agent-input');
     await page.type('#agent-input', '帮我把这个订单退款');
     await page.keyboard.press('Enter');

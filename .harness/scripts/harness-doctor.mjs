@@ -57,7 +57,16 @@ const required = [
   'scripts/e2e-frontend.mjs',
   'scripts/deploy-verify.sh',
   'scripts/preview-console.mjs',
+  'scripts/lib/change-dir.mjs',
+  'scripts/lib/change-dir.sh',
   'package.json',
+];
+// fronted 是 pnpm workspace：根 + packages/core + apps/chat（spec feat-strato-ui-monorepo §2.1）
+const frontedRequired = [
+  'pnpm-workspace.yaml',
+  '.npmrc',
+  'packages/core/package.json',
+  'apps/chat/package.json',
 ];
 for (const rel of ['fronted', 'backed']) {
   if (existsSync(join(root, rel))) ok(`dir: ${rel}/`);
@@ -69,6 +78,12 @@ for (const forbidden of ['package.json', 'pnpm-lock.yaml', 'node_modules', 'tsco
   if (existsSync(join(root, forbidden))) err(`repo root must not contain ${forbidden} (fronted/ and backed/ are separate projects)`);
 }
 ok('repo root: no project files');
+for (const rel of frontedRequired) {
+  if (existsSync(join(root, 'fronted', rel))) ok(`fronted: ${rel}`);
+  else err(`missing fronted workspace file: fronted/${rel}`);
+}
+if (existsSync(join(root, 'fronted', 'src'))) err('fronted/src must not exist (old single-app layout; code lives in fronted/apps/chat/src and fronted/packages/core/src)');
+else ok('fronted: no legacy src/');
 for (const rel of required) {
   if (existsSync(join(H, rel))) ok(`required: ${rel}`);
   else err(`missing required file: .harness/${rel}`);
@@ -132,6 +147,58 @@ for (const name of skillNames) {
     });
   }
   if (hits === 0) ok('pnpm command form: all use "pnpm -C .harness run <script>"');
+}
+
+// 文档路径存在检查（Hashimoto：文档引用的 fronted/ 路径必须真实存在，防止布局迁移后规则指向不存在的文件）
+// 规则（spec feat-strato-ui-monorepo §2.5）：扫描 rules / skills / wiki / agents / CLAUDE.md / AGENTS.md（不含 changes/）；
+// 只取反引号内以 `fronted/` 开头且不含空格的 token；含 * 或 { 时取第一个通配符之前的目录前缀；跳过 node_modules / dist。
+{
+  const { readdir: rd } = await import('node:fs/promises');
+  const scanMd = async (dir) => {
+    const out = [];
+    for (const e of await rd(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) out.push(...(await scanMd(p)));
+      else if (e.name.endsWith('.md')) out.push(p);
+    }
+    return out;
+  };
+  const docs = [join(root, 'CLAUDE.md'), join(root, 'AGENTS.md')];
+  for (const d of ['rules', 'skills', 'wiki', 'agents']) {
+    if (existsSync(join(H, d))) docs.push(...(await scanMd(join(H, d))));
+  }
+  let missing = 0;
+  for (const doc of docs) {
+    if (!existsSync(doc)) continue;
+    const text = await readFile(doc, 'utf-8');
+    for (const m of text.matchAll(/`(fronted\/[^`\s]+)`/g)) {
+      const token = m[1];
+      if (token.includes('node_modules') || token.includes('dist')) continue;
+      const wild = token.search(/[*{]/);
+      const probe = wild >= 0 ? token.slice(0, wild).replace(/[^/]*$/, '') : token;
+      if (!existsSync(join(root, probe))) {
+        err(`doc path does not exist: ${doc.replace(root + '/', '')} → \`${token}\` (checked ${probe})`);
+        missing++;
+      }
+    }
+  }
+  if (missing === 0) ok('doc paths: every `fronted/...` reference exists');
+}
+
+// 脚本不得硬编码某个 change 的目录；统一经 scripts/lib/change-dir 定位
+{
+  const { readdir: rd } = await import('node:fs/promises');
+  const scriptsDir = join(H, 'scripts');
+  let hits = 0;
+  for (const e of await rd(scriptsDir, { withFileTypes: true })) {
+    if (!e.isFile() || !/\.(sh|mjs)$/.test(e.name) || e.name === 'harness-doctor.mjs') continue;
+    const text = await readFile(join(scriptsDir, e.name), 'utf-8');
+    if (text.includes('changes/feat-')) {
+      err(`script hard-codes a change dir: scripts/${e.name} — use scripts/lib/change-dir`);
+      hits++;
+    }
+  }
+  if (hits === 0) ok('scripts: no hard-coded change directory');
 }
 
 // changes

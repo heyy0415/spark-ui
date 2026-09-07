@@ -2,7 +2,7 @@
 /**
  * node scripts/check-registry.mjs
  *
- * 校验 Generate UI 注册表三方一致（project-structure §1）：
+ * 校验 Strato UI 注册表三方一致（project-structure §1）：
  *   ui-schema.schema.json 的 componentType enum
  *   == packages/core/src/registry/componentRegistry.ts 的 desktopRegistry 键
  *   == mobileRegistry 键

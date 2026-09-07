@@ -2,13 +2,13 @@
 
 ## 一句话
 
-> Generate UI 负责交互，Agent Runtime 负责理解与规划，Tool Registry 负责能力发现与治理（控制面），Tool Gateway 负责安全执行（执行面），领域服务负责确定性业务执行。
+> Strato UI 负责交互，Agent Runtime 负责理解与规划，Tool Registry 负责能力发现与治理（控制面），Tool Gateway 负责安全执行（执行面），领域服务负责确定性业务执行。
 
 ## 四层总览
 
 ```
-┌────────────────── fronted/ Generate UI ───────────────────┐
-│ 固定应用壳 + Schema Renderer + Component Registry（白名单） │
+┌──────── fronted/ apps/chat + @strato-ui/core（Strato UI） ─┐
+│ chat 应用壳 + 引擎包：Schema Renderer + Registry（白名单）   │
 │ 输入采集、动态表单、确认卡片、结果展示、SSE 流式更新        │
 └───────────────────────┬───────────────────────────────────┘
                         │ IntentRequest / ActionRequest（HTTP）
@@ -45,7 +45,7 @@
 
 ## 前端 FSD 分层
 
-`app → pages → features → entities → shared`，单向。Generate UI 的 Renderer、ComponentRegistry 与全部白名单封装位于 `shared/ui/generate/`，按端型分 `desktop/`（antd）与 `mobile/`（antd-mobile），端型由 `app/` 的 `DeviceProvider` 一次性决定。
+`fronted/` 是 pnpm workspace：`packages/core`（`@strato-ui/core`，Strato UI 渲染引擎，可发包）+ `apps/chat`（唯一应用，FSD `app → pages → features → entities → shared` 单向）。Renderer、ComponentRegistry 与全部白名单封装位于 `fronted/packages/core/src/`，按端型分 `components/desktop/`（antd）与 `components/mobile/`（antd-mobile）；端型由宿主挂载的 `StratoDeviceProvider` 一次性决定；ui-schema 的 Zod 投影真源也在 core，chat 的其余契约投影组合引用它。
 
 ## 后端模块依赖
 

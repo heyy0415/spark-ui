@@ -3,10 +3,9 @@
 # 前置：pnpm -C .harness run ci 已通过（dist 与 app.jar 为最新）。用法：bash .harness/scripts/deploy-verify.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-DEPLOY="$ROOT/.harness/changes/feat-agent-tool-platform-20260903/deployment"
+source "$ROOT/.harness/scripts/lib/change-dir.sh"
 P="$ROOT/.harness/scripts/sse-parse.mjs"
 JAVA="$HOME/.jenv/versions/21/bin/java"
-mkdir -p "$DEPLOY"
 pass=0; fail=0
 check() { if [ "$2" = "$3" ]; then echo "  ✓ $1: $3"; pass=$((pass+1)); else echo "  ✗ $1: expected [$2] got [$3]"; fail=$((fail+1)); fi; }
 cleanup() { pkill -f "app/target/app.jar" 2>/dev/null; pkill -f "vite preview" 2>/dev/null; }
@@ -30,10 +29,9 @@ check "health" '{"status":"UP"}' "$(curl -s localhost:8080/actuator/health)"
 check "selfcheck all OK" 4 "$(grep -c 'SelfCheckRunner.*selfcheck: .* OK' "$DEPLOY/backend.log")"
 
 echo "--- 2. 前端预览（vite preview :4173，代理到 8080）"
-(cd "$ROOT/fronted" && pnpm exec vite preview > "$DEPLOY/preview.log" 2>&1 &)
+(cd "$ROOT/fronted/apps/chat" && pnpm exec vite preview > "$DEPLOY/preview.log" 2>&1 &)
 for i in $(seq 1 20); do sleep 1; curl -sf localhost:4173/ >/dev/null 2>&1 && break; done
 check "preview /" 200 "$(curl -s -o /dev/null -w '%{http_code}' localhost:4173/)"
-check "preview /agent (SPA)" 200 "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:4173/agent?page=order-detail')"
 check "preview proxies /actuator/health" 200 "$(curl -s -o /dev/null -w '%{http_code}' localhost:4173/actuator/health)"
 
 echo "--- 3. 端到端一条 Run（经预览代理）"
@@ -49,11 +47,12 @@ check "backend.log has this run" 1 "$(grep -c "plan attached runId=$RUNID" "$DEP
 check "user text in log" 0 "$(grep -c '帮我把这个订单退款' "$DEPLOY/backend.log")"
 
 echo "--- 4. 预览页面 console.error（headless Chrome）"
-node "$ROOT/.harness/scripts/preview-console.mjs" "$DEPLOY" ; rc=$?
+node "$ROOT/.harness/scripts/preview-console.mjs" "$DEPLOY" 2>&1 | tee "$DEPLOY/preview-console.log"; rc=${PIPESTATUS[0]}
 check "preview pages console.error == 0" 0 "$rc"
+check "preview chat page renders #agent-input" "agent-input=1" "$(grep -o 'agent-input=[01]' "$DEPLOY/preview-console.log" | head -1)"
 
 echo "--- 5. 体积报告"
-{ echo "# bundle_size (bytes  path)"; ls -la "$ROOT"/fronted/dist/assets/*.js | awk '{print $5, $9}' | sort -n | tail -8; ls -la "$ROOT"/backed/app/target/app.jar | awk '{print $5, $9}'; } > "$DEPLOY/bundle_size.txt"
+{ echo "# bundle_size (bytes  path)"; echo "## apps/chat"; ls -la "$ROOT"/fronted/apps/chat/dist/assets/*.js | awk '{print $5, $9}' | sort -n | tail -8; echo "## packages/core"; find "$ROOT/fronted/packages/core/dist" -name '*.js' -exec ls -la {} + | awk '{print $5, $9}' | sort -n | tail -4; echo "## backed"; ls -la "$ROOT"/backed/app/target/app.jar | awk '{print $5, $9}'; } > "$DEPLOY/bundle_size.txt"
 check "bundle_size.txt written" 1 "$([ -s "$DEPLOY/bundle_size.txt" ] && echo 1 || echo 0)"
 
 echo; echo "deploy-verify: $pass passed, $fail failed"

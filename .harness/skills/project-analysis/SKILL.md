@@ -17,7 +17,7 @@ description: 第一次进入仓库或仓库结构变更后，对 .harness/、.ha
 ## 步骤
 1. `find .harness -maxdepth 3 -name "*.md"`，建立 Harness 资源索引。
 2. `ls .harness/contracts/ .harness/contracts/examples/`，列出契约清单。
-3. `cat fronted/src/main.tsx fronted/src/app/App.tsx`，确认前端入口与 Provider 链路；`ls fronted/src/{pages,features,entities,shared}` 生成切片清单。
+3. `cat fronted/apps/chat/src/main.tsx fronted/apps/chat/src/app/App.tsx`，确认前端入口与 Provider 链路；`ls fronted/apps/chat/src/{pages,features,entities,shared}` 生成切片清单；`cat fronted/packages/core/src/index.ts` 列出 `@strato-ui/core` 公共 API。
 4. `ls backed/ && grep -h "<module>" backed/pom.xml`，列出后端模块；`grep -rn "@RequestMapping\|@PostMapping\|@GetMapping" backed/*/src/main/java` 列出端点。
 5. `grep -rn "domains" backed/agent-runtime/pom.xml backed/tool-registry/pom.xml` 必须为空，否则标记 RED LINE。
 6. 比对 `.harness/wiki/architecture.md` 与实际；差异 > 3 处标 `STALE`。
@@ -35,7 +35,7 @@ description: 第一次进入仓库或仓库结构变更后，对 .harness/、.ha
 ## .harness/contracts/ 清单
 | Schema | 方向 | 示例 |
 
-## fronted/src 切片清单
+## fronted/apps/chat/src 切片清单与 fronted/packages/core 公共 API
 | 层 | 切片 | 公共出口 |
 
 ## backed/ 模块清单

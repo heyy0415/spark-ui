@@ -95,7 +95,7 @@
 |---|---|
 | 入场 | 阶段 6 通过 |
 | Skill | `deploy-verify` |
-| 产出 | `deployment/preview_report.md`（前端截图 + console.error 数、后端 `/actuator/health` 结果、端到端一条 Run 的 SSE 事件序列） |
+| 产出 | `deployment/preview_report.md`（前端截图 + console.error 数、后端 `/actuator/health` 结果、端到端一条 Run 的 SSE 事件序列）。`deployment/` 由 `scripts/lib/change-dir` 定位；并行多个 change 时必须显式 `STRATO_CHANGE=<change-id>` |
 | 门禁 | 前端 bundle 未恶化（< +10%）；预览页面 console.error == 0；后端 health UP；示例 Run 走通至 `run.completed` |
 | **HITL 确认点 ④** | 部署参数（环境、域名、灰度比例）由人工最终确认 |
 

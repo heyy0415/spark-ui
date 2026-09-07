@@ -3,12 +3,11 @@
 # 前置：backed/app/target/app.jar 已构建；JDK 21 在 ~/.jenv/versions/21。
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-DEPLOY="$ROOT/.harness/changes/feat-agent-tool-platform-20260903/deployment"
+source "$ROOT/.harness/scripts/lib/change-dir.sh"
 P="$ROOT/.harness/scripts/sse-parse.mjs"
 JAVA="$HOME/.jenv/versions/21/bin/java"
 BASE="http://localhost:8080"
 HDR=(-H 'Content-Type: application/json' -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' -H 'X-Trace-Id: trace_e2e')
-mkdir -p "$DEPLOY"
 pass=0; fail=0
 # 规则规划器毫秒级；接真实模型时规划 5–15s，SSE 读取超时随之放大
 if [ -n "${STRATO_LLM_API_KEY:-}" ]; then SSE_T=60; LIVE_LLM=1; else SSE_T=8; LIVE_LLM=0; fi

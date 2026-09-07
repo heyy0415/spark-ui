@@ -20,9 +20,12 @@ description: 阶段 4 机器化检查。触发场景："代码检查"、"lint"�
 pnpm -C .harness run check-contracts
 
 # 1. 前端
-pnpm -C fronted typecheck
-pnpm -C fronted lint            # oxlint --deny-warnings + check-deps.mjs
-pnpm -C fronted format:check
+pnpm -C fronted run build:core   # typecheck 不依赖 dist，但 style.css 与 verify-pack 需要
+pnpm -C fronted run typecheck
+pnpm -C fronted run lint         # oxlint --deny-warnings + check-deps + check-registry
+pnpm -C fronted run format:check
+pnpm -C fronted run verify-examples
+pnpm -C fronted run verify-pack
 
 # 2. 后端
 node .harness/scripts/mvn.mjs -q -B spotless:check
@@ -41,7 +44,7 @@ pnpm -C .harness run ci
 - [ ] `pages/` 之外无路由声明
 - [ ] 无 FSD 反向依赖、无穿透 `index.ts`
 - [ ] 无 `eval` / `new Function` / `dangerouslySetInnerHTML` / 任意路径动态 `import()`
-- [ ] 可被 UI Schema 引用的组件只在 `shared/ui/generate/componentRegistry.ts` 注册
+- [ ] 可被 UI Schema 引用的组件只在 `fronted/packages/core/src/registry/componentRegistry.ts` 注册；`apps/chat` 无 antd / antd-mobile / `@strato-ui/core/src/*` import
 
 后端：
 - [ ] `agent-runtime`、`tool-registry` 的 pom 不依赖 `domains/*`

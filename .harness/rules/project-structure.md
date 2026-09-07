@@ -22,35 +22,40 @@ strato_ui/
 - `.harness/contracts/` 只放 `*.schema.json` 与 `examples/*.json`，不放任何可执行代码。
 - `fronted/` 与 `backed/` 互不 import；只通过 `.harness/contracts/` 定义的 HTTP / SSE 协议通信。
 
-## 1. 前端分层（Feature-Sliced Design）
+## 1. 前端：pnpm workspace（`fronted/`）
 
 ```
-fronted/src/
-├── app/        # 启动入口、Provider、路由声明、全局样式
-├── pages/      # 路由级页面（一个路由 = 一个目录）
-├── features/   # 业务能力（UI + hook + 编排）
-├── entities/   # 业务实体（Zod schema + 纯 API）
-├── shared/     # 与业务无关的通用资产
-│   ├── ui/     # 通用 UI + Generate UI 的 Schema Renderer / ComponentRegistry
-│   ├── lib/    # 工具函数
-│   ├── hooks/  # 通用 Hook
-│   ├── api/    # http 客户端、SSE 客户端、错误约定
-│   └── config/ # 环境变量、常量
+fronted/
+├── package.json / pnpm-workspace.yaml / .npmrc   # workspace 根：脚本 fan-out、catalog 统一版本；无业务代码
+├── tsconfig.base.json / .oxlintrc.json / .prettierrc.json
+├── scripts/                 # check-deps / check-registry / verify-examples / verify-pack
+├── packages/core/           # @strato-ui/core —— Strato UI 渲染引擎（可 npm 发包）
+│   └── src/
+│       ├── index.ts         # 唯一公共入口（17 运行时 + 10 类型导出，verify-pack 断言）
+│       ├── schema/          # ui-schema 契约的 Zod 投影（前端真源）+ parseUiSchema
+│       ├── registry/        # componentRegistry（desktop / mobile）+ 各组件 props Zod
+│       ├── renderer/        # SchemaRenderer / UnknownComponent / ActionBar
+│       ├── components/      # desktop/{Type}.tsx（antd）、mobile/{Type}.tsx（antd-mobile）
+│       ├── device/          # StratoDeviceProvider / useDevice
+│       └── theme/           # StratoThemeProvider（tokens → antd token / --adm-* / --strato-*）
+└── apps/chat/               # strato-chat —— 唯一应用，只 import @strato-ui/core
+    └── src/                 # FSD：app → pages → features → entities → shared
 ```
 
-依赖方向 `pages → features → entities → shared`，单向；同层不互相 import；跨切片只经 `index.ts`。
-`import type` 允许跨层。`oxlint` 的 `no-restricted-imports` 与 `scripts/check-deps.mjs` 守护。
+**`apps/chat` 内部 FSD**：`app/`（Provider、路由、全局样式）、`pages/`（`chat` 即首页 `/`、DEV-only `schema-playground`、`not-found`）、`features/agent-chat`、`entities/agent-run`（除 ui-schema 外的契约投影）、`shared/`（api / config / lib / ui/Button）。依赖方向 `pages → features → entities → shared` 单向；跨切片只经 `index.ts`；`import type` 允许跨层。`scripts/check-deps.mjs` 与 oxlint 守护。
 
-切片内部：`api/`、`model/`、`ui/`、`index.ts`。页面目录：`{Name}Page.tsx`、`index.ts`、`parts/`。
+路径别名（仅 `apps/chat`）：`@app/*`、`@pages/*`、`@features/*`、`@entities/*`、`@shared/*`；只读别名 `@contracts/*` → `.harness/contracts/*`，仅 `pages/` 与 `scripts/` 可用且只 import `*.json`。`packages/core` **不使用别名**（d.ts 无法解析），包内相对导入。
 
-路径别名：`@/*`、`@app/*`、`@pages/*`、`@features/*`、`@entities/*`、`@shared/*`；另有只读别名 `@contracts/*` → `../.harness/contracts/*`，**仅允许 import `*.json`**（示例夹具），且仅在 `pages/` 与 `scripts/` 使用。禁止 `../../` 跨层。
+**`@strato-ui/core` 解析策略**：开发期 `exports` 指 `src`（tsc / oxlint / vite serve / vite-node 走源码，热更新）；`publishConfig` 在 `pnpm pack` 时覆盖为 `dist`；chat 的 `vite build` 用正则精确 alias 到 core `dist`（生产吃可发布产物）；`@strato-ui/core/style.css` 始终指 dist，chat 的 `predev` / `prebuild` 守护 dist 存在。
 
-**Generate UI 专项**：
-- 白名单组件注册表只有一个入口：`shared/ui/generate/componentRegistry.ts`，按端型导出 `desktopRegistry`（antd 封装）与 `mobileRegistry`（antd-mobile 封装），键集合必须完全一致且与 `ui-schema.schema.json` 的 `type` enum 一致。
-- 每个白名单组件是**封装层**：`shared/ui/generate/desktop/{Type}.tsx` 与 `shared/ui/generate/mobile/{Type}.tsx`，对外 props 由契约 `props` 决定，内部才使用 antd / antd-mobile。业务代码与 Schema Renderer **不得**直接 import `antd` / `antd-mobile`。
-- Schema Renderer 只能渲染注册表内的 `type`；未知 `type` 渲染 `UnknownComponent` 占位并 `console.error`。
-- 渲染器**不得**出现 `eval`、`new Function`、`dangerouslySetInnerHTML`、动态 `import()` 任意路径。
-- 端型由 `app/` 层根据视口 / UA 一次性决定并通过 Provider 下发，不在组件内各自判断。
+**Strato UI 专项**：
+- 白名单组件注册表只有一个入口：`fronted/packages/core/src/registry/componentRegistry.ts`，`desktopRegistry`（antd）与 `mobileRegistry`（antd-mobile）键集合必须完全一致且与 `ui-schema.schema.json` 的 `type` enum 一致；`scripts/check-registry.mjs` 机械校验。
+- 每个白名单组件是**封装层**：`fronted/packages/core/src/components/desktop/{Type}.tsx` 与 `fronted/packages/core/src/components/mobile/{Type}.tsx`，对外 props 由契约决定，内部才使用 antd / antd-mobile。antd / antd-mobile 只允许出现在 `components/**` 与 `theme/**`。
+- Schema Renderer 只渲染注册表内的 `type`；未知 `type` → `UnknownComponent` 占位 + `console.error('[strato-ui] …')`；每个组件 props 先经 Zod。
+- 渲染器**不得**出现 `eval`、`new Function`、`dangerouslySetInnerHTML`、任意路径动态 `import()`。
+- 包内 CSS 只允许 `--strato-*` 变量且带 fallback；不读宿主 CSS 变量、不 `getComputedStyle`；公共 d.ts 不得暴露 antd / antd-mobile 类型。
+- 端型由宿主挂载 `StratoDeviceProvider` 一次性决定，组件内不各自判断。
+- 安全边界分工（随包走 / 留在宿主）见 `fronted/packages/core/README.md`。
 
 ## 2. 后端模块分层（Maven 多模块）
 
@@ -98,8 +103,8 @@ platform-spi、contracts-java ↛ 任何其他模块
 任一触发即 MUST FIX：
 
 1. `fronted/` 直接引用 `backed/` 文件，或反之。
-2. 前端在 `shared/ui/generate/` 之外声明可被 UI Schema 引用的组件。
-3. 前端在 `app/router/` 与 `pages/` 之外声明路由或使用路由 hook 拼装路由表（页面组件内用 `useParams` / `Link` 允许）。
+2. 前端在 `fronted/packages/core/src/registry/componentRegistry.ts` 之外声明可被 UI Schema 引用的组件；`apps/chat` import antd / antd-mobile 或 `@strato-ui/core/src/*` 深路径。
+3. 前端在 `fronted/apps/chat/src/app/router/` 与 `pages/` 之外声明路由或使用路由 hook 拼装路由表（页面组件内用 `useParams` / `Link` 允许）。
 4. FSD 反向依赖或穿透 `index.ts`。
 5. `agent-runtime`、`tool-registry`、`tool-gateway` 的 pom 依赖任何 `domains/*` 模块（只有 `app` 可以）。
 6. `tool-registry` 的 pom 依赖任何 `domains/*` 模块，或暴露转发调用的端点。

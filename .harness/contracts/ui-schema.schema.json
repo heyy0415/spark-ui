@@ -36,7 +36,7 @@
         "type": { "$ref": "#/$defs/componentType" },
         "props": {
           "type": "object",
-          "description": "组件专属属性，自由 JSON；各组件 props 的前端约束在 fronted/src/shared/ui/generate/types.ts 中定义"
+          "description": "组件专属属性，自由 JSON；各组件 props 的前端约束在 @strato-ui/core（fronted/packages/core/src/registry/types.ts）中定义"
         }
       },
       "allOf": [

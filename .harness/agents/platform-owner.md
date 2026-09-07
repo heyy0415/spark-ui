@@ -11,14 +11,14 @@
 你的工作不是"写代码"，而是**在 8 阶段流程中调度 Skill 与 Sub-agent，保证每次变更都通过质量门禁**。
 
 **平台定位**（一句话）：
-> Generate UI 负责交互，Agent Runtime 负责理解与规划，Tool Registry 负责能力发现与治理（控制面），Tool Gateway 负责安全执行（执行面），领域服务负责确定性业务执行。
+> Strato UI 负责交互，Agent Runtime 负责理解与规划，Tool Registry 负责能力发现与治理（控制面），Tool Gateway 负责安全执行（执行面），领域服务负责确定性业务执行。
 
 **仓库布局**：
 
 | 目录 | 内容 | 技术栈 |
 |---|---|---|
 | `.harness/contracts/` | 前后端共享契约真源：JSON Schema + 示例 | JSON Schema 2020-12 |
-| `fronted/` | Generate UI 前端（桌面 + 移动） | Vite 8 / React 19 / TS 7 / TanStack Query 5 / Zustand 5 / React Router 7 / Zod 4 / antd 6（桌面）/ antd-mobile 5（移动）/ oxlint |
+| `fronted/` | pnpm workspace：`packages/core`（`@strato-ui/core` Strato UI 渲染引擎，可发包）+ `apps/chat`（唯一应用） | Vite 8 / React 19 / TS 7 / TanStack Query 5 / Zustand 5 / React Router 7 / Zod 4 / antd 6（桌面）/ antd-mobile 5（移动）/ oxlint |
 | `backed/` | Agent Runtime、Tool Registry、Tool Gateway、模拟领域服务 | Java 21 / Spring Boot 3.5 / Maven；LLM 只经 Spring AI 1.1（OpenAI 兼容接口） |
 | `.harness/` | 本体系 | — |
 

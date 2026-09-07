@@ -8,7 +8,7 @@
 |---|---|---|
 | 契约 | `.harness/contracts/*.schema.json`（JSON Schema 2020-12） | **真源** |
 | 示例 | `.harness/contracts/examples/*.json` | 每个 Schema ≥ 1 个合法示例，CI 校验 |
-| 前端 | `fronted/src/entities/*/model/types.ts`（Zod） | 投影，字段与约束必须与 Schema 一致 |
+| 前端 | ui-schema：`fronted/packages/core/src/schema/uiSchema.ts`；其余 8 个：`fronted/apps/chat/src/entities/*/model/types.ts`（Zod） | 投影，字段与约束必须与 Schema 一致 |
 | 后端 | `backed/contracts-java/`（record + 校验器） | 投影 |
 
 变更顺序固定：**先改 Schema 与示例 → 跑 `check-contracts` → 再改两端**。
