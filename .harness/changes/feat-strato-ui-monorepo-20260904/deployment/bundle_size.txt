@@ -1,0 +1,17 @@
+# bundle_size (bytes  path)
+## apps/chat
+51196 /Users/fangtao/strato_ui/fronted/apps/chat/dist/assets/useVariants-CpOA-WdN.js
+53314 /Users/fangtao/strato_ui/fronted/apps/chat/dist/assets/card-C5K1mtXf.js
+56669 /Users/fangtao/strato_ui/fronted/apps/chat/dist/assets/Form-DNA6-idR-DgMOTRrM.js
+107175 /Users/fangtao/strato_ui/fronted/apps/chat/dist/assets/Form-1nCkFUUu-DYUH0Qfw.js
+129473 /Users/fangtao/strato_ui/fronted/apps/chat/dist/assets/Input-BoOfMvCs.js
+226258 /Users/fangtao/strato_ui/fronted/apps/chat/dist/assets/Table-DsbTRmi_-CLkzhrCn.js
+251987 /Users/fangtao/strato_ui/fronted/apps/chat/dist/assets/index-Dg0RXnOQ.js
+252069 /Users/fangtao/strato_ui/fronted/apps/chat/dist/assets/useSize-BgT6dUsM.js
+## packages/core
+1010 /Users/fangtao/strato_ui/fronted/packages/core/dist/chunks/Form-DNA6-idR.js
+1020 /Users/fangtao/strato_ui/fronted/packages/core/dist/chunks/RefundConfirmCard-BRqXwFEL.js
+1027 /Users/fangtao/strato_ui/fronted/packages/core/dist/chunks/Form-1nCkFUUu.js
+10158 /Users/fangtao/strato_ui/fronted/packages/core/dist/index.js
+## backed
+36026813 /Users/fangtao/strato_ui/backed/app/target/app.jar
