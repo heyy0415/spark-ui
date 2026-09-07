@@ -15,3 +15,11 @@ catalog:
   vite: 8.2.2
   '@vitejs/plugin-react': ^6.1.1
   typescript: 7.0.2
+
+# strict-peer-dependencies=true 下的已知例外：antd-mobile 5.42 的传递依赖只声明 react ≤18，实际在 19 上可用（首期已验证）。
+# 只放行这几条上游声明，本仓库自己包的 peer 仍然严格。
+peerDependencyRules:
+  allowedVersions:
+    '@react-spring/*>react': '19'
+    '@react-spring/*>react-dom': '19'
+    'staged-components>react': '19'
