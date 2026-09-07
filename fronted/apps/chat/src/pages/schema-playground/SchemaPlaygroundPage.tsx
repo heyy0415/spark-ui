@@ -2,9 +2,8 @@ import { useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 import confirmExample from '@contracts/examples/ui-schema.example.json';
 import resultExample from '@contracts/examples/ui-schema.result.example.json';
-import type { UiSchema } from '@entities/agent-run';
-import { UiSchemaSchema } from '@entities/agent-run';
-import { SchemaRenderer, useDevice } from '@shared/ui';
+import type { UiSchema } from '@strato-ui/core';
+import { SchemaRenderer, UiSchemaSchema, useDevice } from '@strato-ui/core';
 import unknownFixture from './fixtures/unknown.json';
 import styles from './SchemaPlaygroundPage.module.css';
 

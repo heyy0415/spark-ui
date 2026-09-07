@@ -3,10 +3,7 @@
   "compilerOptions": {
     "lib": ["ES2023"],
     "jsx": "preserve",
-    "types": ["node"],
-    "paths": {
-      "@entities/*": ["./apps/chat/src/entities/*"]
-    }
+    "types": ["node"]
   },
-  "include": ["scripts/**/*.ts", "apps/chat/vite.config.ts", "packages/core/vite.config.ts"]
+  "include": ["apps/chat/vite.config.ts", "packages/core/vite.config.ts"]
 }

@@ -1,13 +1,14 @@
 /**
- * pnpm exec vite-node scripts/verify-examples.ts
+ * pnpm -C fronted run verify-examples（= vite-node -c apps/chat/vite.config.ts scripts/verify-examples.ts，serve 模式，@strato-ui/core 解析到 core src）
  *
  * 用前端 Zod 投影逐个校验契约示例（.harness/contracts/examples/*.example.json），
- * 保证 entities/agent-run/model/types.ts 与契约真源一致（contracts.md §1）。
+ * 保证 ui-schema 投影（@strato-ui/core）与其余投影（apps/chat entities）与契约真源一致（contracts.md §1）。
  * 前端只投影 6 个契约：intent / action / ui-schema×2 / run-summary / sse-events×10 / error → 16 个示例。
  * 输出 "16 examples OK"；任一失败退出码 1。以 vite-node 运行（路径别名由 vite.config 解析），不在 typecheck 范围。
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { UiSchemaSchema } from '@strato-ui/core';
 import type { ZodType } from 'zod';
 import {
   ActionRequestSchema,
@@ -15,10 +16,9 @@ import {
   IntentRequestSchema,
   RunSummarySchema,
   SseEventSchema,
-  UiSchemaSchema,
 } from '@entities/agent-run';
 
-const examplesDir = join(process.cwd(), '..', '.harness', 'contracts', 'examples');
+const examplesDir = join(process.cwd(), '..', '.harness', 'contracts', 'examples'); // cwd = fronted
 
 const schemaFor: Record<string, ZodType> = {
   'intent-request': IntentRequestSchema,

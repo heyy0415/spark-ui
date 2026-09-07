@@ -1,17 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useRef } from 'react';
-import type { IntentRequest, Principal, UiAction, UiSchema } from '@entities/agent-run';
+import type { FormValues, UiAction, UiSchema } from '@strato-ui/core';
+import { FormPropsSchema } from '@strato-ui/core';
+import type { IntentRequest, Principal } from '@entities/agent-run';
 import {
   AGENT_RUNS_PATH,
   actionPath,
   buildActionRequest,
   buildIntentRequest,
-  FormPropsSchema,
   principalHeaders,
   SseEventSchema,
 } from '@entities/agent-run';
 import { consumeSse } from '@shared/api';
-import type { FormValues } from '@shared/ui';
 import type { AgentRunView } from '../model/runView';
 import { emptyView, reduceEvent } from '../model/runView';
 

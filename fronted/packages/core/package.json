@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "description": "Strato UI 渲染引擎：把后端下发的 UI Schema 渲染为白名单组件（antd 桌面 / antd-mobile 移动）。不发请求、不持有会话状态。",
   "type": "module",
-  "sideEffects": ["./dist/style.css"],
+  "sideEffects": [
+    "./dist/style.css"
+  ],
   "types": "./src/index.ts",
   "exports": {
     ".": {
@@ -23,7 +25,10 @@
       "./style.css": "./dist/style.css"
     }
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

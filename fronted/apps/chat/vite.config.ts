@@ -26,7 +26,7 @@ export default defineConfig(({ command }) => ({
       { find: '@entities', replacement: abs('./src/entities') },
       { find: '@shared', replacement: abs('./src/shared') },
       // 只读契约别名：仅用于 import 示例 JSON（project-structure §1）
-      { find: '@contracts', replacement: abs('../../.harness/contracts') },
+      { find: '@contracts', replacement: abs('../../../.harness/contracts') },
       ...(command === 'build'
         ? [{ find: /^@strato-ui\/core$/, replacement: abs('../../packages/core/dist/index.js') }]
         : []),

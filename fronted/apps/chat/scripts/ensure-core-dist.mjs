@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const styleCss = join(here, '..', '..', '..', 'packages', 'core', 'dist', 'style.css');
 if (!existsSync(styleCss)) {
-  console.error('[strato-chat] @strato-ui/core dist not found. Run `pnpm -C fronted build:core` first.');
+  console.error(
+    '[strato-chat] @strato-ui/core dist not found. Run `pnpm -C fronted build:core` first.',
+  );
   process.exit(1);
 }

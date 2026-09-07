@@ -1,3 +1,5 @@
+@import '@strato-ui/core/style.css';
+
 :root {
   --color-bg: #f7f8fa;
   --color-surface: #ffffff;

@@ -1,21 +1,13 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import type { Principal, UiAction } from '@entities/agent-run';
+import type { UiAction } from '@strato-ui/core';
+import { ActionBar, COMPONENT_TYPES, SchemaRenderer } from '@strato-ui/core';
+import type { Principal } from '@entities/agent-run';
 import { HttpError } from '@shared/api';
-import { ActionBar, Button, SchemaRenderer } from '@shared/ui';
+import { Button } from '@shared/ui';
 import { FormIncompleteError, useAgentRun } from '../api/useAgentRun';
 import type { PageContextQuery } from '../model/runView';
 import styles from './AgentChatPanel.module.css';
-
-const COMPONENTS = [
-  'Form',
-  'Card',
-  'Table',
-  'ResultCard',
-  'ConfirmationCard',
-  'OrderCard',
-  'RefundConfirmCard',
-];
 
 export interface AgentChatPanelProps {
   conversationId: string;
@@ -44,7 +36,7 @@ export function AgentChatPanel({ conversationId, principal, pageContext }: Agent
           ? { selectedEntity: { type: pageContext.entityType, id: pageContext.entityId } }
           : {}),
       },
-      clientCapabilities: { uiSchemaVersion: '1.0', components: COMPONENTS },
+      clientCapabilities: { uiSchemaVersion: '1.0', components: [...COMPONENT_TYPES] },
     });
   };
 

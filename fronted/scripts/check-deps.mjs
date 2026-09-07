@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 检查 FSD 依赖方向（pages → features → entities → shared）。
+ * 检查 apps/chat 的 FSD 依赖方向（pages → features → entities → shared）。packages/core 无分层，不在范围。
  * 用法：node scripts/check-deps.mjs
  *
  * 仅 grep import 路径前缀；规则简单，但足以堵住红线。
@@ -10,7 +10,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SRC = join(__dirname, '..', 'src');
+const SRC = join(__dirname, '..', 'apps', 'chat', 'src');
 
 const banned = {
   'shared/': ['@app/', '@pages/', '@features/', '@entities/'],
@@ -43,12 +43,15 @@ for await (const file of walk(SRC)) {
 
   const text = await readFile(file, 'utf-8');
   // 类型-only 导入在运行时被擦除，不构成真正的依赖，允许跨层。
-  const importRegex = /^\s*import\s+(type\s+)?[\s\S]+?from\s+['"]([^'"]+)['"]/gm;
+  // 两种形态都要抓：`import x from '...'`（含 type 前缀）与副作用裸导入 `import '...'`
+  const importRegex =
+    /^\s*import\s+(?:(type\s+)?[^;'"]+?from\s+['"]([^'"]+)['"]|['"]([^'"]+)['"])/gm;
   let m;
   while ((m = importRegex.exec(text)) !== null) {
     const isTypeOnly = Boolean(m[1]);
     if (isTypeOnly) continue;
-    const spec = m[2];
+    const spec = m[2] ?? m[3];
+    if (spec === undefined) continue;
     for (const bad of banned[layer]) {
       if (spec.startsWith(bad)) {
         console.error(

@@ -4,10 +4,10 @@
  *
  * 校验 Generate UI 注册表三方一致（project-structure §1）：
  *   ui-schema.schema.json 的 componentType enum
- *   == src/shared/ui/generate/componentRegistry.ts 的 desktopRegistry 键
+ *   == packages/core/src/registry/componentRegistry.ts 的 desktopRegistry 键
  *   == mobileRegistry 键
- *   == src/shared/ui/generate/types.ts 的 PROPS_SCHEMAS 键
- * 并检查 desktop/ 与 mobile/ 下每个 type 都有对应实现文件。
+ *   == packages/core/src/registry/types.ts 的 PROPS_SCHEMAS 键
+ * 并检查 components/desktop/ 与 components/mobile/ 下每个 type 都有对应实现文件。
  * 纯文本解析，不执行 TS；退出码 0 = 一致。
  */
 import { readFileSync, existsSync } from 'node:fs';
@@ -17,8 +17,9 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fronted = join(__dirname, '..');
 const schemaPath = join(fronted, '..', '.harness', 'contracts', 'ui-schema.schema.json');
-const registryPath = join(fronted, 'src', 'shared', 'ui', 'generate', 'componentRegistry.ts');
-const typesPath = join(fronted, 'src', 'shared', 'ui', 'generate', 'types.ts');
+const core = join(fronted, 'packages', 'core', 'src');
+const registryPath = join(core, 'registry', 'componentRegistry.ts');
+const typesPath = join(core, 'registry', 'types.ts');
 
 let errors = 0;
 const fail = (m) => {
@@ -69,7 +70,7 @@ if (!same(contractTypes, propsKeys))
 
 for (const t of contractTypes) {
   for (const side of ['desktop', 'mobile']) {
-    const f = join(fronted, 'src', 'shared', 'ui', 'generate', side, `${t}.tsx`);
+    const f = join(core, 'components', side, `${t}.tsx`);
     if (!existsSync(f)) fail(`missing implementation ${side}/${t}.tsx`);
   }
 }

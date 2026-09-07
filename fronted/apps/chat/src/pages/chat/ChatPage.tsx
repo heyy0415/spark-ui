@@ -2,13 +2,13 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import type { Principal } from '@entities/agent-run';
 import { AgentChatPanel, PageContextQuerySchema } from '@features/agent-chat';
-import styles from './AgentPage.module.css';
+import styles from './ChatPage.module.css';
 
 /** 首期固定身份（真实登录为后续 change）。 */
 const PRINCIPAL: Principal = { userId: 'user_001', tenantId: 'tenant_001' };
 
-/** /agent?page=order-detail&entityType=order&entityId=10001 —— query 经 Zod 校验后作为 pageContext（不可信输入）。 */
-export function AgentPage() {
+/** /?page=order-detail&entityType=order&entityId=10001 —— query 经 Zod 校验后作为 pageContext（不可信输入）。 */
+export function ChatPage() {
   const [params] = useSearchParams();
   const pageContext = useMemo(() => {
     const raw = {
@@ -24,8 +24,8 @@ export function AgentPage() {
   const [conversationId] = useState(() => `conv_${Date.now().toString(36)}`);
 
   return (
-    <section className={styles['wrap']} aria-labelledby="agent-title">
-      <h1 id="agent-title" className={styles['title']}>
+    <section className={styles['wrap']} aria-labelledby="chat-title">
+      <h1 id="chat-title" className={styles['title']}>
         {/* 智能助手 */}
       </h1>
       <p className={styles['context']}>

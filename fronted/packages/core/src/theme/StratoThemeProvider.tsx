@@ -38,7 +38,7 @@ const DEFAULT_TOKENS: Required<StratoThemeTokens> = {
  */
 export function StratoThemeProvider({ tokens, children }: StratoThemeProviderProps) {
   const token = useMemo<Required<StratoThemeTokens>>(
-    () => ({ ...DEFAULT_TOKENS, ...(tokens ?? {}) }),
+    () => ({ ...DEFAULT_TOKENS, ...tokens }),
     [tokens],
   );
 

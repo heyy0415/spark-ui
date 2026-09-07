@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import type { RunFailureCode, SseEvent, UiSchema } from '@entities/agent-run';
+import type { UiSchema } from '@strato-ui/core';
+import type { RunFailureCode, SseEvent } from '@entities/agent-run';
 
 /**
  * agent-chat 的客户端状态：由 SSE 事件流归约而来，存放在 TanStack Query cache（key ['agent-run', runId]）。

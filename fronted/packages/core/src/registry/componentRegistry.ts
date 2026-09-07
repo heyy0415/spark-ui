@@ -28,43 +28,63 @@ export const desktopRegistry: Registry = {
     lazy(() => import('../components/desktop/Table').then((m) => ({ default: m.TableDesktop }))),
   ),
   ResultCard: asRegistered(
-    lazy(() => import('../components/desktop/ResultCard').then((m) => ({ default: m.ResultCardDesktop }))),
+    lazy(() =>
+      import('../components/desktop/ResultCard').then((m) => ({ default: m.ResultCardDesktop })),
+    ),
   ),
   ConfirmationCard: asRegistered(
     lazy(() =>
-      import('../components/desktop/ConfirmationCard').then((m) => ({ default: m.ConfirmationCardDesktop })),
+      import('../components/desktop/ConfirmationCard').then((m) => ({
+        default: m.ConfirmationCardDesktop,
+      })),
     ),
   ),
   OrderCard: asRegistered(
-    lazy(() => import('../components/desktop/OrderCard').then((m) => ({ default: m.OrderCardDesktop }))),
+    lazy(() =>
+      import('../components/desktop/OrderCard').then((m) => ({ default: m.OrderCardDesktop })),
+    ),
   ),
   RefundConfirmCard: asRegistered(
     lazy(() =>
-      import('../components/desktop/RefundConfirmCard').then((m) => ({ default: m.RefundConfirmCardDesktop })),
+      import('../components/desktop/RefundConfirmCard').then((m) => ({
+        default: m.RefundConfirmCardDesktop,
+      })),
     ),
   ),
 };
 
 export const mobileRegistry: Registry = {
-  Form: asRegistered(lazy(() => import('../components/mobile/Form').then((m) => ({ default: m.FormMobile })))),
-  Card: asRegistered(lazy(() => import('../components/mobile/Card').then((m) => ({ default: m.CardMobile })))),
+  Form: asRegistered(
+    lazy(() => import('../components/mobile/Form').then((m) => ({ default: m.FormMobile }))),
+  ),
+  Card: asRegistered(
+    lazy(() => import('../components/mobile/Card').then((m) => ({ default: m.CardMobile }))),
+  ),
   Table: asRegistered(
     lazy(() => import('../components/mobile/Table').then((m) => ({ default: m.TableMobile }))),
   ),
   ResultCard: asRegistered(
-    lazy(() => import('../components/mobile/ResultCard').then((m) => ({ default: m.ResultCardMobile }))),
+    lazy(() =>
+      import('../components/mobile/ResultCard').then((m) => ({ default: m.ResultCardMobile })),
+    ),
   ),
   ConfirmationCard: asRegistered(
     lazy(() =>
-      import('../components/mobile/ConfirmationCard').then((m) => ({ default: m.ConfirmationCardMobile })),
+      import('../components/mobile/ConfirmationCard').then((m) => ({
+        default: m.ConfirmationCardMobile,
+      })),
     ),
   ),
   OrderCard: asRegistered(
-    lazy(() => import('../components/mobile/OrderCard').then((m) => ({ default: m.OrderCardMobile }))),
+    lazy(() =>
+      import('../components/mobile/OrderCard').then((m) => ({ default: m.OrderCardMobile })),
+    ),
   ),
   RefundConfirmCard: asRegistered(
     lazy(() =>
-      import('../components/mobile/RefundConfirmCard').then((m) => ({ default: m.RefundConfirmCardMobile })),
+      import('../components/mobile/RefundConfirmCard').then((m) => ({
+        default: m.RefundConfirmCardMobile,
+      })),
     ),
   ),
 };

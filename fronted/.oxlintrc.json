@@ -1,11 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": [
-    "typescript",
-    "react",
-    "unicorn",
-    "oxc"
-  ],
+  "plugins": ["typescript", "react", "unicorn", "oxc"],
   "categories": {
     "correctness": "error",
     "suspicious": "warn"
@@ -14,11 +9,7 @@
     "browser": true,
     "es2022": true
   },
-  "ignorePatterns": [
-    "**/dist/**",
-    "**/node_modules/**",
-    "**/.verify-pack/**"
-  ],
+  "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/.verify-pack/**"],
   "rules": {
     "typescript/no-explicit-any": "error",
     "typescript/consistent-type-imports": [
@@ -27,10 +18,7 @@
         "prefer": "type-imports"
       }
     ],
-    "typescript/consistent-type-definitions": [
-      "error",
-      "interface"
-    ],
+    "typescript/consistent-type-definitions": ["error", "interface"],
     "typescript/no-non-null-assertion": "error",
     "typescript/no-namespace": "error",
     "typescript/prefer-as-const": "error",
@@ -52,10 +40,7 @@
     "no-console": [
       "error",
       {
-        "allow": [
-          "warn",
-          "error"
-        ]
+        "allow": ["warn", "error"]
       }
     ],
     "react/rules-of-hooks": "error",
@@ -72,10 +57,7 @@
     "no-underscore-dangle": [
       "error",
       {
-        "allow": [
-          "__dirname",
-          "__filename"
-        ]
+        "allow": ["__dirname", "__filename"]
       }
     ],
     "no-restricted-imports": [
@@ -83,9 +65,7 @@
       {
         "patterns": [
           {
-            "group": [
-              "../../*"
-            ],
+            "group": ["../../*"],
             "message": "Use path aliases (@shared/*, @entities/*, ...) instead of ../../ paths."
           },
           {
@@ -97,23 +77,19 @@
               "@entities/*/model/*",
               "@entities/*/ui/*"
             ],
-            "message": "Import slice public API via its index.ts (e.g. @entities/user)."
+            "message": "Import slice public API via its index.ts (e.g. @entities/agent-run)."
           },
           {
-            "group": [
-              "antd",
-              "antd/*",
-              "antd-mobile",
-              "antd-mobile/*",
-              "@ant-design/*"
-            ],
-            "message": "UI libraries may only be imported inside src/shared/ui/**. Use the wrappers exported from @shared/ui."
+            "group": ["antd", "antd/*", "antd-mobile", "antd-mobile/*", "@ant-design/*"],
+            "message": "UI libraries may only be imported inside packages/core/src/components/** and packages/core/src/theme/**. Apps use @strato-ui/core."
           },
           {
-            "group": [
-              "@contracts/*"
-            ],
-            "message": "@contracts/* (example JSON) may only be imported from src/pages/** or scripts/**."
+            "group": ["@strato-ui/core/*"],
+            "message": "Import @strato-ui/core only via its package entry (or '@strato-ui/core/style.css' in CSS)."
+          },
+          {
+            "group": ["@contracts/*"],
+            "message": "@contracts/* (example JSON) may only be imported from apps/chat/src/pages/** or scripts/**."
           }
         ]
       }
@@ -121,9 +97,7 @@
   },
   "overrides": [
     {
-      "files": [
-        "scripts/**/*.{mjs,ts}"
-      ],
+      "files": ["scripts/**/*.{mjs,ts}", "apps/*/scripts/**/*.mjs", "**/vite.config.ts"],
       "env": {
         "node": true
       },
@@ -132,19 +106,19 @@
       }
     },
     {
-      "files": [
-        "src/shared/ui/**"
-      ],
+      "files": ["packages/core/src/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
           {
             "patterns": [
               {
-                "group": [
-                  "../../*"
-                ],
-                "message": "Use path aliases instead of ../../ paths."
+                "group": ["antd", "antd/*", "antd-mobile", "antd-mobile/*", "@ant-design/*"],
+                "message": "UI libraries may only be imported inside packages/core/src/components/** and packages/core/src/theme/**. Apps use @strato-ui/core."
+              },
+              {
+                "group": ["@strato-ui/core/*"],
+                "message": "Import @strato-ui/core only via its package entry (or '@strato-ui/core/style.css' in CSS)."
               }
             ]
           }
@@ -152,20 +126,31 @@
       }
     },
     {
-      "files": [
-        "src/pages/**",
-        "scripts/**"
-      ],
+      "files": ["packages/core/src/components/**", "packages/core/src/theme/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
           {
             "patterns": [
               {
-                "group": [
-                  "../../*"
-                ],
-                "message": "Use path aliases instead of ../../ paths."
+                "group": ["@strato-ui/core/*"],
+                "message": "Import @strato-ui/core only via its package entry (or '@strato-ui/core/style.css' in CSS)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["apps/chat/src/pages/**", "scripts/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["../../*"],
+                "message": "Use path aliases (@shared/*, @entities/*, ...) instead of ../../ paths."
               },
               {
                 "group": [
@@ -176,17 +161,15 @@
                   "@entities/*/model/*",
                   "@entities/*/ui/*"
                 ],
-                "message": "Import slice public API via its index.ts."
+                "message": "Import slice public API via its index.ts (e.g. @entities/agent-run)."
               },
               {
-                "group": [
-                  "antd",
-                  "antd/*",
-                  "antd-mobile",
-                  "antd-mobile/*",
-                  "@ant-design/*"
-                ],
-                "message": "UI libraries may only be imported inside src/shared/ui/**."
+                "group": ["antd", "antd/*", "antd-mobile", "antd-mobile/*", "@ant-design/*"],
+                "message": "UI libraries may only be imported inside packages/core/src/components/** and packages/core/src/theme/**. Apps use @strato-ui/core."
+              },
+              {
+                "group": ["@strato-ui/core/*"],
+                "message": "Import @strato-ui/core only via its package entry (or '@strato-ui/core/style.css' in CSS)."
               }
             ]
           }
