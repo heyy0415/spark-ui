@@ -1,5 +1,5 @@
 import { List, NoticeBar } from 'antd-mobile';
-import type { ConfirmationCardProps, RenderedComponentProps } from '../types';
+import type { ConfirmationCardProps, RenderedComponentProps } from '../../registry/types';
 
 export function ConfirmationCardMobile({
   id,

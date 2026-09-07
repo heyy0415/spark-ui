@@ -1,5 +1,5 @@
 import { Button as AdmButton, Space } from 'antd-mobile';
-import type { UiAction } from '@entities/agent-run';
+import type { UiAction } from '../../schema/uiSchema';
 
 export interface ActionBarProps {
   actions: UiAction[];

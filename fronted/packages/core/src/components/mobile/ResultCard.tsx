@@ -1,5 +1,5 @@
 import { List, Result } from 'antd-mobile';
-import type { RenderedComponentProps, ResultCardProps } from '../types';
+import type { RenderedComponentProps, ResultCardProps } from '../../registry/types';
 
 export function ResultCardMobile({ id, props }: RenderedComponentProps<ResultCardProps>) {
   return (

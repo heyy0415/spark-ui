@@ -17,6 +17,6 @@
 }
 
 .loading {
-  color: var(--color-text-muted);
+  color: var(--strato-color-text-muted, #646a73);
   font-size: 13px;
 }

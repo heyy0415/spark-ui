@@ -1,5 +1,5 @@
 import { Card as AntCard, Descriptions, Tag } from 'antd';
-import type { OrderCardProps, RenderedComponentProps } from '../types';
+import type { OrderCardProps, RenderedComponentProps } from '../../registry/types';
 
 export function OrderCardDesktop({ id, props }: RenderedComponentProps<OrderCardProps>) {
   return (

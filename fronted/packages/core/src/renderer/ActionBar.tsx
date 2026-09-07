@@ -1,7 +1,7 @@
-import type { UiAction } from '@entities/agent-run';
+import type { UiAction } from '../schema/uiSchema';
 import { useDevice } from '../device/DeviceContext';
-import { ActionBarDesktop } from './desktop/ActionBar';
-import { ActionBarMobile } from './mobile/ActionBar';
+import { ActionBarDesktop } from '../components/desktop/ActionBar';
+import { ActionBarMobile } from '../components/mobile/ActionBar';
 
 export interface ActionBarProps {
   actions: UiAction[];

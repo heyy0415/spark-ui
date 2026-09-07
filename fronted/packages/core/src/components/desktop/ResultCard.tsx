@@ -1,5 +1,5 @@
 import { Descriptions, Result } from 'antd';
-import type { RenderedComponentProps, ResultCardProps } from '../types';
+import type { RenderedComponentProps, ResultCardProps } from '../../registry/types';
 
 export function ResultCardDesktop({ id, props }: RenderedComponentProps<ResultCardProps>) {
   return (

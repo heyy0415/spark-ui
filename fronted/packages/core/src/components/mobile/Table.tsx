@@ -1,5 +1,5 @@
 import { List } from 'antd-mobile';
-import type { RenderedComponentProps, TableProps } from '../types';
+import type { RenderedComponentProps, TableProps } from '../../registry/types';
 
 /** 移动端无表格组件；每行渲染为一个 List 分组。 */
 export function TableMobile({ id, props }: RenderedComponentProps<TableProps>) {

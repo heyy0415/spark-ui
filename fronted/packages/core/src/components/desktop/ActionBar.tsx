@@ -1,5 +1,5 @@
 import { Button as AntButton, Space } from 'antd';
-import type { UiAction } from '@entities/agent-run';
+import type { UiAction } from '../../schema/uiSchema';
 
 /**
  * UI Schema actions[] 的桌面渲染。前端只用 actionId 提交（agent-safety §4），confirmationToken 由调用方原样回传。

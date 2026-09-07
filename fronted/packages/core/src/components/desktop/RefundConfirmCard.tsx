@@ -1,5 +1,5 @@
 import { Card as AntCard, Descriptions, Tag } from 'antd';
-import type { RefundConfirmCardProps, RenderedComponentProps } from '../types';
+import type { RefundConfirmCardProps, RenderedComponentProps } from '../../registry/types';
 
 export function RefundConfirmCardDesktop({
   id,

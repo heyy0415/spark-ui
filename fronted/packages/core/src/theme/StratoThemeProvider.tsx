@@ -1,40 +1,48 @@
 import { ConfigProvider, theme as antdTheme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useMemo } from 'react';
 
 /**
- * 主题封装：antd ConfigProvider token 与 antd-mobile CSS 变量同一套色值，真源为 global.css 的 --color-* 变量。
- * antd / antd-mobile 只允许在 shared/ui/** 内 import（coding-standard §4）；app 层只 import 本组件。
+ * 主题令牌：键集合 = 首期实际使用的 7 个，全部可选，默认值即首期 chat 应用 global.css 的色值。
+ * 色值只来自 props，不读宿主 CSS 变量（包可在任何宿主里独立成立）。
  */
-interface AppThemeProviderProps {
+export interface StratoThemeTokens {
+  colorPrimary?: string;
+  colorText?: string;
+  colorTextSecondary?: string;
+  colorBorder?: string;
+  colorBgLayout?: string;
+  colorBgContainer?: string;
+  borderRadius?: number;
+}
+
+export interface StratoThemeProviderProps {
+  tokens?: StratoThemeTokens;
   children: ReactNode;
 }
 
-function cssVar(name: string, fallback: string): string {
-  if (typeof window === 'undefined') {
-    return fallback;
-  }
-  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return v.length > 0 ? v : fallback;
-}
+const DEFAULT_TOKENS: Required<StratoThemeTokens> = {
+  colorPrimary: '#3370ff',
+  colorText: '#1f2329',
+  colorTextSecondary: '#646a73',
+  colorBorder: '#dee0e3',
+  colorBgLayout: '#f7f8fa',
+  colorBgContainer: '#ffffff',
+  borderRadius: 6,
+};
 
-export function AppThemeProvider({ children }: AppThemeProviderProps) {
-  const token = useMemo(
-    () => ({
-      colorPrimary: cssVar('--color-primary', '#3370ff'),
-      colorText: cssVar('--color-text', '#1f2329'),
-      colorTextSecondary: cssVar('--color-text-muted', '#646a73'),
-      colorBorder: cssVar('--color-border', '#dee0e3'),
-      colorBgLayout: cssVar('--color-bg', '#f7f8fa'),
-      colorBgContainer: cssVar('--color-surface', '#ffffff'),
-      borderRadius: 6,
-    }),
-    [],
+/**
+ * 同一套令牌同时下发给：antd ConfigProvider（桌面组件）、antd-mobile 的 --adm-* CSS 变量（移动组件）、
+ * 以及包内 CSS Modules 使用的 --strato-* 变量（渲染器 / 占位组件）。三者色值一致。
+ */
+export function StratoThemeProvider({ tokens, children }: StratoThemeProviderProps) {
+  const token = useMemo<Required<StratoThemeTokens>>(
+    () => ({ ...DEFAULT_TOKENS, ...(tokens ?? {}) }),
+    [tokens],
   );
 
-  // antd-mobile 通过 CSS 变量取色；在根节点上同步同一套值
-  const mobileVars = useMemo(
+  const cssVars = useMemo<CSSProperties>(
     () =>
       ({
         '--adm-color-primary': token.colorPrimary,
@@ -43,13 +51,18 @@ export function AppThemeProvider({ children }: AppThemeProviderProps) {
         '--adm-color-border': token.colorBorder,
         '--adm-color-background': token.colorBgContainer,
         '--adm-color-box': token.colorBgLayout,
-      }) as Record<string, string>,
+        '--strato-color-text': token.colorText,
+        '--strato-color-text-muted': token.colorTextSecondary,
+        '--strato-color-border': token.colorBorder,
+        '--strato-color-surface-hover': token.colorBgLayout,
+        '--strato-radius-md': `${token.borderRadius}px`,
+      }) as CSSProperties,
     [token],
   );
 
   return (
     <ConfigProvider locale={zhCN} theme={{ algorithm: antdTheme.defaultAlgorithm, token }}>
-      <div style={mobileVars}>{children}</div>
+      <div style={cssVars}>{children}</div>
     </ConfigProvider>
   );
 }

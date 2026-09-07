@@ -1,5 +1,5 @@
 import { Card as AdmCard, List, Tag } from 'antd-mobile';
-import type { RefundConfirmCardProps, RenderedComponentProps } from '../types';
+import type { RefundConfirmCardProps, RenderedComponentProps } from '../../registry/types';
 
 export function RefundConfirmCardMobile({
   id,

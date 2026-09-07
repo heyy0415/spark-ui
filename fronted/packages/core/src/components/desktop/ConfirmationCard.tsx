@@ -1,5 +1,5 @@
 import { Alert, Descriptions } from 'antd';
-import type { ConfirmationCardProps, RenderedComponentProps } from '../types';
+import type { ConfirmationCardProps, RenderedComponentProps } from '../../registry/types';
 
 export function ConfirmationCardDesktop({
   id,

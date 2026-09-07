@@ -1,5 +1,5 @@
 import { Table as AntTable } from 'antd';
-import type { RenderedComponentProps, TableProps } from '../types';
+import type { RenderedComponentProps, TableProps } from '../../registry/types';
 
 export function TableDesktop({ id, props }: RenderedComponentProps<TableProps>) {
   const columns = props.columns.map((c) => ({ key: c.key, dataIndex: c.key, title: c.title }));

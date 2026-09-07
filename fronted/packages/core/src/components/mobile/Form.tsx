@@ -1,6 +1,6 @@
 import { Form as AdmForm, Input, Selector, Stepper } from 'antd-mobile';
 import { useCallback } from 'react';
-import type { FormComponentProps, FormValues, RenderedComponentProps } from '../types';
+import type { FormComponentProps, FormValues, RenderedComponentProps } from '../../registry/types';
 
 /** 移动端 Form：字段来自契约；select 用 Selector 单选；只回传 formData。 */
 export function FormMobile({ id, props, handlers }: RenderedComponentProps<FormComponentProps>) {

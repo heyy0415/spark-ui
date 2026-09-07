@@ -1,5 +1,5 @@
 import { Card as AntCard, Descriptions } from 'antd';
-import type { CardProps, RenderedComponentProps } from '../types';
+import type { CardProps, RenderedComponentProps } from '../../registry/types';
 
 export function CardDesktop({ id, props }: RenderedComponentProps<CardProps>) {
   return (

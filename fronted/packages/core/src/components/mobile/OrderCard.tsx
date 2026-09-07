@@ -1,5 +1,5 @@
 import { Card as AdmCard, List, Tag } from 'antd-mobile';
-import type { OrderCardProps, RenderedComponentProps } from '../types';
+import type { OrderCardProps, RenderedComponentProps } from '../../registry/types';
 
 export function OrderCardMobile({ id, props }: RenderedComponentProps<OrderCardProps>) {
   return (

@@ -1,10 +1,10 @@
 import { Suspense, useMemo } from 'react';
-import type { UiSchema } from '@entities/agent-run';
+import type { UiSchema } from '../schema/uiSchema';
 import { useDevice } from '../device/DeviceContext';
-import { desktopRegistry, mobileRegistry } from './componentRegistry';
-import type { RegisteredComponent } from './componentRegistry';
-import { PROPS_SCHEMAS } from './types';
-import type { FormComponentHandlers, FormValues } from './types';
+import { desktopRegistry, mobileRegistry } from '../registry/componentRegistry';
+import type { RegisteredComponent } from '../registry/componentRegistry';
+import { PROPS_SCHEMAS } from '../registry/types';
+import type { FormComponentHandlers, FormValues } from '../registry/types';
 import { UnknownComponent } from './UnknownComponent';
 import styles from './SchemaRenderer.module.css';
 
@@ -35,7 +35,7 @@ export function SchemaRenderer({ ui, onFormChange }: SchemaRendererProps) {
           const type: string = c.type;
           const Comp: RegisteredComponent | undefined = registry[type];
           if (!Comp) {
-            console.error('[schema-renderer] unknown component type', type, 'id=', c.id);
+            console.error('[strato-ui] unknown component type', type, 'id=', c.id);
             return (
               <UnknownComponent key={c.id} id={c.id} type={type} reason="组件未在白名单注册表中" />
             );
@@ -43,7 +43,7 @@ export function SchemaRenderer({ ui, onFormChange }: SchemaRendererProps) {
           const schema = PROPS_SCHEMAS[type as keyof typeof PROPS_SCHEMAS];
           const parsed = schema.safeParse(c.props);
           if (!parsed.success) {
-            console.error('[schema-renderer] invalid props for', type, c.id, parsed.error.issues);
+            console.error('[strato-ui] invalid props for', type, c.id, parsed.error.issues);
             return (
               <UnknownComponent key={c.id} id={c.id} type={type} reason="组件属性不符合约定" />
             );

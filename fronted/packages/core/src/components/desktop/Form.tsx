@@ -1,6 +1,6 @@
 import { Form as AntForm, Input, InputNumber, Select } from 'antd';
 import { useCallback } from 'react';
-import type { FormComponentProps, FormValues, RenderedComponentProps } from '../types';
+import type { FormComponentProps, FormValues, RenderedComponentProps } from '../../registry/types';
 
 /**
  * Form 封装：字段定义来自契约 props.fields[]；只回传 formData，不自行发请求（05-styling-spec）。
