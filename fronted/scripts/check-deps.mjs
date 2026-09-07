@@ -44,13 +44,14 @@ for await (const file of walk(SRC)) {
   const text = await readFile(file, 'utf-8');
   // 类型-only 导入在运行时被擦除，不构成真正的依赖，允许跨层。
   // 两种形态都要抓：`import x from '...'`（含 type 前缀）与副作用裸导入 `import '...'`
+  // 四种形态都要抓：`import x from`（含 type 前缀）、副作用裸导入 `import '…'`、barrel 再导出 `export … from`、动态 `import('…')`
   const importRegex =
-    /^\s*import\s+(?:(type\s+)?[^;'"]+?from\s+['"]([^'"]+)['"]|['"]([^'"]+)['"])/gm;
+    /^\s*(?:import|export)\s+(?:(type\s+)?[^;'"]+?from\s+['"]([^'"]+)['"]|['"]([^'"]+)['"])|import\(\s*['"]([^'"]+)['"]\s*\)/gm;
   let m;
   while ((m = importRegex.exec(text)) !== null) {
     const isTypeOnly = Boolean(m[1]);
     if (isTypeOnly) continue;
-    const spec = m[2] ?? m[3];
+    const spec = m[2] ?? m[3] ?? m[4];
     if (spec === undefined) continue;
     for (const bad of banned[layer]) {
       if (spec.startsWith(bad)) {

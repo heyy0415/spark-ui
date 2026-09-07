@@ -11,7 +11,7 @@
 - **所属端**：fronted
 - **输入**：`fronted/package.json`、`fronted/tsconfig.app.json`、`fronted/.oxlintrc.json`、`fronted/.prettierrc.json`、spec §2.1
 - **输出**：`fronted/{pnpm-workspace.yaml,.npmrc,package.json,tsconfig.base.json,.oxlintrc.json,.prettierrc.json,.prettierignore}`、`fronted/packages/core/package.json`、`fronted/apps/chat/package.json`
-- **验收**：`pnpm -C fronted install` 退出码 0；`test -e fronted/node_modules/@strato-ui/core`；`pnpm -C fronted --filter './packages/**' --filter './apps/**' -r exec node -p "require('./package.json').name"` 恰两行；`pnpm -C .harness run doctor` 根目录检查仍 ✓
+- **验收**：`pnpm -C fronted install` 退出码 0；`test -e fronted/node_modules/@strato-ui/core`；`cd fronted && pnpm -r --filter './packages/**' --filter './apps/**' exec node -p "require('./package.json').name"` 恰两行（相对 filter 按 cwd 解析）；`pnpm -C .harness run doctor` 根目录检查仍 ✓
 - **依赖**：—
 
 ## Phase B — 核心包

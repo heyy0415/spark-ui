@@ -86,3 +86,13 @@ rm -rf */dist && pnpm -C .harness run ci                 check-contracts 0 / che
 | 未处理 | check-deps 漏 `export … from`、Form 字段 schema 与 ActionBarProps 重复定义、空 `<h1>` a11y、基线缺失静默重写 | 记入 summary 待下一 change | — |
 
 复验：`rm -rf */dist && pnpm -C fronted run ci` 0；`pnpm -C .harness run ci` 四段 0；doctor 0；e2e-frontend 21/21；deploy-verify 12/12。
+
+## 第 2 轮评审（`code_review_v3.md`，APPROVED，0 MUST FIX / 2 SHOULD）后的处理
+| # | 意见 | 处理 | 证据 |
+|---|---|---|---|
+| N1 | verify-pack (b) catalog 正则假设值无引号且以 `^` / 裸数字开头；找不到即跳过 | 正则放宽（引号、`~`、`>=`）；peer 不在 catalog 也算 ✗ | 植入 catalog `'^4.5.4'` + peer `^3` → ✗ `zod ^3 vs catalog 4`；删除 catalog zod 条目 → `pnpm pack` 先因 `catalog:` 无法解析而失败，verify-pack 仍红 |
+| N2 | check-deps 不识别 `export … from` 与动态 `import()` | 正则扩为 import / export / 裸导入 / `import('…')` 四种形态 | `export * from '@features/agent-chat'` → 1 violation；`() => import('@features/…')` → 1 violation |
+| LOW | tasks.md T01 命令未随 spec S1 同步 | 同步为 `cd fronted && pnpm -r --filter …` | — |
+| 推迟 | `PROPS_SCHEMAS` 未冻结、Form 字段 schema 与 ActionBarProps 重复定义、空 `<h1>` a11y、基线缺失静默重写、doctor 增加「L1 三文件 antd 措辞」检查 | 记入 summary 待下一 change | — |
+
+复验：`rm -rf */dist && pnpm -C fronted run ci` 0；`pnpm -C .harness run ci` 四段 0；doctor 0。

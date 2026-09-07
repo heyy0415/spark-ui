@@ -141,13 +141,14 @@ try {
   const catalog = Object.fromEntries(
     [
       ...readFileSync(join(fronted, 'pnpm-workspace.yaml'), 'utf-8').matchAll(
-        /^ {2}'?([@\w./-]+)'?: \^?(\d+)/gm,
+        /^ {2}'?([@\w./-]+)'?:\s*['"]?[\^~>=]*\s*(\d+)/gm,
       ),
     ].map((m) => [m[1], m[2]]),
   );
+  // 6 个 peer 必须都在 catalog 中且主版本一致；找不到也算失败（否则 catalog 解析失败会静默变绿）
   const peerMajorMismatch = Object.entries(pkg.peerDependencies ?? {}).filter(([name, range]) => {
-    const major = /^\^?(\d+)/.exec(String(range))?.[1];
-    return catalog[name] !== undefined && major !== catalog[name];
+    const major = /[\^~>=]*\s*(\d+)/.exec(String(range))?.[1];
+    return catalog[name] === undefined || major !== catalog[name];
   });
   check(
     peerMajorMismatch.length === 0,
