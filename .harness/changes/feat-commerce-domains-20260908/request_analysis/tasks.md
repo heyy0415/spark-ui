@@ -1,5 +1,6 @@
 # Tasks: feat-commerce-domains-20260908
 
+> v3.2 — 响应用户阶段 3 纠偏（spec v3.2）：组件白名单收敛为 5 个官方组件映射。新增 **T01b**（契约收敛 + 8 示例，替代已提交的 T01 增量）；T06a / T06b 屏投影按 spec §2.4.1 屏映射表重写（Card / Table / Result / Timeline）；T08a / T08b 合并重写为「core 收敛」：删 4 个业务组件、`ResultCard → Result`、新增 `Timeline`、`Table` 增 actions 列、`Card` 增 tone、`check-registry` 增 import 白名单与命名规则；T09 / T10a 断言按新组件 id 改；T02a–T05 不变（已完成）。17 task。
 > v3.1 — 吸收评审 v3：T02a 夹具表含金额与售后 / 退款分布；T02b `check-seed` 增金额 / 售后 / 退款校验；T03 输入 T02b、`order.logistics.get` NOT_SHIPPED、`order.detail.get` DELETED 行为、`OrderSnapshotProvider` 实现挪到 T05 前置小步（L-3）；T06a 输出列 `RunFailure.userText` 与 `RuleBasedLlmClient` / `SpringAiLlmClient` / `ToolSelectionValidator` / `RunOrchestrator` 签名；T07a 验收改用 10006；T07b LIVE `MissingEntity` 映射；T09 chip 统一；T10a ⑫ / ⑬ 断言；依赖图补 `T04 → T05`。
 > v3 — 响应 `review/spec_review_v2.md`：T02 拆 T02a（生成器 / json / DDL / README）与 T02b（spi SeedLoader + jsr310 / OrderSnapshot / check-seed / ci）；T06a 增 `ConfirmationCoverageSelfCheck`、recheck version 取前置步骤、`ToolDisplayNames` 引用注入、拒绝文案分类；T06b 删除确认屏无 Form；T07b 增 `MissingEntity` 信号；T10a 用例 ⑮ 用 10006、⑯ 新增、selfcheck 7、e2e-frontend 点 10030；依赖字段与图一致。16 task。
 > v2 — 响应 `review/spec_review_v1.md`：T06 / T07 / T08 / T10 各拆 a/b（M7）；T06 依赖补 T04；T02 增 `gen-seed.mjs` 与 DDL 硬格式；T03 增排序与 `order` 摘要；T05 增 `OrderSnapshot` spi record 与 aftersale.list.get 摘要；T07a 含实体抽取前移与路由表；T07b 含动词表与 `ConfirmationRecheck`；T10a 含既有断言同步清单。15 task。
@@ -14,6 +15,15 @@
 - **输出**：schema + 5 示例 + `contracts.md`
 - **验收**：`check-contracts` 9 schema / 25 example ✓；植入 `intent: "http://x"` 与 `intent: "<b>"` → 红；植入 `OrderList.props.items[0]` 缺 `orderId` → 红
 - **依赖**：—
+- **状态**：已提交 `e854104`（v3.1 形态）；由 T01b 覆盖。
+
+### T01b ui-schema 契约收敛为 5 个官方组件（spec v3.2）
+- **目标**：`componentType` enum → `Form / Card / Table / Result / Timeline`；`$defs` 新增 `labelValue{label, value, tone?}`、`cardProps`、`tableProps{columns, rows[]{id, cells, actions?}, total?, emptyText?}`、`resultProps`、`timelineProps{items[]{time, label, description?}, emptyText?}`；删 `iconName / orderListItem / orderListProps / productListItem / productListProps / logisticsEvent / logisticsTimelineProps`；`if/then` 覆盖 5 个组件；示例重写为 8 个（spec §2.3 列表；删 `order-list / product-list` 两个，新增 `order-table / product-table / order-detail`，其余 5 个改写）；`contracts.md` 变更记录写「v3.2 破坏性收敛，无外部消费方」。
+- **所属端**：contracts
+- **输入**：spec v3.2 §2.3 / §2.4.1 屏映射表
+- **输出**：schema + 8 示例 + `contracts.md`
+- **验收**：`check-contracts` 9 schema / 23 example ✓；植入 `type:"OrderCard"`、`Table.rows[0]` 缺 `id`、`Card.items[0].tone:"red"`、`intent:"http://x"` 各 → 红；`ContractsSelfCheck` 日志「9 schemas, 23 examples」
+- **依赖**：T01
 
 ### T02a 种子生成器、json、DDL、README
 - **目标**：`.harness/scripts/gen-seed.mjs`（固定随机种子；夹具与可见区状态表以断言写死：10001–10006 状态、**金额**（128.00 / 299.00 / 1.00 / 59.00 / — / 88.00）与最早 created_at、退款 3 条各挂 10007–10009（REFUNDED）、售后 4 条（APPROVED 挂 10010 COMPLETED，其余 3 条非进行中挂 10007–10009）、10011–10028 五状态各 ≥ 2、10029 COMPLETED、10030 SHIPPED 最新；products 20 / orders 30 / order_items / logistics_events）→ 写入三领域 `resources/data/*.json`（product / aftersale 目录先建，pom 由 T04 / T05 补）；每领域 `schema.sql`（spec §2.2 硬格式）与 `README.md`（导入命令）。
@@ -54,25 +64,25 @@
 - **所属端**：backed / harness
 - **输入**：T02b、T03、T04、现 refund-service、`check-module-deps.mjs`
 - **输出**：`backed/domains/aftersale-service/**`、refund-service 改动、脚本
-- **验收**：`mvn verify` 0；`grep -rn "com.strato.domain.order" backed/domains/refund-service backed/domains/aftersale-service` 0；新规则植入 → 红；注册 11 tools from 4 sources；首期退款 e2e 用例仍绿
+- **验收**：`mvn verify` 0；`grep -rn "com.strato.domain.order" backed/domains/refund-service backed/domains/aftersale-service` 0；新规则植入 → 红；注册 12 tools from 4 sources；首期退款 e2e 用例仍绿
 - **依赖**：T03、T04
 
 ## Phase C — Runtime
 
 ### T06a runtime 屏 / 重校验注册表 + refund 搬迁
-- **目标**：runtime `ScreenRegistry`、`FallbackScreenBuilder`（确认屏无 Form）、`RecheckRegistry`；`ToolDisplayNames` 改为实现 `ToolNameSink` 的可变注册表 Bean，`LlmConfiguration` 把它按引用注入两个 LlmClient；Registry `StartupManifestRegistrar` 回填；删 `summaryOf` 改 `ScreenBuilder.summary`；`RunOrchestrator`：确认屏 / 结果屏查表、`executeConfirmed` 通用化（recheck version 取计划前置步骤；无 recheck → fail-closed `INTERNAL_ERROR`；拒绝文案分令牌 / 策略两类）；`ConfirmationCoverageSelfCheck`；`UiSchemaBuilder` 搬到 `refund-service/infra/screen/RefundScreens` + `RefundRecheck`。
+- **目标**：spi `UiNodes`（树构造小工具）；runtime `ScreenRegistry`（契约校验 + `Table.cells ⊆ columns` 检查 + 两遍生成取 submit action id）、`FallbackScreenBuilder`（结果 `Card`；确认 `Card` 无 Form）、`RecheckRegistry`；`contracts-java` `UiSchema.ComponentType` 收敛为 5；`ToolDisplayNames` 改为实现 `ToolNameSink` 的可变注册表 Bean，`LlmConfiguration` 把它按引用注入两个 LlmClient；Registry `StartupManifestRegistrar` 回填；删 `summaryOf` 改 `ScreenBuilder.summary`；`RunOrchestrator`：确认屏 / 结果屏查表、`executeConfirmed` 通用化（recheck version 取计划前置步骤；无 recheck → fail-closed `INTERNAL_ERROR`；拒绝文案分令牌 / 策略两类）；`ConfirmationCoverageSelfCheck`；`UiSchemaBuilder` 搬到 `refund-service/infra/screen/RefundScreens`（确认 `[order: Card, refund-summary: Card, refund-form: Form]`、结果 `[result: Result]`）+ `RefundRecheck`（金额取 `refund-summary.items[label=退款金额]`）。
 - **所属端**：backed
-- **输入**：T01、T02b（spi 接口）、T05、现 `UiSchemaBuilder` / `RunOrchestrator` / `ToolDisplayNames` / `LlmConfiguration`
+- **输入**：T01b、T02b（spi 接口）、T05、现 `UiSchemaBuilder` / `RunOrchestrator` / `ToolDisplayNames` / `LlmConfiguration`
 - **输出**：runtime 4 类 + `RunFailure`（增 `userText`）+ `RuleBasedLlmClient` / `SpringAiLlmClient` / `ToolSelectionValidator.validate` / `RunOrchestrator` 签名（`ToolDisplayNames` 由 `Map` 快照改为 Bean 引用）+ `LlmConfiguration`、refund-service `infra/screen/` 2 类
-- **验收**：`mvn verify` 0；`grep -rn "refundConfirmation\|refundResult\|summaryOf\|RefundConfirmCard\|\"1.2.0\"" backed/agent-runtime/src` 0；自检 `confirmation coverage OK`；首期 e2e 退款链路事件序列、UI components、金额比对拒绝用例全部不变；`tool.selected.displayName` 与 manifest name 一致
-- **依赖**：T01、T02b、T05
+- **验收**：`mvn verify` 0；`grep -rn "refundConfirmation\|refundResult\|summaryOf\|RefundConfirmCard\|OrderCard\|ResultCard\|ConfirmationCard\|\"1.2.0\"" backed/*/src backed/domains/*/src` 0；自检 `confirmation coverage OK`；首期 e2e 退款链路事件序列不变，UI components 变为 `[Card, Card, Form]` / `[Result]`（断言在 T10a 同步），金额比对拒绝用例不变；`tool.selected.displayName` 与 manifest name 一致
+- **依赖**：T01b、T02b、T05
 
 ### T06b order / product / aftersale 屏与重校验
-- **目标**：`OrderScreens`（OrderList 行内按钮按状态、`emptyText` 截断提示、OrderCard 多商品 + 物流状态、LogisticsTimeline、删除确认屏 `[OrderCard, ConfirmationCard]` 无 Form）+ `OrderDeleteRecheck`（`DeletionPolicy`）；`ProductScreens`；`AftersaleScreens`（确认屏用 `aftersale.list.get.order` 摘要）+ `AftersaleRecheck`；`InlineActionSelfCheck`（种子全部订单的 inlineAction：intent 含 orderId、label↔动词）。
+- **目标**：按 spec §2.4.1 屏映射表（component id 写死）：`OrderScreens`（`orders: Table` 行内按钮按状态 + `emptyText`；详情 `[order: Card, logistics: Card, logistics-events: Timeline]`；物流 `[logistics: Card, logistics-events: Timeline]`；删除确认 `[order: Card]` 末项 danger、无 Form、submit `confirm-delete`；结果 `Result`）+ `OrderDeleteRecheck`（`DeletionPolicy`）；`ProductScreens`（`products: Table`、`product: Card`）；`AftersaleScreens`（`aftersales: Table`；确认 `[order: Card, aftersale-form: Form]` submit `confirm-aftersale`；结果 `Result`）+ `AftersaleRecheck`；`InlineActionSelfCheck`（种子全部订单 / 商品的 `Table.rows[].actions`：intent 含行 id、label↔动词）。
 - **所属端**：backed
 - **输入**：T06a、T03、T04、T05
 - **输出**：三领域 `infra/screen/**` + 自检
-- **验收**：`mvn verify` 0；自检日志 `selfcheck: inline actions OK`；`grep -rn "OrderSnapshotProvider" backed/domains/*/src/main/java/*/infra/screen` 0；Gateway 直调后手工构造 `previousOutputs` 走 `ScreenRegistry` 的单元级验证记入 coding_report（或经 T07b e2e 覆盖）
+- **验收**：`mvn verify` 0；自检日志 `selfcheck: inline actions OK`；`grep -rn "OrderSnapshotProvider" backed/domains/*/src/main/java/*/infra/screen` 0；每个屏经 `ScreenRegistry` 校验通过（启动自检 `ConfirmationCoverageSelfCheck` 覆盖三个确认屏；结果屏由 e2e ⑦–⑫ 覆盖）；Gateway 直调后手工构造 `previousOutputs` 走 `ScreenRegistry` 的单元级验证记入 coding_report（或经 T07b e2e 覆盖）
 - **依赖**：T06a、T04
 
 ### T07a 实体抽取前移与路由表
@@ -93,24 +103,24 @@
 
 ## Phase D — 前端
 
-### T08a core：契约投影、OrderCard 扩展、图标表、onIntent
-- **目标**：`schema/uiSchema.ts` / `registry/types.ts` 同步契约（10 类型、三组 props、`IconName`、`InlineAction`）；`icons.ts` 白名单 12 → `@ant-design/icons`；`ComponentHandlers{onChange?, onIntent?}`；`SchemaRenderer` 增 `onIntent` 透传；`OrderCard` 两端多商品 + 物流状态；`index.ts` 类型 +`IconName`；verify-pack 类型清单 11；README 两列 + `onIntent`。
-- **所属端**：fronted
-- **输入**：T01、现 core
-- **输出**：`packages/core/src/**`、`scripts/verify-pack.mjs`、`packages/core/README.md`
-- **验收**：`pnpm -C fronted run typecheck` 0；check-registry 暂红（缺 3 实现）可接受，T08b 后绿
-- **依赖**：T01
+### T08a core：契约投影收敛 + onIntent + 门禁
+- **目标**：`schema/uiSchema.ts` 重写为 5 个组件的契约级 Zod（`.strict()`；`COMPONENT_TYPES` 5；`CardProps / TableProps / ResultProps / TimelineProps / InlineAction / LabelValue` 类型）；`registry/types.ts` 只 re-export，删 `OrderCard* / RefundConfirmCard* / ResultCard* / ConfirmationCard*`；`ComponentHandlers{onChange?, onIntent?}`（原 `FormComponentHandlers`）；`SchemaRenderer` 增 `onIntent` 透传；`index.ts` 导出同步；`verify-pack.mjs` 类型清单同步；`check-registry.mjs` 增两条规则：`components/**` 文件 import 只允许 `antd` / `antd-mobile` / `react` / `../../registry` / `../../schema`；`components/{desktop,mobile}/*.tsx` 文件名 ∈ 契约 enum ∪ {ActionBar}；`coding-standard.md` 写入该红线。
+- **所属端**：fronted / harness
+- **输入**：T01b、现 core
+- **输出**：`packages/core/src/{schema,registry,renderer,index.ts}`、`scripts/{verify-pack,check-registry}.mjs`、`coding-standard.md`
+- **验收**：`pnpm -C fronted run typecheck` 0（组件文件此时报错可接受，T08b 后绿）；`check-registry` 植入 `components/desktop/OrderCard.tsx`（含 `import { Tag } from 'antd'`）→ 红「业务命名」；植入 `import x from 'lodash'` → 红「import 白名单」
+- **依赖**：T01b
 
-### T08b core：三新组件两端实现 + 基线
-- **目标**：desktop `OrderList`（antd List + 行内 Button，`data-intent`）/ `ProductList` / `LogisticsTimeline`（antd Timeline）；mobile 对应（antd-mobile List / Card / Steps）；`pnpm run verify-pack -- --write-baseline` 重写基线并记录前后 KB。
+### T08b core：5 个官方组件映射 + 基线
+- **目标**：删 `components/{desktop,mobile}/{OrderCard,RefundConfirmCard,ConfirmationCard,ResultCard}.tsx`（8 个）；`ResultCard.tsx → Result.tsx`（antd `Result` + `Descriptions` / antd-mobile `Result` + `List`，`data-component-id`）；`Card` 增 `items[].tone`（antd `Typography.Text type` / antd-mobile `--adm-color-*`）；`Table` 增 `rows[].actions` 末列（antd `Button size="small"` / antd-mobile 每行 `List` 分组尾部 `Button size="mini"`，`data-intent`，点击 → `handlers.onIntent(intent)`）与 `total / emptyText` 表尾（antd `Table footer` / antd-mobile `List` 尾项）；新增 `Timeline.tsx` 两端（antd `Timeline items` / antd-mobile `Steps direction="vertical"`；空 items 显示 `emptyText`）；`componentRegistry.ts` 5 键；`pnpm run verify-pack -- --write-baseline` 重写基线并记录前后 KB；core README 白名单表改 5 行。
 - **所属端**：fronted
 - **输入**：T08a
-- **输出**：6 个组件文件、`verify-pack.baseline.json`
-- **验收**：`rm -rf */dist && pnpm -C fronted run ci` 0；check-registry 10；verify-pack 17 + 11；`/dev/schema?example=order-list|product-list|logistics` 1280 / 375 各 console.error 0；`grep -rn "http\|href=" packages/core/src` 0
+- **输出**：`components/{desktop,mobile}/{Card,Table,Result,Timeline}.tsx`、`componentRegistry.ts`、`verify-pack.baseline.json`、README
+- **验收**：`rm -rf */dist && pnpm -C fronted run ci` 0；check-registry 5 + 两条新规则 ✓；`ls components/desktop` == `ActionBar Card Form Result Table Timeline`；`grep -rn "Order\|Refund\|Product\|Logistics" packages/core/src/components` 0；`grep "@ant-design/icons" packages/core/package.json` 0；`/dev/schema?example=<8 个>` 1280 / 375 各 console.error 0；`grep -rn "http\|href=" packages/core/src` 0
 - **依赖**：T08a
 
 ### T09 chat 应用：意图按钮、连续对话、示例 chip
-- **目标**：`AgentChatPanel` 接 `onIntent` → 显示用户消息 + `start.mutate`；新 Run 期间保留上一屏直到新 `ui.replace`；消息区区分用户 / 助手；演示页示例 chip（「看看我的订单」「有什么商品」「查看订单 10030 的物流」「订单 10002 申请售后」）；playground 三个新示例入口。
+- **目标**：`AgentChatPanel` 接 `onIntent` → 显示用户消息 + `start.mutate`；新 Run 期间保留上一屏直到新 `ui.replace`；消息区区分用户 / 助手；演示页示例 chip（「看看我的订单」「有什么商品」「查看订单 10030 的物流」「订单 10002 申请售后」）；playground `example` 参数扩为 8 个契约示例 + `unknown`。
 - **所属端**：fronted
 - **输入**：T08b
 - **输出**：`apps/chat/src/**`
@@ -120,7 +130,7 @@
 ## Phase E — Harness、文档、验收
 
 ### T10a e2e 脚本与既有断言同步
-- **目标**：`e2e-backend.sh` 新增 ⑦–⑯ + ⑬'（放 M2 幂等用例之后；⑮ 用 10006；⑫ 确认屏 `[OrderCard, ConfirmationCard]` 提交 `{}`；⑬ 审计按 runId 作用域）；既有断言同步：自检「20 examples」→ 25、plan 自检文案、新增两条自检名、selfcheck 数 → 7（`deploy-verify.sh` 同）；`e2e-frontend.mjs` 新增 ≥ 8 项（`data-intent="查看订单 10030 的物流"` 等精确定位）+ 3 张截图。
+- **目标**：`e2e-backend.sh` 新增 ⑦–⑯ + ⑬'（spec v3.2 §2.6 断言：组件按 `[Card, Timeline]` / `[Table]` 等 type 列表与 component id；⑫ 确认屏 `[Card]` 末项 `tone==danger` 提交 `{}`；⑬ 审计按 runId 作用域）；既有断言同步清单（spec §2.6）：自检「20 examples」→ 23、§6.2.8 `['Card','Card','Form']`、§6.2.9 / M2 `['Result']`、`SHOWN` 取 `refund-summary.items[label=退款金额]`、plan 自检文案、新增两条自检名、selfcheck 数 → 7（`deploy-verify.sh` 同）、check-registry 5；`e2e-frontend.mjs` 新增 ≥ 8 项（`data-component-id="orders"`、`data-intent="查看订单 10030 的物流"` 等精确定位）+ 3 张截图。
 - **所属端**：harness
 - **输入**：T07b、T09、现两脚本
 - **输出**：两脚本
@@ -128,11 +138,11 @@
 - **依赖**：T07b、T09
 
 ### T10b 文档同步
-- **目标**：`wiki/domain-model.md`（四领域实体与状态机、删除 / 售后 / 退款策略）、`wiki/api-contracts.md`（11 工具；`Table` 标注仅 playground）、`backed/README.md`、`packages/core/README.md`（10 组件、`onIntent`）、`project-structure.md` §2（`ScreenBuilder` / `ConfirmationRecheck` 归领域模块；domains 互不 import）、`agent-safety.md` §3（重校验契约化）、`06-backend-module-spec.md`、`backed/domains/*/README.md`。
+- **目标**：`wiki/domain-model.md`（四领域实体与状态机、删除 / 售后 / 退款策略）、`wiki/api-contracts.md`（12 工具）、`wiki/architecture.md`（组件白名单 5）、`backed/README.md`、`packages/core/README.md`（5 组件、`onIntent`）、`project-structure.md` §2（`ScreenBuilder` / `ConfirmationRecheck` 归领域模块；domains 互不 import；core 组件 == 官方组件映射）、`agent-safety.md` §3（重校验契约化）、`06-backend-module-spec.md`、`backed/domains/*/README.md`。
 - **所属端**：harness
 - **输入**：T06b、T07b、T09
 - **输出**：上述文档
-- **验收**：doctor 0（含文档路径检查）；`grep -n "UiSchemaBuilder" .harness/rules .harness/wiki backed/README.md` 0
+- **验收**：doctor 0（含文档路径检查）；`grep -rn "UiSchemaBuilder\|OrderCard\|RefundConfirmCard\|ResultCard\|ConfirmationCard" .harness/rules .harness/wiki backed/README.md fronted/packages/core/README.md` 0
 - **依赖**：T10a
 
 ### T11 全链路验收
@@ -148,7 +158,8 @@
 ```
 T02a → T02b → T03 → T05 ─┐
 T02b → T04 → T05 ────────┼→ T06a → T06b → T07a → T07b ─┐
-T01 ─────────────────────┘                              ├→ T10a → T10b → T11
-T01 → T08a → T08b → T09 ────────────────────────────────┘
-（T06a 依赖 T01 / T02b / T05；T06b 依赖 T06a / T04；T07a 依赖 T06b）
+T01 → T01b ──────────────┘                              ├→ T10a → T10b → T11
+T01b → T08a → T08b → T09 ───────────────────────────────┘
+（T06a 依赖 T01b / T02b / T05；T06b 依赖 T06a / T04；T07a 依赖 T06b）
+已完成：T01（e854104）、T02a+T02b（c75ad6a）、T03（5c58938）、T04+T05（688021b）。T06a 已开工（ScreenRegistry / RecheckRegistry / ToolDisplayNames / RunFailure / ConfirmationCoverageSelfCheck / UiNodes / 注册回填已写，未提交），按 v3.2 继续。
 ```

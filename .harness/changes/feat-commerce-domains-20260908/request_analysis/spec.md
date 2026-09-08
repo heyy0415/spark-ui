@@ -1,5 +1,6 @@
 # Spec: feat-commerce-domains-20260908
 
+> v3.2 — **用户在阶段 3（T08b 前）纠偏：core 只允许 antd / antd-mobile 官方组件的直接映射，不写业务命名的自定义组件，且组件数只需覆盖四个领域的展示。** 白名单从 10 收敛为 **5**：`Form / Card / Table / Result / Timeline`；删除 `ResultCard / ConfirmationCard / OrderCard / RefundConfirmCard / OrderList / ProductList / LogisticsTimeline`。行内自然语言指令挂在 `Table.rows[].actions`；订单 / 商品 / 售后列表都投影为 `Table`；订单 / 商品 / 退款摘要 / 删除警示都投影为 `Card`；物流 = `Card`（承运商 / 运单 / 状态）+ `Timeline`（事件）；结果 = `Result`。5 个组件的 props **全部提升为契约级 if/then 约束**。去掉 `thumbnail` 图标映射（不引入 `@ant-design/icons`）。已提交的 T01 以 T01b 修订契约；T03–T05 后端领域服务不受影响（工具输出不变，只有屏投影变）。牵连修改：§2.3 / §2.4.1 屏表 / §2.4.4 RefundRecheck 比对方式 / §2.5 / §2.6 断言 / §4 / §5 / §6 / §7 / §8；tasks v3.2。
 > v3.1 — 吸收 `review/spec_review_v3.md`（第 3 轮，3 MUST 均为文字补丁）：M-1 ⑫ 确认屏断言改 `[OrderCard, ConfirmationCard]`；M-2 夹具表增金额列（10001=128.00 / 10002=299.00 / 10003=1.00 / 10004=59.00 / 10006=88.00）；M-3 售后 status 枚举与「进行中」集合、10007–10010 分布写死；S-1 `RunFailure.userText`；S-2 `ToolDisplayNames` 引用注入牵连的签名列入 T06a；S-3 chip 与示例统一 10030 / 10002，无物流订单 `order.logistics.get` 返回 `status: NOT_SHIPPED, events: []`；S-4 ⑬ 审计按 runId 作用域；S-5 「4 个领域服务 / 4 个 data 目录」；L-1…L-7 吸收。进入 HITL ②。
 > v3 — 响应 `review/spec_review_v2.md`（REVISION REQUIRED，M-A–M-E / S-A–S-F）：M-A 确认屏不再放空 Form（删除确认屏 = `[OrderCard, ConfirmationCard]`，Fallback 确认屏 = `[ConfirmationCard]`，token 白名单空集）；M-B 新增 e2e 专用 PAID 夹具 `10006`，种子售后 / 退款挂 `10008+`；M-C 夹具与可见区状态表写死（`10030` 最新 SHIPPED、`10029` COMPLETED），e2e-frontend 点 10030；M-D 自检数统一 7；M-E `OrderSnapshot` 增 `productName` / `quantity`；S-A 动词命中但缺实体 → 友好提示（`MissingEntity` 信号）；S-B 重校验拒绝用独立文案；S-C 需确认工具无 recheck → fail-closed + 自检；S-D spi 增 jsr310；S-E T02 拆 a/b、依赖字段修正；S-F recheck version 取自计划前置步骤、`ToolDisplayNames` 改可变注册表且 LlmClient 持引用不持快照；L 项吸收。
 > v2 — 响应 `review/spec_review_v1.md`（REVISION REQUIRED，M1–M7 / S1–S12）：M1 规则规划器改「动词 → 目标工具 + 前置依赖」确定性表，`refund.status.get` 不进退款计划，结果屏 = 最后成功步骤；M2 实体抽取前移到路由后、拦截前，实体为多类型 map；M3 路由顺序 `refund → aftersale → order → product`，去单字关键词；M4 `ScreenBuilder` 签名用 `JsonNode`，spi 自有 `OrderSnapshot`；M5 spi `ConfirmationRecheck` 契约，⑬ 期望 `CONFIRMATION_REJECTED` + 另测 handler 双保险；M6 排序 `createdAt desc`、⑦ `items 20 / total 30`；M7 T06 / T07 / T08 / T10 各拆 a/b。S1 displayName 取 Registry name 表、`summaryOf` 交 ScreenBuilder；S2 既有断言同步清单；S3 verify-pack 重写基线；S4 确认屏只用 `previousOutputs`（aftersale.list.get 带订单摘要）；S5 user_002 四项只读；S6 售后种子挂 10006+、e2e 用 `data-intent` 定位；S7 DDL 硬格式；S8 hint / 文案随领域扩；S9 inlineAction 自检；S10 README 两列；S11 `gen-seed.mjs`；S12 非目标补四项。
@@ -7,7 +8,7 @@
 
 ## 1. 背景
 
-首期只有「订单详情 + 退款」一条链路、3 条内存订单、7 个白名单组件里真正被后端使用的只有 4 个。要验证「纯自然语言驱动的实时 UI」这套基建是否成立，需要一组**贴近真实电商**的场景：用户在聊天里说「看看我的订单」「删掉那单」「这单的物流到哪了」「申请售后」「退款」「有什么商品」「看看这个商品」，后端理解并调对应工具，前端渲染出**可继续交互**的列表 / 详情 / 确认屏 / 结果屏。同时 mock 数据要能原样导入 Redis / MySQL，为后续外置存储 change 铺路。
+首期只有「订单详情 + 退款」一条链路、3 条内存订单、7 个白名单组件里真正被后端使用的只有 4 个。要验证「纯自然语言驱动的实时 UI」这套基建是否成立，需要一组**贴近真实电商**的场景：用户在聊天里说「看看我的订单」「删掉那单」「这单的物流到哪了」「申请售后」「退款」「有什么商品」「看看这个商品」，后端理解并调对应工具，前端用 **antd / antd-mobile 官方组件**渲染出**可继续交互**的列表 / 详情 / 确认屏 / 结果屏（core 不写业务自定义组件）。同时 mock 数据要能原样导入 Redis / MySQL，为后续外置存储 change 铺路。
 
 ## 2. 范围（In Scope）
 
@@ -24,7 +25,7 @@
 | product | `product.list.search` **新** | 1.0.0 | low | never | `keyword?`、`category?`、`limit?` | `items[]{productId, title, price, currency, stock, category, thumbnail?}`、`total` |
 | product | `product.detail.get` **新** | 1.0.0 | low | never | `productId` | 商品全字段 + `specs[]{name, value}` + `salesCount` |
 | aftersale | `aftersale.create` **新** | 1.0.0 | **high** | required | `orderId`、`type ∈ {RETURN, EXCHANGE, REPAIR}`、`reason` | `aftersaleId, orderId, type, status:SUBMITTED, createdAt` |
-| aftersale | `aftersale.list.get` **新** | 1.0.0 | low | never | `orderId?` | `items[]{aftersaleId, orderId, type, status, createdAt}`；带 `orderId` 时另返回 `order{orderId, productName, quantity, amount, currency, status}` 摘要（供售后确认屏渲染 OrderCard） |
+| aftersale | `aftersale.list.get` **新** | 1.0.0 | low | never | `orderId?` | `items[]{aftersaleId, orderId, type, status, createdAt}`；带 `orderId` 时另返回 `order{orderId, productName, quantity, amount, currency, status}` 摘要（供售后确认屏渲染订单 Card） |
 | refund | `refund.eligibility.check` | 1.2.0 | low | never | 不变 | 不变 |
 | refund | `refund.preview` | 1.3.0 | low | never | 不变 | 不变 |
 | refund | `refund.create` | 2.1.0 | high | required | 不变 | 不变 |
@@ -32,7 +33,7 @@
 
 - `order.delete` 规则：只允许 `COMPLETED / CANCELLED / REFUNDED` 状态删除（软删，`status → DELETED`，列表默认不含）；`PAID / SHIPPED` 拒绝并返回业务原因（Gateway `HANDLER_ERROR` → 前端「执行失败」；`EligibilityPolicy` 风格的纯函数 `DeletionPolicy`）。
 - 售后单 `status` 枚举 `{SUBMITTED, APPROVED, REJECTED, COMPLETED, CANCELLED}`；**进行中 = {SUBMITTED, APPROVED}**。`aftersale.create` 规则：订单 `status ∈ {SHIPPED, COMPLETED}` 且该订单无进行中售后单（每单进行中 ≤ 1）。
-- `order.logistics.get` 对无物流的订单（PAID / CANCELLED 等）返回 `{orderId, carrier: "", trackingNo: "", status: "NOT_SHIPPED", events: []}`（不抛错）；`LogisticsTimeline.events` 契约允许空数组，前端显示「暂无物流信息」；`order.detail.get` 对 DELETED 订单返回 `HANDLER_ERROR`（业务原因「订单已删除」）。
+- `order.logistics.get` 对无物流的订单（PAID / CANCELLED 等）返回 `{orderId, carrier: "", trackingNo: "", status: "NOT_SHIPPED", events: []}`（不抛错）；`Timeline.items` 契约允许空数组，前端显示 `emptyText`「暂无物流信息」；`order.detail.get` 对 DELETED 订单返回 `HANDLER_ERROR`（业务原因「订单已删除」）。
 - `refund` 领域的 `OrderLookup` 改为经 `order-service` 的 **`platform-spi` 端口**（新增 `spi/OrderSnapshotProvider`，order-service 实现，refund / aftersale 依赖 spi 接口而非 order 模块），删掉 `SeededOrderLookup` 双份种子。
 - 权限：`order:read`、`order:delete`（新）、`product:read`（新）、`aftersale:read`、`aftersale:create`（新）、`refund:read`、`refund:create`。`user_001` 全部；`user_002` 四项只读：`order:read / product:read / aftersale:read / refund:read`（保留 `refund:read`，现有 e2e「user_002 refund 候选 == 3」不变）。
 - 领域路由：`DomainRouter` 关键词表**按声明顺序匹配**，写死顺序 `refund → aftersale → order → product`（写操作领域优先、通用词最后）：`refund = [退款, 退钱, refund]`（删「退货」）、`aftersale = [售后, 换货, 维修, 退货]`、`order = [订单, order, 物流, 发货]`、`product = [商品, product, 有什么卖]`（不用单字「货」「买」）。`DomainDescriptions` 四条同步（refund 去「退货」）。`DomainResolver.ENTITY_HINT_WHITELIST` 扩为 `{order, product}`；`EntityRequirementCheck` 实体映射增 `productId ↔ product`，提示文案增 product（「请先选择一个商品」）与 aftersale（「请先在页面上选择一个订单，再申请售后」）。
@@ -76,23 +77,32 @@ e2e 对夹具区（10001–10006）的写操作都不影响默认 20 行列表�
 
 ### 2.3 UI Schema 契约（`.harness/contracts/ui-schema.schema.json`）
 
-`componentType` enum 从 7 扩到 **10**：新增 `OrderList`、`ProductList`、`LogisticsTimeline`。三者的 props 契约（后端生成 / 前端 Zod 同源）：
+`componentType` enum 收敛为 **5**，每个都是 antd（PC）/ antd-mobile（移动）官方组件的直接映射，core 内**不得**出现业务命名组件：
+
+| type | PC（antd 6） | 移动（antd-mobile 5） | 用途 |
+|---|---|---|---|
+| `Form` | `Form` + `Input` / `Select` / `InputNumber` | `Form` + `Input` / `Picker` / `Stepper` | 确认屏表单（不变） |
+| `Card` | `Card` + `Descriptions` | `Card` + `List` | 订单 / 商品 / 退款摘要 / 售后单 / 删除警示 |
+| `Table` | `Table`（末列 `Button` 为行内指令） | `List`（每行一个分组，尾部 `Button`） | 订单 / 商品 / 售后列表 |
+| `Result` | `Result` + `Descriptions` | `Result` + `List` | 写操作结果 |
+| `Timeline` | `Timeline` | `Steps`（`direction="vertical"`） | 物流轨迹 |
+
+5 个组件的 props **全部**是契约级约束（`if/then` + `additionalProperties:false`；前端 Zod 同源、`.strict()`）：
 
 ```
-OrderList        { items[]{orderId, productName, thumbnail?, quantity, amount, currency, status, createdAt,
-                            actions[]{label, intent}}, total, emptyText? }
-ProductList      { items[]{productId, title, price, currency, stock, category, thumbnail?,
-                            actions[]{label, intent}}, total, emptyText? }
-LogisticsTimeline{ orderId, carrier, trackingNo, status, events[]{time, location, description} }
+Form     { fields[]{name, type∈text|select|number, label, required?, options?[]{label,value}} }        （不变）
+Card     { title?, description?, items?[]{label, value, tone?∈default|success|warning|danger} }         （items ≤ 32）
+Table    { columns[]{key, title}, rows[]{id, cells{<key>: string}, actions?[]{label, intent}}, total?, emptyText? }
+Result   { status∈success|error|info|warning, title, description?, details?[]{label, value} }
+Timeline { items[]{time, label, description?}, emptyText? }                                             （items 可为空；≤ 32）
 ```
 
-**`actions[].intent` 是一段自然语言文本**（≤ 200 字，无 URL / HTML），前端点击后原样作为新消息发送。例如订单行的 `[{label:"查看物流", intent:"查看订单 10002 的物流"}, {label:"申请售后", intent:"订单 10002 申请售后"}, {label:"删除订单", intent:"删除订单 10005"}, {label:"退款", intent:"订单 10001 退款"}]`；商品行 `[{label:"查看商品", intent:"查看商品 P-1003 的详情"}]`。后端按订单状态决定给哪些按钮（PAID → 退款；SHIPPED → 物流 + 售后；COMPLETED → 物流 + 售后 + 删除；CANCELLED / REFUNDED → 删除）。
-
-- `thumbnail` 不是 URL：是白名单 emoji / 图标名（`^[a-z0-9-]{1,32}$`，如 `phone`、`headphones`），前端映射到 `@ant-design/icons`；契约「无 URL」约束不破。
-- `OrderCard` props 增 `quantity?`、`items?[]{productName, quantity, amount}`（多商品）与 `logisticsStatus?`；`Table` 保留但本 change 不再由后端使用。
-- 示例：`ui-schema.order-list.example.json`、`ui-schema.product-list.example.json`、`ui-schema.logistics.example.json`、`ui-schema.aftersale-confirm.example.json`、`ui-schema.delete-confirm.example.json`。
-- `intent-request` / `sse-events` / `tool-search` / 其余契约**不变**（displayName 不动 `tool-search` 六字段）。
-- `inlineAction.intent` 与 `label` 的绑定约束（写进 `contracts.md` §4 与 `check-contracts` 示例）：intent 必须含该行实体 ID；`label → 动词` 映射固定：`查看物流 → 物流`、`申请售后 → 售后`、`删除订单 → 删除`、`退款 → 退款`、`查看商品 → 查看商品`。
+- **`actions[].intent` 是一段自然语言文本**（≤ 200 字，pattern 禁止 `://` 与 `<`），前端点击后原样作为新消息发送。订单行按状态：PAID → 退款；SHIPPED → 查看物流 + 申请售后；COMPLETED → 查看物流 + 申请售后 + 删除订单；CANCELLED / REFUNDED → 删除订单。商品行：查看商品。`label ↔ 动词` 固定映射（`contracts.md` §4，不变）：`查看物流 → 物流`、`申请售后 → 售后`、`删除订单 → 删除`、`退款 → 退款`、`查看商品 → 查看商品`；intent 必须含该行实体 ID。
+- `Table.rows[].cells` 的键必须 ⊆ `columns[].key`（契约做不到跨字段约束，由 runtime `ScreenRegistry` 在契约校验后追加一条结构检查，前端渲染缺键显示空）。`Table.total` 语义：`total > rows.length` 时前端在表尾显示 `emptyText`（如「共 30 单，仅展示最近 20 单」）；`rows` 为空时显示 `emptyText`。
+- `Card.items[].tone` 只影响颜色（antd `Typography.Text type` / antd-mobile 颜色 token）；删除确认的「删除后订单将从列表消失，不可恢复」以 `tone: danger` 呈现，不引入 Alert。
+- **删除**：`ResultCard`、`ConfirmationCard`、`OrderCard`、`RefundConfirmCard`（首期）与 `OrderList`、`ProductList`、`LogisticsTimeline`（T01 v3.1 新增）、`$defs.iconName` 与 `thumbnail` 字段（不做图标映射，不引入 `@ant-design/icons`）。工具输出里的 `thumbnail` 保留为数据字段但不渲染。
+- 示例 **8 个**（替换原 7 个）：`ui-schema.example.json`（退款确认：`[Card, Card, Form]`）、`ui-schema.result.example.json`（`[Result]`）、`ui-schema.order-table.example.json`、`ui-schema.product-table.example.json`、`ui-schema.order-detail.example.json`（`[Card, Card, Timeline]`：订单卡 + 物流概要卡 + 轨迹）、`ui-schema.logistics.example.json`（`[Card, Timeline]`）、`ui-schema.aftersale-confirm.example.json`（`[Card, Form]`）、`ui-schema.delete-confirm.example.json`（`[Card]` 含 danger 项，无 Form）。`check-contracts` 示例数 20 → **23**。
+- `intent-request` / `sse-events` / `tool-search` / 其余契约**不变**。
 
 ### 2.4 后端：屏生成、规划器、实体抽取、重校验（`agent-runtime` + `platform-spi`）
 
@@ -110,22 +120,27 @@ public interface ScreenBuilder {
 public record ScreenContext(String runId, String userId, String tenantId) {}
 ```
 
-- runtime `ScreenRegistry` 按 toolId 查表；查不到走 `FallbackScreenBuilder`（结果 → `Card` 列出输出键值；确认 → `ConfirmationCard` 列参数，**不含 Form**——契约 `Form.fields minItems 1`，空 Form 会被 `assertValid` 拒）。无 Form 的确认屏 token `allowedFormKeys = {}`，`formKeys(ui)` 对无 Form 屏返回空集，前端提交 `formData: {}`。runtime 收到 `JsonNode` 后 `treeToValue(UiSchema)` + `SchemaValidator.assertValid("ui-schema")`，校验仍只在 runtime 一处。
+- runtime `ScreenRegistry` 按 toolId 查表；查不到走 `FallbackScreenBuilder`（结果 → `Card` 列出输出键值；确认 → `Card{title:"请确认操作", items: 参数}`，**不含 Form**——契约 `Form.fields minItems 1`，空 Form 会被 `assertValid` 拒）。无 Form 的确认屏 token `allowedFormKeys = {}`，`formKeys(ui)` 对无 Form 屏返回空集，前端提交 `formData: {}`。runtime 收到 `JsonNode` 后 `assertValid("ui-schema")` + `Table.cells ⊆ columns` 结构检查 + `treeToValue(UiSchema)`，校验仍只在 runtime 一处。确认屏的 submit action id 由领域屏决定（`confirm-refund` / `confirm-delete` / `confirm-aftersale`），runtime 两遍生成：先用占位令牌生成一遍读出 action id 与 Form 字段，签发令牌后再生成正式屏。
 - **结果屏 = 计划中最后一个成功步骤的 `result`**；中间只读步骤不发 `ui.replace`（现状）。
-- 确认屏只能用 `previousOutputs`（经 Gateway 的干净输出）与 `fixedArgs`，**不得**经 spi 直读领域数据（S4 取 (b)）：`aftersale.list.get` 输出增 `order{orderId, productName, amount, currency, status}` 摘要，`AftersaleScreens.confirmation` 用它渲染 `OrderCard`；`order.delete` 确认屏用同 Run 内 `order.detail.get` 的输出（规划器把它作为前置只读步骤）。`OrderSnapshotProvider`（spi 自有 record `OrderSnapshot{orderId, status, amount, currency, productName, quantity, createdAt}`；多商品单 `productName` = 首行商品名，`quantity` = 总件数）给 refund / aftersale 的领域策略与 `aftersale.list.get` 的 `order` 摘要用；**屏层不直接调它**（屏只用 `previousOutputs`）。
-- 各领域实现放本模块 `infra/screen/`：`RefundScreens`（原 `UiSchemaBuilder` 两屏搬迁，行为不变）、`OrderScreens`（OrderList 行内按钮按状态、OrderCard 多商品、LogisticsTimeline、删除确认）、`ProductScreens`、`AftersaleScreens`。`displayName` 不再硬编码：spi 新增 `ToolNameSink { void register(String toolId, String name); }`，runtime 的 `ToolDisplayNames` 改为实现它的可变注册表 Bean（`ConcurrentHashMap`），Registry 的 `StartupManifestRegistrar` 注册每个 Manifest 时回填（方向：registry → spi ← runtime，无反向依赖）；`RuleBasedLlmClient` / `SpringAiLlmClient` **持有 `ToolDisplayNames` 引用**而不是构造期 `all()` 快照。`summaryOf` 删除，改调 `ScreenBuilder.summary`。
+- 确认屏只能用 `previousOutputs`（经 Gateway 的干净输出）与 `fixedArgs`，**不得**经 spi 直读领域数据（S4 取 (b)）：`aftersale.list.get` 输出增 `order{orderId, productName, quantity, amount, currency, status}` 摘要，`AftersaleScreens.confirmation` 用它渲染订单 `Card`；`order.delete` 确认屏用同 Run 内 `order.detail.get` 的输出（规划器把它作为前置只读步骤）。`OrderSnapshotProvider`（spi 自有 record `OrderSnapshot{orderId, status, amount, currency, productName, quantity, createdAt}`；多商品单 `productName` = 首行商品名，`quantity` = 总件数）给 refund / aftersale 的领域策略与 `aftersale.list.get` 的 `order` 摘要用；**屏层不直接调它**（屏只用 `previousOutputs`）。
+- 各领域实现放本模块 `infra/screen/`：`RefundScreens`（原 `UiSchemaBuilder` 两屏搬迁，组件改为 `Card`）、`OrderScreens`、`ProductScreens`、`AftersaleScreens`。树构造用 spi `UiNodes`（无校验的小工具，四领域共用）。`displayName` 不再硬编码：spi 新增 `ToolNameSink { void register(String toolId, String name); }`，runtime 的 `ToolDisplayNames` 改为实现它的可变注册表 Bean（`ConcurrentHashMap`），Registry 的 `StartupManifestRegistrar` 注册每个 Manifest 时回填（方向：registry → spi ← runtime，无反向依赖）；`RuleBasedLlmClient` / `SpringAiLlmClient` **持有 `ToolDisplayNames` 引用**而不是构造期 `all()` 快照。`summaryOf` 删除，改调 `ScreenBuilder.summary`。
 
-| 触发工具 | 屏 |
-|---|---|
-| `order.list.search` 结果 | `OrderList`（行内按钮按状态：PAID → 退款；SHIPPED → 查看物流 + 申请售后；COMPLETED → 查看物流 + 申请售后 + 删除订单；CANCELLED / REFUNDED → 删除订单）；`total > items.length` 时 `emptyText = "共 N 单，仅展示最近 M 单"` |
-| `order.detail.get` 结果 | `OrderCard`（多商品、物流状态）+ 有物流则 `LogisticsTimeline` |
-| `order.logistics.get` 结果 | `LogisticsTimeline` |
-| `order.delete` 确认 | `OrderCard`（来自前置 `order.detail.get`）+ `ConfirmationCard{title:"确认删除订单", message:"删除后订单将从列表消失，不可恢复"}`（无 Form）；结果 → `ResultCard` |
-| `product.list.search` 结果 | `ProductList`（行内按钮：查看商品） |
-| `product.detail.get` 结果 | `Card{title, description, items: 价格 / 库存 / 分类 / 销量 / 规格…}` |
-| `aftersale.create` 确认 | `OrderCard`（来自 `aftersale.list.get.order` 摘要）+ `Form{type: select[RETURN/EXCHANGE/REPAIR] required, reason: text required}`；结果 → `ResultCard` |
-| `aftersale.list.get` 结果 | `Card` 列售后单 |
-| `refund.*` | 现状不变 |
+**屏映射表（component id 固定，e2e 与 recheck 按 id 取值）**：
+
+| 触发工具 | 屏 `[component id: type]` | 要点 |
+|---|---|---|
+| `order.list.search` 结果 | `[orders: Table]` | 列：订单号 / 商品 / 件数 / 金额 / 状态 / 下单时间；`rows[].actions` 按状态；`total = output.total`；`total > rows` 时 `emptyText = "共 N 单，仅展示最近 M 单"` |
+| `order.detail.get` 结果 | `[order: Card, logistics: Card, logistics-events: Timeline]`（无物流时只有 `order`） | `order.items`：商品行（每行「商品名 × 数量」= 行金额）、订单金额、状态、收货人、脱敏手机、地区 |
+| `order.logistics.get` 结果 | `[logistics: Card, logistics-events: Timeline]` | Card：承运商 / 运单号 / 状态；`NOT_SHIPPED` → `items: []`，`emptyText: "暂无物流信息"` |
+| `order.delete` 确认 | `[order: Card]`（无 Form；`items` 末项 `{label:"提示", value:"删除后订单将从列表消失，不可恢复", tone:"danger"}`）；submit `confirm-delete` | 数据来自前置 `order.detail.get` |
+| `order.delete` 结果 | `[result: Result]` | |
+| `product.list.search` 结果 | `[products: Table]` | 列：编号 / 商品 / 价格 / 库存 / 分类；`actions: [查看商品]` |
+| `product.detail.get` 结果 | `[product: Card]` | title = 商品名；description；items：价格 / 库存 / 分类 / 销量 / 规格 name=value |
+| `aftersale.list.get` 结果 | `[aftersales: Table]`（带 `order` 摘要时前置 `[order: Card]`） | 列：售后单号 / 类型 / 状态 / 原因 / 时间 |
+| `aftersale.create` 确认 | `[order: Card, aftersale-form: Form{type: select[RETURN/EXCHANGE/REPAIR] required, reason: text required}]`；submit `confirm-aftersale` | Card 来自 `aftersale.list.get.order` |
+| `aftersale.create` 结果 | `[result: Result]` | |
+| `refund.create` 确认 | `[order: Card, refund-summary: Card, refund-form: Form{reason}]`；submit `confirm-refund` | `refund-summary.items` 含 `{label:"退款金额", value:<amount>}`（首期 `RefundConfirmCard.amount` 的替身，`RefundRecheck` 按 id + label 取值比对） |
+| `refund.create` 结果 | `[result: Result]` | `details` 含「退款金额」（首期 e2e `EXECUTED` 断言路径不变） |
 
 #### 2.4.2 实体抽取（M2）
 
@@ -157,95 +172,97 @@ public interface ConfirmationRecheck {
 
 `recheckToolId` 的 **version** 由 runtime 从当前计划中同 toolId 的前置只读步骤取（三个 recheck 工具都恰是各自的前置步骤：eligibility.check / order.detail.get / aftersale.list.get）；取不到 → `INTERNAL_ERROR`。需确认工具若查不到 `ConfirmationRecheck` 或 `ScreenBuilder.confirmToolIds()` 未覆盖 → **fail-closed**：`INTERNAL_ERROR` 结束 Run；启动自检 `ConfirmationCoverageSelfCheck` 断言 Registry 中所有 `confirmation=required` 工具都被两者覆盖。`reject` 非空时 `run.failed.code` 仍 `CONFIRMATION_REJECTED`（不动 sse 契约），但用户文案区分：`RunFailure` 增可选 `userText`，`fail()` 有则用之、无则按 code 映射；令牌 / 并发拒绝 → 现文案「确认已过期或已被使用，请重新发起」；重校验策略拒绝 → `userText = "订单状态已变化，本次操作未执行"`；`reject` 返回的内部原因只进日志。`trustedArgs` 的键与确认屏 `Form.fields[]` 键**互斥**（不变量，`ConfirmationCoverageSelfCheck` 顺带校验）。
 
-各领域实现：`RefundRecheck`（recheck = `refund.eligibility.check`；`reject` = 不 eligible 或 `refundableAmount != shownUi.RefundConfirmCard.amount`；`trustedArgs = {amount}`，即首期 M3 逻辑原样迁出）；`OrderDeleteRecheck`（recheck = `order.detail.get`；`reject` = `DeletionPolicy` 不允许该 status）；`AftersaleRecheck`（recheck = `aftersale.list.get`；`reject` = `AftersalePolicy`：订单状态不在 {SHIPPED, COMPLETED} 或已有进行中售后）。runtime `executeConfirmed` 通用化：查 `ConfirmationRecheck` → 调 recheck 工具 → `reject` 非空 → `CONFIRMATION_REJECTED` → 合并 `trustedArgs` → 执行 → 结果屏。**领域策略不进 runtime**。`TRUSTED_ONLY_ARGS = {amount}` 与 formData 键白名单逻辑不变。
+各领域实现：`RefundRecheck`（recheck = `refund.eligibility.check`；`reject` = 不 eligible 或 `refundableAmount != shownUi.components[id=refund-summary].props.items[label=退款金额].value`；`trustedArgs = {amount}`，即首期 M3 逻辑原样迁出，只是取值路径随组件收敛改变）；`OrderDeleteRecheck`（recheck = `order.detail.get`；`reject` = `DeletionPolicy` 不允许该 status）；`AftersaleRecheck`（recheck = `aftersale.list.get`；`reject` = `AftersalePolicy`：订单状态不在 {SHIPPED, COMPLETED} 或已有进行中售后）。runtime `executeConfirmed` 通用化：查 `ConfirmationRecheck` → 调 recheck 工具 → `reject` 非空 → `CONFIRMATION_REJECTED` → 合并 `trustedArgs` → 执行 → 结果屏。**领域策略不进 runtime**。`TRUSTED_ONLY_ARGS = {amount}` 与 formData 键白名单逻辑不变。
 
 **双保险各测各的**：⑬「删除订单 10001（PAID）」→ 确认后重校验拒绝 → `run.failed CONFIRMATION_REJECTED`；另加 ⑬'：直接经 Gateway 调 `order.delete 10001` → handler 自身 `DeletionPolicy` 拒绝 → `HANDLER_ERROR`。
 
 ### 2.5 前端（`@strato-ui/core` + `apps/chat`）
 
-- core 新增 3 组件的 desktop（antd `List` / `Card` / `Timeline`）与 mobile（antd-mobile `List` / `Card` / `Steps`）实现；`OrderCard` 支持多商品与物流状态；`thumbnail` 图标映射表（白名单 12 个名字 → `@ant-design/icons`，未知名字显示占位图标）。
-- 新增 `SchemaRenderer` prop `onIntent?: (text: string) => void`；行内按钮点击调用它（不在 core 内发请求）。
-- `apps/chat`：`AgentChatPanel` 把 `onIntent` 接到 `start.mutate({ message: text, … })`，并在消息区显示为用户消息「→ 查看订单 10002 的物流」；输入框支持连续对话（每次发送开一个新 Run，`conversationId` 不变；上一屏保留到下一屏 `ui.replace` 到达）。
-- 演示页：URL 参数仍支持；另加一行「示例问题」快捷 chip（「看看我的订单」「有什么商品」「查看订单 10030 的物流」「订单 10002 申请售后」），点击 = 发送。`OrderList.emptyText` 语义：`items` 为空时显示；`total > items.length` 时作为列表底部说明「共 N 单，仅展示最近 M 单」。
-- `verify-pack` 公共 API 清单：运行时 17 不变；类型 +1（`IconName`）→ 11；`FormComponentHandlers` 改名 `ComponentHandlers{onChange?, onIntent?}`（内部类型，不在公共清单）；`COMPONENT_TYPES` 10。体积基线：T08b 完成后 `pnpm -C fronted run verify-pack -- --write-baseline` 重写（coding_report 记录前后 KB，预期 40 → ≤ 60）。
-- core README「安全边界」两列各加一行：随包走「`onIntent` 只回调纯文本，core 不发请求、不解释文本」；留宿主「把 `onIntent` 文本当用户输入原样提交，不拼接、不改写」。
-- 行内按钮 DOM 带 `data-intent="<intent 原文>"`，e2e 用属性精确定位。
+- core 组件收敛为 5 个，每个只有 desktop / mobile 两个文件且**只组合 antd / antd-mobile 官方组件**：删除 `ResultCard / ConfirmationCard / OrderCard / RefundConfirmCard` 8 个文件；`ResultCard` 改名 `Result`；新增 `Timeline`（antd `Timeline` / antd-mobile `Steps direction="vertical"`）；`Table` 增 `rows[].actions` 末列（antd `Button size="small"` / antd-mobile `Button size="mini"`，DOM 带 `data-intent="<intent 原文>"`）与 `total / emptyText` 表尾；`Card` 增 `items[].tone`（antd `Typography.Text type` / antd-mobile 颜色）。`schema/uiSchema.ts` 的 Zod 投影覆盖 5 个组件全部 props（契约级），`registry/types.ts` 不再单独定义 props 约束，只 re-export。
+- 新增 `SchemaRenderer` prop `onIntent?: (text: string) => void`；`Table` 行内按钮点击调用它（不在 core 内发请求）。`FormComponentHandlers` 改名 `ComponentHandlers{onChange?, onIntent?}`。
+- `apps/chat`：`AgentChatPanel` 把 `onIntent` 接到 `start.mutate({ message: text, … })`，并在消息区显示为用户消息；输入框支持连续对话（每次发送开一个新 Run，`conversationId` 不变；上一屏保留到下一屏 `ui.replace` 到达）。
+- 演示页：URL 参数仍支持；另加一行「示例问题」快捷 chip（「看看我的订单」「有什么商品」「查看订单 10030 的物流」「订单 10002 申请售后」），点击 = 发送。playground `example` 参数扩为 8 个契约示例 + `unknown`。
+- `verify-pack` 公共 API 清单：运行时 17 不变；类型清单随组件改名 / 删除同步（`ResultCardProps → ResultProps`，删 4 个，加 `TimelineProps`）；`COMPONENT_TYPES` 5；`check-registry` 五方一致输出 5。体积基线：T08b 完成后 `pnpm -C fronted run verify-pack -- --write-baseline` 重写（coding_report 记录前后 KB；预期下降）。不新增任何 npm 依赖。
+- core README「白名单组件」改为上表（5 个 + 各端官方组件名）；「安全边界」两列各加一行：随包走「`onIntent` 只回调纯文本，core 不发请求、不解释文本」；留宿主「把 `onIntent` 文本当用户输入原样提交，不拼接、不改写」。
+- 新增红线（写进 `coding-standard.md` 并由 `check-registry` 校验）：`fronted/packages/core/src/components/**` 每个文件只能 import `antd` / `antd-mobile` / `react` / 本包 `registry` `schema` 类型；组件文件名 == 契约 `componentType`（`ActionBar` 例外，它渲染 `actions[]`），禁止业务命名（`Order*` / `Refund*` / `Product*` 等）。
 
 ### 2.6 Harness
 
 - `check-seed.mjs`（§2.2）纳入 `ci.mjs`；doctor 必需文件加它。
 - `e2e-backend.sh` 新增（规则模式；全部**无 pageContext**，只靠消息内实体，顺序放在现有 M2 幂等用例之后）：
-  ⑦「看看我的订单」→ `ui.replace` 含 `OrderList`，`items.length == 20`、`total == 30`、`items[0].orderId == 10030`、`items[1]`（10029）的 inlineActions 含「删除订单」；
-  ⑧「查看订单 10002 的物流」→ `LogisticsTimeline`，`orderId == 10002`，`events.length ≥ 3`；
-  ⑨「有什么商品」→ `ProductList` `total == 20 && items.length == 20`；
-  ⑩「查看商品 P-1003 的详情」→ `Card` 且 title 含 P-1003 的商品名；
-  ⑪「订单 10002 申请售后」→ 事件 `run.started tool.*×3(aftersale.list.get) ui.replace confirmation.required`，确认屏 `[OrderCard, Form]`；确认 `{type:"RETURN", reason:"包装破损"}` → `… ui.replace run.completed`，`ResultCard`；`aftersale.list.get 10002` 经 Gateway 返回 1 条；
-  ⑫「删除订单 10005」→ 确认屏 `[OrderCard, ConfirmationCard]`（无 Form，提交 `formData: {}`）→ 确认 → `ResultCard`；之后 `order.list.search {}` `total == 29`；
+  ⑦「看看我的订单」→ `ui.replace` 组件 `[Table]`（id `orders`），`rows.length == 20`、`total == 30`、`rows[0].id == "10030"`、`rows[1]`（10029）的 `actions[].label` 含「删除订单」且对应 `intent` 含 `10029`；
+  ⑧「查看订单 10002 的物流」→ 组件 `[Card, Timeline]`，`Timeline.items.length ≥ 3`，`Card.items` 含 label「运单号」；
+  ⑨「有什么商品」→ `[Table]`（id `products`）`total == 20 && rows.length == 20`；
+  ⑩「查看商品 P-1003 的详情」→ `[Card]` 且 `title` 含「无线耳机 Pro」；
+  ⑪「订单 10002 申请售后」→ 事件 `run.started tool.*×3(aftersale.list.get) ui.replace confirmation.required`，确认屏 `[Card, Form]`、submit id `confirm-aftersale`；确认 `{type:"RETURN", reason:"包装破损"}` → `… ui.replace run.completed`，`[Result]`；`aftersale.list.get 10002` 经 Gateway 返回 1 条；
+  ⑫「删除订单 10005」→ 确认屏 `[Card]`（无 Form，`items` 末项 `tone == "danger"`，提交 `formData: {}`，submit id `confirm-delete`）→ 确认 → `[Result]`；之后 `order.list.search {}` `total == 29`；
   ⑬「删除订单 10001」→ 确认 → `run.failed CONFIRMATION_REJECTED`，`message` 为「订单状态已变化，本次操作未执行」，**该 runId 作用域内** `order.delete` 审计 0 行；⑬' 直接 Gateway `order.delete 10001` → HTTP 502 `INTERNAL_ERROR`（`HANDLER_ERROR` 映射）且审计 `failed:HANDLER_ERROR`；
   ⑭ `user_002` 「删除订单 10005」→ `run.failed TOOL_SELECTION_INVALID`（候选无 `order.delete`）；
-  ⑮「订单 10006 退款」（无 pageContext；10001 已被 §6.2.8 退掉不能复用）→ 发起序列 == §6.2.8、确认后序列 == §6.2.9、`ResultCard`、`refund.status.get 10006` == 1（M2 的证明）；
+  ⑮「订单 10006 退款」（无 pageContext；10001 已被 §6.2.8 退掉不能复用）→ 发起序列 == §6.2.8、确认后序列 == §6.2.9、`[Result]`、`refund.status.get 10006` == 1（M2 的证明）；
   ⑯「删除订单」（无号码、无 pageContext）→ `run.started message.delta run.completed`，text 含「选择一个订单」（S-A：动词命中但缺实体走友好提示）。
-- **既有断言同步清单**（T10a 必改）：`e2e-backend.sh` 自检「contracts 9 schemas, 20 examples OK」→ 25；`PlanSelfCheck` 日志文案改为「plan 5 messages OK」；新增自检 `InlineActionSelfCheck`、`ConfirmationCoverageSelfCheck` 各一行；`deploy-verify.sh` 与 `e2e-backend.sh` 的 selfcheck 总数 **5 → 7**；`check-registry` 输出 10。
-- `OrderScreens` / `ProductScreens` 自检 `InlineActionSelfCheck`：对种子全部订单生成的每个 `inlineAction` 断言「intent 含该行 orderId」且 label ↔ 动词映射一致（S9）。
-- `e2e-frontend.mjs` 新增步骤：输入「看看我的订单」→ `[data-component-id="order-list"]` 出现 → 点击 `[data-intent="查看订单 10030 的物流"]`（10030 = 最新 SHIPPED，夹具表写死）→ 消息区出现该文本作为用户消息 → `[data-screen-id]` 含 `LogisticsTimeline` → 输入「有什么商品」→ ProductList → 点 `[data-intent="查看商品 P-1003 的详情"]` → Card。截图 `ui-order-list.png`、`ui-logistics.png`、`ui-product-list.png`。
-- 文档：`wiki/domain-model.md`（三领域实体与状态机）、`wiki/api-contracts.md`（11 工具）、`backed/README.md`、`fronted/packages/core/README.md`（10 组件 + `onIntent`）、`project-structure.md` §2（`ScreenBuilder` 归属领域模块）、`contracts.md` §4（`actions[].intent` 是自然语言不是 URL）。
+- **既有断言同步清单**（T10a 必改）：`e2e-backend.sh` 自检「contracts 9 schemas, 20 examples OK」→ **23**；§6.2.8 `ui.replace components` `['OrderCard','RefundConfirmCard','Form']` → `['Card','Card','Form']`；§6.2.9 / M2 `['ResultCard']` → `['Result']`；`SHOWN` 金额取 `components[id=refund-summary].props.items[label=退款金额].value`；`PlanSelfCheck` 日志文案改为「plan 5 messages OK」；新增自检 `InlineActionSelfCheck`、`ConfirmationCoverageSelfCheck` 各一行；`deploy-verify.sh` 与 `e2e-backend.sh` 的 selfcheck 总数 **5 → 7**；`check-registry` 输出 **5**；`e2e-frontend.mjs` 首期确认屏 `components 3` 不变（Card, Card, Form），`data-component-id="result"` 不变。
+- `OrderScreens` / `ProductScreens` 自检 `InlineActionSelfCheck`：对种子全部订单 / 商品生成的每个 `Table.rows[].actions[]` 断言「intent 含该行 id」且 label ↔ 动词映射一致（S9）。
+- `e2e-frontend.mjs` 新增步骤：输入「看看我的订单」→ `[data-component-id="orders"]` 出现 → 点击 `[data-intent="查看订单 10030 的物流"]`（10030 = 最新 SHIPPED，夹具表写死）→ 消息区出现该文本作为用户消息 → 出现 `[data-component-id="logistics-events"]` → 输入「有什么商品」→ `[data-component-id="products"]` → 点 `[data-intent="查看商品 P-1003 的详情"]` → `[data-component-id="product"]`。截图 `ui-order-table.png`、`ui-logistics.png`、`ui-product-table.png`。
+- 文档：`wiki/domain-model.md`（四领域实体与状态机）、`wiki/api-contracts.md`（12 工具）、`backed/README.md`、`fronted/packages/core/README.md`（5 组件 + `onIntent`）、`project-structure.md` §2（`ScreenBuilder` 归属领域模块；domains 互不 import）、`coding-standard.md`（core 组件只能是官方组件映射）、`contracts.md` §4（`actions[].intent` 是自然语言不是 URL；已有）。
 
 ## 3. 非目标（Out of Scope）
 
 - **不**做预签 action（行内按钮不带 token）；**不**改 `intent-request` / `sse-events` / `action-request` 契约。
-- **不**做真实图片 / URL；缩略图只用图标名。
+- **不**做真实图片 / URL；**不**做缩略图 / 图标映射（`thumbnail` 只是数据字段，不渲染）。
+- **不**在 core 写任何业务命名组件；**不**新增 npm 依赖（含 `@ant-design/icons`）。
 - **不**做售后后续流程（审核 / 寄回 / 换货发货）；**不**做取消订单、修改地址、支付。
 - **不**做多轮对话上下文（每条消息独立 Run；「删掉那单」这种指代不解析，必须带订单号或页面实体）。
 - **不**接 MySQL / Redis；只保证数据形态可导入（DDL + json），Repository 仍内存。
 - **不**做多用户隔离（单租户单用户）；`user_002` 只用于权限过滤 e2e。
 - **不**做分页 UI；列表 `limit` 上限 50，前端一次渲染。
 - **不**改真实 IdP、外置存储、`@strato-ui/agent` 拆包。
-- **不**改 `tool-search` 契约（displayName 经 spi 回填，不加六字段）；**不**做 `clientCapabilities.components` 交集过滤；**不**解析「10002 这单」裸号 / 「删掉那单」指代；**不**做 `tool.completed.summary` 之外的语义摘要。
+- **不**改 `tool-search` 契约（displayName 经 spi 回填，不加六字段）；**不**做 `clientCapabilities.components` 交集过滤；**不**解析「10002 这单」裸号 / 「删掉那单」指代；**不**做 `tool.completed.summary` 之外的语义摘要；**不**做分页 / 排序 / 筛选交互（Table `pagination={false}`）。
 
 ## 4. 核心场景
 
 ### 4.1 「看看我的订单」→ 订单列表 → 点「查看物流」
-路由 rule → order；`EntityExtractor` 无实体；`EntityRequirementCheck` 放行（`order.list.search` 不需实体）；动词表：无动词无实体 → `order.list.search` → `tool.*` 三帧 → `ui.replace{OrderList 20 行, total 30}` → `run.completed`。用户点某行「查看物流」→ 前端发送「查看订单 10030 的物流」→ 新 Run → 路由 order → 抓 `{order:10030}` → 动词「物流」→ `order.logistics.get` → `ui.replace{LogisticsTimeline}`。
+路由 rule → order；`EntityExtractor` 无实体；`EntityRequirementCheck` 放行（`order.list.search` 不需实体）；动词表：无动词无实体 → `order.list.search` → `tool.*` 三帧 → `ui.replace{Table 20 行, total 30}` → `run.completed`。用户点某行「查看物流」→ 前端发送「查看订单 10030 的物流」→ 新 Run → 路由 order → 抓 `{order:10030}` → 动词「物流」→ `order.logistics.get` → `ui.replace{[Card, Timeline]}`。
 
 ### 4.2 「订单 10002 申请售后」→ 确认屏 → 结果
-路由：「售后」在 aftersale 表中且 aftersale 先于 order 匹配 → aftersale；抓 `{order:10002}`；动词「售后」→ 目标 `aftersale.create`，前置 `aftersale.list.get`（输出含 `order` 摘要）→ 确认屏 `OrderCard`（来自摘要）+ `Form{type, reason}` + `confirmation.required`。确认 → `AftersaleRecheck`：经 Gateway 重调 `aftersale.list.get`，`AftersalePolicy` 通过 → 执行 → `ResultCard{售后单号}`。
+路由：「售后」在 aftersale 表中且 aftersale 先于 order 匹配 → aftersale；抓 `{order:10002}`；动词「售后」→ 目标 `aftersale.create`，前置 `aftersale.list.get`（输出含 `order` 摘要）→ 确认屏 `[Card（来自摘要）, Form{type, reason}]` + `confirmation.required`。确认 → `AftersaleRecheck`：经 Gateway 重调 `aftersale.list.get`，`AftersalePolicy` 通过 → 执行 → `Result{售后单号}`。
 
 ### 4.3 「删除订单 10005」→ 确认 → 成功；「删除订单 10001」→ 确认 → 策略拒绝
-两条都走确认屏（前置 `order.detail.get` 提供 `OrderCard`）；后者确认后 `OrderDeleteRecheck` 重调 `order.detail.get`，`DeletionPolicy` 拒绝 PAID → `run.failed{CONFIRMATION_REJECTED}`，`order.delete` 未被调用（审计 0 行）。handler 自身的 `DeletionPolicy` 作为第二道保险由 ⑬' 直连 Gateway 证明。
+两条都走确认屏（前置 `order.detail.get` 提供订单 `Card`，末项 danger 警示，无 Form）；后者确认后 `OrderDeleteRecheck` 重调 `order.detail.get`，`DeletionPolicy` 拒绝 PAID → `run.failed{CONFIRMATION_REJECTED}`，`order.delete` 未被调用（审计 0 行）。handler 自身的 `DeletionPolicy` 作为第二道保险由 ⑬' 直连 Gateway 证明。
 
 ### 4.4 「有什么商品」→ 商品列表 → 点「查看商品」→ 商品卡
-路由 product（「商品」）；无实体无动词 → `product.list.search {}` → `ProductList 20 行` → 点击 → 「查看商品 P-1003 的详情」→ 抓 `{product:P-1003}`，动词「查看商品」→ `product.detail.get` → `Card`。
+路由 product（「商品」）；无实体无动词 → `product.list.search {}` → `Table 20 行` → 点击 → 「查看商品 P-1003 的详情」→ 抓 `{product:P-1003}`，动词「查看商品」→ `product.detail.get` → `Card`。
 
 ### 4.5 「订单 10001 退款」
-带或不带 pageContext 都一样：抓 `{order:10006}`（e2e ⑮，10001 已被 §6.2.8 退掉），动词「退款」→ `refund.create`，前置 `[eligibility.check, preview]` → 三步 + 确认 + `RefundRecheck`（金额比对）+ 结果，与首期事件序列完全一致；屏与重校验逻辑搬到 refund-service。
+带或不带 pageContext 都一样：抓 `{order:10006}`（e2e ⑮，10001 已被 §6.2.8 退掉），动词「退款」→ `refund.create`，前置 `[eligibility.check, preview]` → 三步 + 确认 + `RefundRecheck`（金额比对，取 `refund-summary` Card 的「退款金额」项）+ 结果，与首期事件序列完全一致；屏与重校验逻辑搬到 refund-service；组件由 `[OrderCard, RefundConfirmCard, Form]` 变为 `[Card, Card, Form]`。
 
 ## 5. 契约影响
 
-**修改 1 个**：`ui-schema.schema.json` —— `componentType` enum +3；新增 `$defs` `orderListProps` / `productListProps` / `logisticsTimelineProps` / `inlineAction{label, intent}` / `iconName`；`OrderCard` props 增可选字段；`if/then` 对三个新组件 props 做结构约束（与 Form 同款）。
-**新增示例 5 个**（§2.3）。其余 8 个契约不变。`contracts.md` §4 增一条：`actions[].intent` 与组件内 `actions[].intent` 是**自然语言文本**，前端只把它作为新消息发送，禁止解释为命令 / URL。
+**修改 1 个**：`ui-schema.schema.json` —— `componentType` enum 收敛为 5（`Form / Card / Table / Result / Timeline`）；`$defs` 新增 `cardProps / tableProps / tableRow / resultProps / timelineProps / labelValue`，保留 `inlineAction / money`，删 `iconName / orderList* / productList* / logistics*`；`if/then` 对 5 个组件 props 全部做结构约束。**这是一次破坏性收敛**（删了首期 4 个 type），但首期没有外部消费方，`schemaVersion` 仍 `1.0`，在 `contracts.md` 变更记录写明。
+**示例 8 个**（§2.3；`check-contracts` 23）。其余 8 个契约不变。`contracts.md` §4 已有「`actions[].intent` 是自然语言」两条，不变。
 
 ## 6. 验收标准
 
 ### 6.1 契约与数据
-- [ ] `pnpm -C .harness run check-contracts` → 仍 9 schema，示例 20 → **25**，全部通过。
+- [ ] `pnpm -C .harness run check-contracts` → 仍 9 schema，示例 20 → **23**，全部通过；植入 `type: "OrderCard"` / `Table.rows[0]` 缺 `id` / `Card.items[0].tone: "red"` 各 → 红。
 - [ ] `check-seed` 各校验项各植入一条反例 → 红（外键悬空、金额不等、PAID 带物流、DDL 行尾注释、10030 非 SHIPPED、10004 金额改 60.00、同单两条进行中售后）。
 - [ ] `node .harness/scripts/check-seed.mjs` 退出码 0（含 4 个领域目录）；`jq length` orders 30 / products 20 / aftersales 4 / refunds 3；手机号字段全部匹配 `^1\d{2}\*{4}\d{4}$`。
 - [ ] `mysql --version` 可用时：`mysql -e "source schema.sql"` 到临时库无错（可选，记录是否执行）。
 
 ### 6.2 后端
 - [ ] `mvn verify` 0；`check-module-deps` 0：refund-service / aftersale-service 不 import `com.strato.domain.order.`（只经 spi `OrderSnapshotProvider`）；植入 → 红。
-- [ ] 启动日志 `startup registration done: 11 tools from 4 sources`；自检 **7/7**（新增 `InlineActionSelfCheck`、`ConfirmationCoverageSelfCheck`；`PlanSelfCheck` 改 5 条消息；`RefundIdempotencySelfCheck` 用 10003 不变）；`deploy-verify.sh` / `e2e-backend.sh` selfcheck 期望同步为 7。
+- [ ] 启动日志 `startup registration done: 12 tools from 4 sources`；自检 **7/7**（新增 `InlineActionSelfCheck`、`ConfirmationCoverageSelfCheck`；`PlanSelfCheck` 改 5 条消息；`RefundIdempotencySelfCheck` 用 10003 不变）；`deploy-verify.sh` / `e2e-backend.sh` selfcheck 期望同步为 7。
 - [ ] 单独 Gateway（在任何 e2e 写操作之前执行）：`order.list.search {}` → `total == 30`、`items.length == 20`、`items[0].orderId == 10030`；`{status:"DELETED"}` 被 inputSchema enum 拒绝（400）。
 - [ ] `e2e-backend.sh` 规则模式：首期 + 上一 change 全部用例仍绿，新增 ⑦–⑯（含 ⑬'）全绿；LIVE 模式：⑦–⑫、⑮ 同样断言（真模型需产出相同 toolId 序列，失败按 prompt 缺陷处理并记录），⑬ / ⑬' / ⑭ 两模式都跑。
-- [ ] `grep -rn "SeededOrderLookup" backed` 0；`grep -rn "UiSchemaBuilder" backed/agent-runtime/src` 只剩兜底屏类（改名 `FallbackScreenBuilder`）。
+- [ ] `grep -rn "SeededOrderLookup" backed` 0；`grep -rn "UiSchemaBuilder\|OrderCard\|RefundConfirmCard\|ResultCard\|ConfirmationCard\|OrderList\|ProductList\|LogisticsTimeline" backed/*/src backed/domains/*/src` 0。
 - [ ] `order.delete` 对 PAID 订单：⑬ 走确认流 → `CONFIRMATION_REJECTED` 且该 runId 内 `order.delete` 审计 0 行；⑬' 直连 Gateway → 审计 `failed:HANDLER_ERROR`；两者之后订单列表仍含 10001。
 - [ ] `grep -rn "OrderSnapshotProvider" backed/domains/*/src/main/java/*/infra/screen` 0 行（确认屏不直读领域数据）。
 
 ### 6.3 前端
-- [ ] `rm -rf fronted/*/dist && pnpm -C fronted run ci` 0；`check-registry` 10 类型五方一致；verify-pack 17 运行时 + 11 类型；基线经 `--write-baseline` 重写并记录前后值。
-- [ ] `grep -rn "http\|href=" fronted/packages/core/src` 0（缩略图为图标名）。
+- [ ] `rm -rf fronted/*/dist && pnpm -C fronted run ci` 0；`check-registry` **5** 类型五方一致 + 组件文件 import 白名单 + 组件名 == 契约 type；verify-pack 17 运行时 + 类型清单同步；基线经 `--write-baseline` 重写并记录前后值。
+- [ ] `ls fronted/packages/core/src/components/desktop` == `ActionBar Card Form Result Table Timeline`（mobile 同）；`grep -rn "Order\|Refund\|Product\|Logistics" fronted/packages/core/src/components` 0；`grep -n "@ant-design/icons" fronted/packages/core/package.json` 0。
+- [ ] `grep -rn "http\|href=" fronted/packages/core/src` 0。
 - [ ] `e2e-frontend.mjs` 原 21 项 + 新增 ≥ 8 项全绿，含「点行内按钮 → 新 Run → 新屏」。
-- [ ] `/dev/schema?example=order-list|product-list|logistics` 三个新示例在 1280 / 375 下渲染，console.error 0。
+- [ ] `/dev/schema?example=<8 个示例名>` 在 1280 / 375 下渲染，console.error 0。
 
 ### 6.4 全仓
 - [ ] `pnpm -C .harness run ci`（含 check-seed）四段 + 1 段全 0；doctor 0；deploy-verify 12/12（自检 7）。
@@ -258,14 +275,17 @@ public interface ConfirmationRecheck {
 | 动词表 / 前置依赖表与候选集合脱节（新工具没进表） | 规划出错或 `TOOL_SELECTION_INVALID` | `PlanSelfCheck` 对 5 条核心消息各断言 toolId 序列；`IntentVerbs` 表引用的 toolId 在启动时校验都已注册 |
 | 规则规划器不理解语义，动词误命中（「退货」归售后而非退款） | 走错领域 | 路由顺序与关键词表写死并有 e2e；模型模式可纠正 |
 | `EntityExtractor` 正则从用户原文抓 ID | 日志泄露原文 | 只记录抓到的 ID，不记录原文；ID 格式白名单 |
-| 契约 enum 扩 3 触发 check-registry / verify-pack 的五方一致 | 漏一处即红 | 正是这两个门禁的用途；tasks 把契约 → 前端 → 后端顺序写死 |
+| 契约 enum 从 10 收敛为 5，已提交的 T01 与首期 4 个 type 一并删除 | 首期 e2e / 前端 / 后端所有引用点都要改，漏一处即红 | check-registry / verify-pack / check-contracts / ContractsSelfCheck 四道门禁；§2.6 同步清单逐条列出；`grep` 验收项写死 0 |
+| Table 通用化后列语义只在后端屏里（前端不知道哪列是金额） | 前端无法做金额格式化 / 状态上色 | 本 change 接受：Table 单元格全是字符串，后端已格式化；如需上色再加契约 |
+| 「core 只能是官方组件映射」没有门禁，下次又长出自定义组件 | 反复 | `check-registry` 加 import 白名单与命名规则（§2.5 新红线），植入一个 `OrderCard.tsx` → 红 |
 | 夹具金额 / 状态被 gen-seed 随机化 | 首期 / 上一 change 断言（128.00、59.00、1.00）红 | 夹具表钉金额，`gen-seed` 断言、`check-seed` 校验 |
 | 跨领域数据（售后 / 删除确认屏要订单信息） | 领域间耦合或绕过 Gateway | 确认屏只用同 Run 内经 Gateway 的 `previousOutputs`；策略层才经 spi `OrderSnapshotProvider`；`check-module-deps` 新规则：domains 之间不得互相 import，`platform-spi` / `contracts-java` pom 不得依赖任何 `com.strato` artifact |
 | 30 单 + 20 品手工数据算错金额 | 数据不可信 | `check-seed` 校验金额和与外键；seed 加载时二次校验，不一致启动失败 |
-| mobile 端三个新组件的 antd-mobile 实现体量 | 工期 | `Steps` / `List` 直接可用；e2e 步骤 3 会验证 375 宽度 |
+| mobile 端 Table → List、Timeline → Steps 的映射体验 | 移动端可读性 | 每行一个 List 分组 + 尾部 Button；e2e 步骤 3 会验证 375 宽度 |
 
 ## 8. 假设（非阻塞）
-- `thumbnail` 图标白名单 12 个：`phone, laptop, headphones, watch, home, lamp, shirt, shoe, coffee, cookie, gift, box`。
+- 工具输出中的 `thumbnail` 保留为数据字段（种子 / DDL 不变），本 change 不渲染。
+- 首期 4 个业务命名 type 没有外部消费方，可直接删除而不做 deprecation。
 - 快捷 chip 只在 `apps/chat` 演示页，不进 core。
 - `user_002` 的 e2e ⑭：动词「删除」命中但目标 `order.delete` 不在候选 → `TOOL_SELECTION_INVALID`（已在 §2.4.3 写死）。
 - 夹具与可见区状态表（§2.2）由 `gen-seed.mjs` 断言保证、`check-seed.mjs` 校验。
