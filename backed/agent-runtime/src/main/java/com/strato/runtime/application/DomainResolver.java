@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 public class DomainResolver {
 
   /** 页面实体类型白名单：只有这些类型会作为提示进入分类 prompt。 */
-  static final Set<String> ENTITY_HINT_WHITELIST = Set.of("order");
+  static final Set<String> ENTITY_HINT_WHITELIST = Set.of("order", "product");
 
   /** 路由决策；source ∈ {rule, model, none}。 */
   public record RouteDecision(Optional<String> domain, String source) {

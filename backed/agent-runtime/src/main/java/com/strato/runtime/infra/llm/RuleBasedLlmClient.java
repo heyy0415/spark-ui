@@ -1,29 +1,21 @@
 package com.strato.runtime.infra.llm;
 
 import com.strato.contracts.model.ToolSearch;
+import com.strato.runtime.application.EntityRequirementCheck;
 import com.strato.runtime.application.ToolDisplayNames;
 import com.strato.runtime.application.port.LlmClient;
 import com.strato.runtime.domain.Plan;
 import com.strato.runtime.domain.RunFailure;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 无 key 时的确定性回退。按领域与「是否有页面实体」二选一套模板；不理解自然语言，只保证链路可跑通与可验收。 refund（有实体）：eligibility.check → preview →
- * create（requiresConfirmation）。order：有实体 detail.get，无实体 list.search。
+ * 无 key 时的确定性回退（spec §2.4.3）：动词表定目标工具、前置表补只读步骤、参数从已识别实体填。 目标不在候选 →
+ * TOOL_SELECTION_INVALID（如无权用户说「删除」）；动词命中但目标必填实体缺失 → MissingEntity（编排器走友好提示）。 不理解自然语言，只保证链路确定、可验收。
  */
 public final class RuleBasedLlmClient implements LlmClient {
-
-  /** 有页面实体（orderId）时的模板。 */
-  private static final Map<String, List<String>> WITH_ENTITY =
-      Map.of(
-          "refund", List.of("refund.eligibility.check", "refund.preview", "refund.create"),
-          "order", List.of("order.detail.get"));
-
-  /** 无页面实体时的模板：只能选不需要 orderId 的工具。refund 无此类工具（被 EntityRequirementCheck 拦截，此处不可达）。 */
-  private static final Map<String, List<String>> WITHOUT_ENTITY =
-      Map.of("refund", List.of(), "order", List.of("order.list.search"));
 
   private final ToolDisplayNames displayNames;
 
@@ -33,45 +25,61 @@ public final class RuleBasedLlmClient implements LlmClient {
 
   @Override
   public Plan plan(PlanRequest req) {
-    String orderId = req.entity().getOrDefault("id", "");
-    boolean hasEntity = !orderId.isEmpty() && "order".equals(req.entity().get("type"));
-    List<String> order = (hasEntity ? WITH_ENTITY : WITHOUT_ENTITY).get(req.domain());
-    if (order == null) {
-      throw new RunFailure("TOOL_SELECTION_INVALID", "no rule template for domain " + req.domain());
-    }
-    Map<String, ToolSearch.ToolCandidate> available = new java.util.HashMap<>();
+    Map<String, ToolSearch.ToolCandidate> available = new LinkedHashMap<>();
     req.candidates().forEach(c -> available.put(c.toolId(), c));
+
+    // 目标工具：动词命中优先；否则按「有该领域实体 → detail，无 → list」
+    String target =
+        IntentVerbs.target(req.message(), req.domain())
+            .orElseGet(
+                () ->
+                    IntentVerbs.fallbackTarget(
+                        req.domain(), req.entities().containsKey(req.domain())));
+    if (!available.containsKey(target)) {
+      throw new RunFailure("TOOL_SELECTION_INVALID", "target tool not in candidates: " + target);
+    }
+
+    List<String> order = new ArrayList<>(IntentVerbs.prerequisites(target));
+    order.add(target);
     List<LlmPlanDraft.DraftStep> steps = new ArrayList<>();
     for (String toolId : order) {
       ToolSearch.ToolCandidate c = available.get(toolId);
       if (c == null) {
-        continue;
+        throw new RunFailure("TOOL_SELECTION_INVALID", "prerequisite not in candidates: " + toolId);
       }
-      Map<String, String> args = new java.util.LinkedHashMap<>();
-      if (requiresOrderId(c)) {
-        if (!hasEntity) {
-          // 缺必填实体的步骤不生成（不再产出空参数去撞 Gateway）
-          continue;
-        }
-        args.put("orderId", orderId);
-      }
-      steps.add(new LlmPlanDraft.DraftStep(toolId, args));
-    }
-    if (steps.isEmpty()) {
-      throw new RunFailure(
-          "TOOL_SELECTION_INVALID", "no executable step for domain " + req.domain());
+      steps.add(new LlmPlanDraft.DraftStep(toolId, argsFor(c, req.entities())));
     }
     return ToolSelectionValidator.validate(
         new LlmPlanDraft(steps), req.domain(), req.candidates(), displayNames);
   }
 
-  private static boolean requiresOrderId(ToolSearch.ToolCandidate c) {
-    for (var n : c.inputSchema().path("required")) {
-      if ("orderId".equals(n.asText())) {
-        return true;
-      }
-    }
-    return false;
+  /**
+   * 参数从实体表取：inputSchema.properties 里凡是实体类参数（orderId / productId）且实体已识别就填（可选参数也填，如
+   * aftersale.list.get 的 orderId，否则会列出全部而不是该订单）；必填实体缺失 → MissingEntity。 非实体类必填参数（如 refund.create 的
+   * amount / reason）由确认屏 Form 与重校验填，规划器不填。
+   */
+  private static Map<String, String> argsFor(
+      ToolSearch.ToolCandidate c, Map<String, String> entities) {
+    Map<String, String> args = new LinkedHashMap<>();
+    java.util.Set<String> required = new java.util.HashSet<>();
+    c.inputSchema().path("required").forEach(n -> required.add(n.asText()));
+    c.inputSchema()
+        .path("properties")
+        .fieldNames()
+        .forEachRemaining(
+            arg -> {
+              String type = EntityRequirementCheck.ENTITY_ARGS.get(arg);
+              if (type == null) {
+                return;
+              }
+              String id = entities.get(type);
+              if (id != null) {
+                args.put(arg, id);
+              } else if (required.contains(arg)) {
+                throw new MissingEntity(type);
+              }
+            });
+    return args;
   }
 
   @Override

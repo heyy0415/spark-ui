@@ -20,9 +20,13 @@ public final class PromptBuilder {
         你是企业内部工具规划器。只能从给定的候选工具中选择，不得发明工具名。
         输出必须是 JSON 对象：{"steps":[{"toolId":"...","args":{...}}]}，不要输出任何其他文字。
         规则：先做只读检查与试算，再做有副作用的操作；有副作用的步骤放在最后。
-        用户请求的是执行某个操作（如退款、创建、取消）时，计划必须包含完成该操作的那个有副作用的工具步骤，不能只做检查与试算就结束；
+        用户请求的是执行某个操作（如退款、删除、申请售后）时，计划必须包含完成该操作的那个有副作用的工具步骤，不能只做检查就结束；
         系统会在执行前向用户确认，你不需要为此省略该步骤。用户只是询问状态或信息时才只用只读工具。
-        args 只能包含候选 inputSchema 中声明的字段，值一律为字符串。
+        动词与目标工具的对应：删除/删掉 → order.delete；物流/到哪/快递 → order.logistics.get；售后/换货/维修/退货 → aftersale.create；
+        退款/退钱 → refund.create；详情/看看这个/查看商品 → 该领域的 detail.get；没有动词时，有实体 → detail.get，无实体 → list.search（售后为 aftersale.list.get）。
+        有副作用的目标工具必须带上它的前置只读步骤且放在前面：refund.create 前置 refund.eligibility.check、refund.preview；
+        order.delete 前置 order.detail.get；aftersale.create 前置 aftersale.list.get。refund.status.get 不进退款计划。
+        args 只能包含候选 inputSchema 中声明的字段，值一律为字符串；orderId / productId 从「已识别实体」取，没有就不要发明。
         需要用户确认的步骤不要填写 amount 等金额字段，金额由系统在确认后按试算结果填入。
         """;
   }
@@ -31,7 +35,7 @@ public final class PromptBuilder {
       String message,
       String domain,
       List<ToolSearch.ToolCandidate> candidates,
-      Map<String, String> entity) {
+      Map<String, String> entities) {
     String tools =
         candidates.stream()
             .map(
@@ -46,15 +50,15 @@ public final class PromptBuilder {
                             sanitize(c.inputSchema().toString())))
             .collect(Collectors.joining("\n"));
     String ctx =
-        entity.isEmpty()
+        entities.isEmpty()
             ? "(无)"
-            : entity.entrySet().stream()
+            : entities.entrySet().stream()
                 .map(e -> e.getKey() + "=" + sanitize(e.getValue()))
                 .collect(Collectors.joining(", "));
     return """
         领域：%s
         用户请求：%s
-        页面实体：%s
+        已识别实体：%s
         候选工具：
         %s
         """

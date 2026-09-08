@@ -161,9 +161,13 @@ public class RunOrchestrator {
         return runId;
       }
 
-      // 规划前拦截：领域内全部候选都需要页面实体而上下文没有 → 提示并结束，不进规划、不调 Gateway
+      // 实体抽取（消息正则优先，页面实体补位）；日志只记类型与 ID，不记原文
+      Map<String, String> entities = EntityExtractor.extract(intent.message(), selected);
+      log.info("entities runId={} {}", runId, entities);
+
+      // 规划前拦截：领域内全部候选都需要实体而没有 → 提示并结束，不进规划、不调 Gateway
       Optional<String> needEntity =
-          EntityRequirementCheck.check(domain.get(), found.tools(), selected);
+          EntityRequirementCheck.check(domain.get(), found.tools(), entities);
       if (needEntity.isPresent()) {
         log.info("entity required but missing runId={} domain={}", runId, domain.get());
         emit(sink, SseEvent.MESSAGE_DELTA, new SseEvent.MessageDeltaData(runId, needEntity.get()));
@@ -171,14 +175,25 @@ public class RunOrchestrator {
         return runId;
       }
 
-      Map<String, String> entity = new LinkedHashMap<>();
-      if (intent.pageContext() != null && intent.pageContext().selectedEntity() != null) {
-        entity.put("type", intent.pageContext().selectedEntity().type());
-        entity.put("id", intent.pageContext().selectedEntity().id());
+      Plan plan;
+      try {
+        plan =
+            llm.plan(
+                new LlmClient.PlanRequest(intent.message(), domain.get(), found.tools(), entities));
+      } catch (LlmClient.MissingEntity e) {
+        // 动词命中但目标工具缺实体（如无号码的「删除订单」）：与拦截同样的友好提示，不算失败
+        log.info(
+            "target entity missing runId={} domain={} entity={}",
+            runId,
+            domain.get(),
+            e.entityType());
+        emit(
+            sink,
+            SseEvent.MESSAGE_DELTA,
+            new SseEvent.MessageDeltaData(runId, EntityRequirementCheck.text(domain.get())));
+        complete(run, sink);
+        return runId;
       }
-      Plan plan =
-          llm.plan(
-              new LlmClient.PlanRequest(intent.message(), domain.get(), found.tools(), entity));
       run.attachPlan(plan, now());
       log.info(
           "plan attached runId={} domain={} steps={} planner={}",

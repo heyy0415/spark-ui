@@ -43,7 +43,8 @@ public final class SpringAiLlmClient implements LlmClient {
                         .build())
                 .system(PromptBuilder.system())
                 .user(
-                    PromptBuilder.user(req.message(), req.domain(), req.candidates(), req.entity()))
+                    PromptBuilder.user(
+                        req.message(), req.domain(), req.candidates(), req.entities()))
                 .call()
                 .entity(LlmPlanDraft.class);
         return ToolSelectionValidator.validate(draft, req.domain(), req.candidates(), displayNames);
