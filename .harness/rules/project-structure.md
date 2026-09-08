@@ -64,7 +64,7 @@ backed/
 ├── pom.xml                      # 父 POM：版本、插件、spotless、enforcer
 ├── platform-spi/                # 极薄接口层：ToolHandler SPI、ToolResolver、PrincipalPermissionResolver；无 Spring 依赖
 ├── contracts-java/              # 与 .harness/contracts/ 对应的 record DTO + JSON Schema 校验器
-├── agent-runtime/               # 意图识别、领域路由、规划、Policy、Run 状态机、SSE 输出
+├── agent-runtime/               # 领域路由（规则 → 模型分类）、实体检查、规划、Policy、Run 状态机、SSE 输出
 ├── tool-registry/               # 控制面：Manifest 注册、查询、版本、状态；实现 ToolResolver
 ├── tool-gateway/                # 执行面：鉴权、Schema 校验、路由、超时、审计；注入 List<ToolHandler>
 ├── domains/

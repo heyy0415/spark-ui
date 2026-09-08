@@ -55,6 +55,12 @@ bash .harness/scripts/e2e-backend.sh
 
 `X-Tenant-Id` / `X-User-Id` 请求头即 principal；缺失 → 401。真实 IdP 为后续 change。
 
+## 意图分类与实体检查
+
+- 领域路由分三层：关键词规则 → 模型分类（仅当规则未命中且配置了 `STRATO_LLM_*`；只能输出该用户可见领域的枚举或 none）→ 无能力路径。日志 `route runId=… domain=… source=rule|model|none`。
+- 领域内全部候选工具都要求 `orderId` 而请求没带 `pageContext.selectedEntity{type:order}` 时，Runtime 直接回 `message.delta("请先在页面上选择一个订单…")` + `run.completed`，不调 Gateway；order 领域无实体时规则规划器回退到 `order.list.search`。
+- 种子订单：10001 / 10002 验收链路，10003 启动自检，10004 Gateway 幂等 e2e。
+
 ## 端点速查
 
 | 端点 | 模块 |

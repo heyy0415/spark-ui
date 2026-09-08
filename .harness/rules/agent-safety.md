@@ -13,7 +13,8 @@
 
 ## 2. 工具发现
 
-- 先用**确定性领域路由**（规则 / 分类）确定 domain，再让模型在 Registry 返回的**有限候选**中选择。
+- 领域路由分三层：**规则优先**（关键词命中，0 延迟）→ **模型补位**（规则未命中且已配置 LLM 时，分类器只输出该 principal 可见领域的枚举或 none，输出经代码校验、不参与任何鉴权、越界视为 none；页面实体类型只作白名单内的提示）→ **代码兜底**（none / 未配置 → 无能力路径）。领域确定后再让模型在 Registry 返回的**有限候选**中选择。
+- 规划前检查实体依赖：领域内全部候选都要求某个页面实体（如 `orderId`）而上下文没有时，直接提示用户选择实体并结束 Run，不进规划、不调 Gateway。
 - **禁止**把全部工具一次性暴露给模型。
 - Registry 查询必须带 `principal`（userId、tenantId），Registry 先按租户、权限、状态、风险策略过滤再返回。
 - Registry 返回给模型的字段只有：`toolId`、`version`、`description`、`inputSchema`、`riskLevel`、`confirmation`。**禁止**返回内部地址、凭据、Owner 联系方式。

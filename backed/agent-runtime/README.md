@@ -12,7 +12,7 @@
 
 ## 流程
 
-路由（`DomainRouter` 关键词规则）→ `ToolRegistryClient.search`（按 principal 过滤后的候选）→ `LlmClient.plan`（Spring AI，`internalToolExecutionEnabled=false`；无 key 时 `RuleBasedLlmClient`）→ `ToolSelectionValidator`（toolId 必须在候选内、args 键必须在 inputSchema 内）→ 逐步执行：低风险自动经 Gateway；`requiresConfirmation` 步骤生成 UI Schema（`UiSchemaBuilder`，必含 `Form`）+ `confirmationToken` → `WAITING_CONFIRMATION`。确认时：令牌一次性 / 10 分钟 / argsDigest / formData 键白名单 全部校验 → 经 Gateway 重调 `refund.eligibility.check` → 执行目标工具 → ResultCard → `COMPLETED`。
+路由（`DomainResolver`：`DomainRouter` 关键词规则优先；未命中且配置了 LLM 时 `IntentClassifier` 在 `ToolRegistryClient.domains(principal)` 返回的可见领域内分类，越界视为 none；日志 `route runId=… source=rule|model|none`）→ `ToolRegistryClient.search`（按 principal 过滤后的候选）→ `EntityRequirementCheck`（候选全需 `orderId` 而页面无选中订单 → `message.delta` 提示 + `run.completed`，不调 Gateway）→ `LlmClient.plan`（Spring AI，`internalToolExecutionEnabled=false`；无 key 时 `RuleBasedLlmClient`）→ `ToolSelectionValidator`（toolId 必须在候选内、args 键必须在 inputSchema 内）→ 逐步执行：低风险自动经 Gateway；`requiresConfirmation` 步骤生成 UI Schema（`UiSchemaBuilder`，必含 `Form`）+ `confirmationToken` → `WAITING_CONFIRMATION`。确认时：令牌一次性 / 10 分钟 / argsDigest / formData 键白名单 全部校验 → 经 Gateway 重调 `refund.eligibility.check` → 执行目标工具 → ResultCard → `COMPLETED`。
 
 事件按 spec §4.0 发射，发出前经 `sse-events` 契约校验；每 15s `: ping`。
 

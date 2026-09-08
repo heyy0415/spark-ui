@@ -15,7 +15,7 @@
                         │ SSE 事件流
 ┌───────────────────────▼───────────────────────────────────┐
 │               backed/agent-runtime                        │
-│ 意图识别 → 领域路由（规则）→ 工具发现 → 参数补全 → 规划    │
+│ 领域路由（规则 → 模型分类）→ 工具发现 → 实体检查 → 规划   │
 │ Policy / Permission → Run 状态机 → SSE 输出               │
 └──────────────┬────────────────────────────┬──────────────┘
                │ 查询能力（控制面）          │ 执行调用（执行面）
@@ -34,7 +34,7 @@
 ## 运行链路（以"给订单 10001 退款"为例）
 
 1. 前端 `POST /agent/runs`，携带 `IntentRequest`（消息、pageContext、clientCapabilities）。pageContext 视为不可信。
-2. Runtime 创建 Run，SSE 推 `run.started`。领域路由（规则）判定 `refund`。
+2. Runtime 创建 Run，SSE 推 `run.started`。领域路由：关键词规则命中 `refund`（未命中时由模型在该用户可见领域内分类，越界视为 none）。缺页面实体时在此提示用户并结束。
 3. Runtime 以服务身份 + principal 查询 Registry `POST /internal/tool-registry/search`，拿到过滤后的候选工具。
 4. LLM（Spring AI `ChatClient`，OpenAI 兼容接口，内部工具执行关闭）在候选内选择并给出计划；计划存后端 Run，不下发前端。
 5. 低风险只读工具（`refund.eligibility.check`、`refund.preview`）经 Gateway `POST /internal/tool-gateway/invoke` 自动执行，每次调用 SSE 推 `tool.selected` → `tool.started` → `tool.completed`。
