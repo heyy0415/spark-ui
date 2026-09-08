@@ -4,7 +4,7 @@
 |---|---|
 | Change ID | feat-strato-ui-monorepo-20260904 |
 | 类型 | feat |
-| 状态 | IN REVIEW（阶段 4 通过，等待 HITL ③ 进入推送） |
+| 状态 | AWAITING USER CONFIRMATION（阶段 1–7 完成） |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | fronted / harness |
 | 起止时间 | 2026-09-04 ~ — |
@@ -18,11 +18,11 @@
 | 1 | 需求分析 | DONE（v3.1） | — | spec.md（8 章）, tasks.md（8 task：T01 / T02a / T02b / T03 / T04 / T05 / T06 / T07）；用户澄清 4 项：包名 `@strato-ui/core`、只含渲染引擎、antd 为 peer、/dev/schema 留在 chat 应用 | 2026-09-04 |
 | 2 | 需求评审 | HITL | 3/3 | v1 RR（4 MUST）→ v2 RR（2 MUST）→ v3 RR（2 MUST，均一行级：根 workspace 依赖、verify-pack 目录）→ 已按 v3 建议补为 spec v3.1。3 轮上限；HITL ② 用户「继续」确认 v3.1 进入编码 | 2026-09-04 |
 | 3 | 编码实现 | DONE | — | T01–T07 共 7 个 commit（移动与逻辑分开）；`fronted ci` 清 dist 后 0；verify-examples 16 OK；verify-pack 13 ✓（dist 40 KB 基线）；e2e-backend 47/47（== 基线）；e2e-frontend 21/21；deploy-verify 12/12；全仓 `run ci` 四段 0；doctor 0（新增 4 项检查）。`coding/coding_report_v1.md` | 2026-09-04 |
-| 4 | 编码评审 | DONE | 2/2 | `code_review_v1.md` 机械项全绿 → `code_review_v2.md` **REVISION REQUIRED**（1 MUST FIX：L1 三文件 antd 措辞陈旧；7 SHOULD）→ 回修 → `code_review_v3.md` **APPROVED**（0 MUST FIX，2 SHOULD 已顺手修：catalog 解析、check-deps 抓 export/动态 import）。全部门禁复验 0。**等待 HITL ③** | 2026-09-04 |
-| 5 | 代码推送 | TODO | — | — | — |
-| 6 | CI 验证 | TODO | — | — | — |
-| 7 | 部署验证 | TODO | — | — | — |
-| 8 | 用户确认 | TODO | — | — | — |
+| 4 | 编码评审 | DONE | 2/2 | `code_review_v1.md` 机械项全绿 → `code_review_v2.md` **REVISION REQUIRED**（1 MUST FIX：L1 三文件 antd 措辞陈旧；7 SHOULD）→ 回修 → `code_review_v3.md` **APPROVED**（0 MUST FIX，2 SHOULD 已顺手修：catalog 解析、check-deps 抓 export/动态 import）。全部门禁复验 0。HITL ③ 用户「继续」 | 2026-09-04 |
+| 5 | 代码推送 | DONE | — | 10 个 commit（`f146764`…`8c815e1`），移动与逻辑分开；工作区干净；无远端 | 2026-09-08 |
+| 6 | CI 验证 | DONE | — | 清 dist 后 `run ci` 四段 0 → `ci_result/ci_summary.md`；chat bundle -1.0%，core dist 40 KB 新基线 | 2026-09-08 |
+| 7 | 部署验证 | DONE | — | `deploy-verify` 12/12（预览走 core dist，`agent-input=1`，console.error 0）→ `deployment/preview_report.md`；不部署、不发包 | 2026-09-08 |
+| 8 | 用户确认 | WAITING | — | 等待用户最终确认 | — |
 
 ## 契约变更
 - 1 处 description 注释路径（`ui-schema.schema.json` props.description：实现路径 → `@strato-ui/core`），字段与约束零变化，示例校验不变。ui-schema 的前端 Zod 投影从 apps/chat 迁到 packages/core。
