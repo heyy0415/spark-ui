@@ -1,9 +1,9 @@
 package com.strato.runtime.infra.llm;
 
+import com.strato.runtime.application.ToolDisplayNames;
 import com.strato.runtime.application.port.LlmClient;
 import com.strato.runtime.domain.Plan;
 import com.strato.runtime.domain.RunFailure;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -20,9 +20,9 @@ public final class SpringAiLlmClient implements LlmClient {
 
   private final ChatClient chat;
   private final String model;
-  private final Map<String, String> displayNames;
+  private final ToolDisplayNames displayNames;
 
-  public SpringAiLlmClient(ChatClient chat, String model, Map<String, String> displayNames) {
+  public SpringAiLlmClient(ChatClient chat, String model, ToolDisplayNames displayNames) {
     this.chat = chat;
     this.model = model;
     this.displayNames = displayNames;

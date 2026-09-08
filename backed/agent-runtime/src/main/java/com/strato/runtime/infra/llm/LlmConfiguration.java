@@ -59,11 +59,13 @@ public class LlmConfiguration {
     return new SharedChat(Optional.of(ChatClient.builder(chatModel).build()));
   }
 
+  /** 两个实现都持有 ToolDisplayNames Bean 引用（Registry 启动时才回填 name），不能取构造期快照。 */
   @Bean
-  public LlmClient llmClient(SharedChat chat, @Value("${STRATO_LLM_MODEL:}") String model) {
+  public LlmClient llmClient(
+      SharedChat chat, ToolDisplayNames names, @Value("${STRATO_LLM_MODEL:}") String model) {
     return chat.client()
-        .<LlmClient>map(c -> new SpringAiLlmClient(c, model, ToolDisplayNames.all()))
-        .orElseGet(() -> new RuleBasedLlmClient(ToolDisplayNames.all()));
+        .<LlmClient>map(c -> new SpringAiLlmClient(c, model, names))
+        .orElseGet(() -> new RuleBasedLlmClient(names));
   }
 
   @Bean

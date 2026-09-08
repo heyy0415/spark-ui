@@ -1,6 +1,7 @@
 package com.strato.runtime.infra.selfcheck;
 
 import com.strato.contracts.model.ToolSearch;
+import com.strato.runtime.application.ToolDisplayNames;
 import com.strato.runtime.application.port.LlmClient;
 import com.strato.runtime.application.port.ToolRegistryClient;
 import com.strato.runtime.domain.Plan;
@@ -21,10 +22,12 @@ public class PlanSelfCheck implements com.strato.spi.SelfCheck {
 
   private final LlmClient llm;
   private final ToolRegistryClient registry;
+  private final ToolDisplayNames names;
 
-  public PlanSelfCheck(LlmClient llm, ToolRegistryClient registry) {
+  public PlanSelfCheck(LlmClient llm, ToolRegistryClient registry, ToolDisplayNames names) {
     this.llm = llm;
     this.registry = registry;
+    this.names = names;
   }
 
   @Override
@@ -59,7 +62,7 @@ public class PlanSelfCheck implements com.strato.spi.SelfCheck {
               List.of(new LlmPlanDraft.DraftStep("refund.delete.everything", Map.of()))),
           "refund",
           cands,
-          Map.of());
+          names);
       throw new IllegalStateException("validator accepted a toolId outside candidates");
     } catch (RunFailure expected) {
       log.info("selfcheck: invalid toolId rejected OK");

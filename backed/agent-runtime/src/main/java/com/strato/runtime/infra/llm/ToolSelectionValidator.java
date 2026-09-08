@@ -2,6 +2,7 @@ package com.strato.runtime.infra.llm;
 
 import com.strato.contracts.model.ToolManifest;
 import com.strato.contracts.model.ToolSearch;
+import com.strato.runtime.application.ToolDisplayNames;
 import com.strato.runtime.domain.Plan;
 import com.strato.runtime.domain.RunFailure;
 import com.strato.runtime.domain.Step;
@@ -29,7 +30,7 @@ public final class ToolSelectionValidator {
       LlmPlanDraft draft,
       String domain,
       List<ToolSearch.ToolCandidate> candidates,
-      Map<String, String> displayNames) {
+      ToolDisplayNames displayNames) {
     if (draft == null || draft.steps() == null || draft.steps().isEmpty()) {
       throw new RunFailure("TOOL_SELECTION_INVALID", "planner returned no steps");
     }
@@ -67,13 +68,7 @@ public final class ToolSelectionValidator {
         }
       }
       steps.add(
-          new Step(
-              seq++,
-              c.toolId(),
-              c.version(),
-              displayNames.getOrDefault(c.toolId(), c.toolId()),
-              args,
-              confirm));
+          new Step(seq++, c.toolId(), c.version(), displayNames.of(c.toolId()), args, confirm));
     }
     return new Plan(domain, steps);
   }

@@ -1,6 +1,7 @@
 package com.strato.runtime.infra.llm;
 
 import com.strato.contracts.model.ToolSearch;
+import com.strato.runtime.application.ToolDisplayNames;
 import com.strato.runtime.application.port.LlmClient;
 import com.strato.runtime.domain.Plan;
 import com.strato.runtime.domain.RunFailure;
@@ -24,9 +25,9 @@ public final class RuleBasedLlmClient implements LlmClient {
   private static final Map<String, List<String>> WITHOUT_ENTITY =
       Map.of("refund", List.of(), "order", List.of("order.list.search"));
 
-  private final Map<String, String> displayNames;
+  private final ToolDisplayNames displayNames;
 
-  public RuleBasedLlmClient(Map<String, String> displayNames) {
+  public RuleBasedLlmClient(ToolDisplayNames displayNames) {
     this.displayNames = displayNames;
   }
 

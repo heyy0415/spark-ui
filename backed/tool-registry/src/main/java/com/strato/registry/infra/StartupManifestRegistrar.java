@@ -1,9 +1,11 @@
 package com.strato.registry.infra;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.strato.contracts.model.ToolManifest;
 import com.strato.registry.application.RegisterToolUseCase;
 import com.strato.registry.domain.ToolVersionConflictException;
 import com.strato.spi.ToolManifestSource;
+import com.strato.spi.ToolNameSink;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,10 +25,15 @@ public class StartupManifestRegistrar {
 
   private final List<ToolManifestSource> sources;
   private final RegisterToolUseCase register;
+  private final List<ToolNameSink> nameSinks;
 
-  public StartupManifestRegistrar(List<ToolManifestSource> sources, RegisterToolUseCase register) {
+  public StartupManifestRegistrar(
+      List<ToolManifestSource> sources,
+      RegisterToolUseCase register,
+      List<ToolNameSink> nameSinks) {
     this.sources = sources;
     this.register = register;
+    this.nameSinks = nameSinks;
   }
 
   /** 最高优先级：@Order 必须标在监听方法上，标在类上对 @EventListener 无效。 */
@@ -37,7 +44,9 @@ public class StartupManifestRegistrar {
     for (ToolManifestSource src : sources) {
       for (JsonNode manifest : src.manifests()) {
         try {
-          register.execute(manifest);
+          ToolManifest registered = register.execute(manifest);
+          // 回填用户可读名称给 runtime（spi ToolNameSink），displayName 不再在 runtime 硬编码
+          nameSinks.forEach(sink -> sink.register(registered.toolId(), registered.name()));
           count++;
         } catch (ToolVersionConflictException e) {
           // 同一 Manifest 被两个 source 重复暴露属配置错误，记录后继续

@@ -14,6 +14,7 @@ import com.strato.runtime.application.port.LlmClient;
 import com.strato.runtime.application.port.RunEventSink;
 import com.strato.runtime.application.port.ToolGatewayClient;
 import com.strato.runtime.application.port.ToolRegistryClient;
+import com.strato.runtime.application.screen.ScreenRegistry;
 import com.strato.runtime.domain.ConfirmationToken;
 import com.strato.runtime.domain.Plan;
 import com.strato.runtime.domain.Run;
@@ -21,7 +22,9 @@ import com.strato.runtime.domain.RunFailure;
 import com.strato.runtime.domain.RunRepository;
 import com.strato.runtime.domain.RunState;
 import com.strato.runtime.domain.Step;
+import com.strato.spi.ConfirmationRecheck;
 import com.strato.spi.Principal;
+import com.strato.spi.ScreenContext;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -31,6 +34,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,25 +47,32 @@ import org.springframework.stereotype.Service;
 
 /**
  * Run 编排器（决策面 / 状态面）。 意图 → 领域路由 → Registry 搜索 → LLM 规划 → 逐步执行：低风险经 Gateway 自动执行；遇
- * requiresConfirmation 生成 UI Schema + Token 并进入 WAITING_CONFIRMATION；确认后先经 Gateway 重校验资格，再执行目标工具。
+ * requiresConfirmation 生成 UI Schema + Token 并进入 WAITING_CONFIRMATION；确认后先经 Gateway 重校验，再执行目标工具。
  * 任何工具调用都经 ToolGatewayClient（agent-safety §1）。事件按 spec §4.0 发射，并在发出前经 sse-events 契约校验。
  *
- * <p>确认路径按 runId 互斥：并发 / 重放的确认请求要么等待，要么因令牌已消费被拒绝，且这类前置拒绝不改变 Run 状态， 保证成功执行的退款不会被并发请求报告为
- * FAILED。确认后金额一律取重校验结果并与确认屏展示值比对，模型或前端都无法决定金额。
+ * <p>屏与领域策略都不在这里：确认屏 / 结果屏查 ScreenRegistry（领域 ScreenBuilder），确认后重校验查 RecheckRegistry（领域
+ * ConfirmationRecheck）；需确认工具缺任一者 → fail-closed INTERNAL_ERROR。
+ *
+ * <p>确认路径按 runId 互斥：并发 / 重放的确认请求要么等待，要么因令牌已消费被拒绝，且这类前置拒绝不改变 Run 状态， 保证成功执行的写操作不会被并发请求报告为
+ * FAILED。可信参数（如退款金额）一律取重校验结果并与确认屏展示值比对，模型或前端都无法决定。
  */
 @Service
 public class RunOrchestrator {
 
   private static final Logger log = LoggerFactory.getLogger(RunOrchestrator.class);
   private static final String NO_CAPABILITY_TEXT = "当前没有可用能力处理该请求";
-  private static final String RECHECK_TOOL = "refund.eligibility.check";
+
+  /** 领域重校验策略拒绝时的用户文案（区分于令牌 / 并发拒绝）。 */
+  private static final String POLICY_REJECTED_TEXT = "订单状态已变化，本次操作未执行";
 
   private final RunRepository runs;
   private final DomainResolver resolver;
   private final ToolRegistryClient registry;
   private final ToolGatewayClient gateway;
   private final LlmClient llm;
-  private final UiSchemaBuilder uiBuilder;
+  private final ScreenRegistry screens;
+  private final RecheckRegistry rechecks;
+  private final ToolDisplayNames displayNames;
   private final ConfirmationTokenService tokens;
   private final SchemaValidator validator;
   private final ObjectMapper mapper;
@@ -83,7 +94,9 @@ public class RunOrchestrator {
       ToolRegistryClient registry,
       ToolGatewayClient gateway,
       LlmClient llm,
-      UiSchemaBuilder uiBuilder,
+      ScreenRegistry screens,
+      RecheckRegistry rechecks,
+      ToolDisplayNames displayNames,
       ConfirmationTokenService tokens,
       SchemaValidator validator,
       Clock clock) {
@@ -92,7 +105,9 @@ public class RunOrchestrator {
     this.registry = registry;
     this.gateway = gateway;
     this.llm = llm;
-    this.uiBuilder = uiBuilder;
+    this.screens = screens;
+    this.rechecks = rechecks;
+    this.displayNames = displayNames;
     this.tokens = tokens;
     this.validator = validator;
     this.mapper = validator.mapper();
@@ -256,7 +271,7 @@ public class RunOrchestrator {
     }
   }
 
-  /** 令牌消费后的执行：经 Gateway 重校验 → 金额取可信来源并与确认屏比对 → 执行目标工具 → 结果屏。 */
+  /** 令牌消费后的执行：查领域 ConfirmationRecheck → 经 Gateway 重调只读工具 → 领域判定 → 合并可信参数 → 执行目标工具 → 结果屏。 */
   private void executeConfirmed(
       Run run,
       Step step,
@@ -265,34 +280,57 @@ public class RunOrchestrator {
       String traceId,
       RunEventSink sink) {
     String runId = run.runId();
-    // 重校验：经 Gateway 再调一次资格检查（agent-safety §3；不直连领域服务）。权限不足在此处即 CONFIRMATION_REJECTED
-    String orderId = step.fixedArgs().getOrDefault("orderId", "");
+    ConfirmationRecheck rc =
+        rechecks
+            .find(step.toolId())
+            .orElseThrow(
+                () ->
+                    new RunFailure(
+                        RunFailureCode.INTERNAL_ERROR.name(),
+                        "no ConfirmationRecheck for " + step.toolId()));
+    // recheck 工具版本取计划中同 toolId 的前置只读步骤（三个 recheck 都恰是各自前置步骤）；取不到 → INTERNAL_ERROR
+    String recheckVersion =
+        run.plan()
+            .flatMap(
+                p ->
+                    p.steps().stream()
+                        .filter(st -> st.toolId().equals(rc.recheckToolId()))
+                        .map(Step::version)
+                        .findFirst())
+            .orElseThrow(
+                () ->
+                    new RunFailure(
+                        RunFailureCode.INTERNAL_ERROR.name(),
+                        "recheck tool not in plan: " + rc.recheckToolId()));
     JsonNode recheck;
     try {
       recheck =
-          invoke(run, RECHECK_TOOL, "1.2.0", Map.of("orderId", orderId), traceId, sink, "recheck");
+          invoke(
+              run,
+              rc.recheckToolId(),
+              recheckVersion,
+              rc.recheckArgs(step.fixedArgs()),
+              traceId,
+              sink,
+              "recheck");
     } catch (ToolCallFailed e) {
       throw e.gatewayCode() == ToolInvoke.ErrorCode.FORBIDDEN
           ? new RunFailure(RunFailureCode.CONFIRMATION_REJECTED.name(), "permission denied", e)
           : e;
     }
-    if (!recheck.path("eligible").asBoolean(false)) {
-      throw new RunFailure(RunFailureCode.CONFIRMATION_REJECTED.name(), "order no longer eligible");
+    UiSchema shown = lastUi.get(runId);
+    Optional<String> rejected =
+        rc.reject(recheck, shown == null ? mapper.createObjectNode() : mapper.valueToTree(shown));
+    if (rejected.isPresent()) {
+      // 内部原因只进日志；用户看到的是策略类文案（区分于令牌 / 并发拒绝）
+      throw RunFailure.withUserText(
+          RunFailureCode.CONFIRMATION_REJECTED.name(), rejected.get(), POLICY_REJECTED_TEXT);
     }
 
-    // 金额只信重校验结果，且必须等于确认屏 RefundConfirmCard 实际展示的金额（用户确认的就是执行的）
-    String trustedAmount = recheck.path("refundableAmount").asText("");
-    String shownAmount = shownRefundAmount(runId);
-    if (trustedAmount.isEmpty() || !trustedAmount.equals(shownAmount)) {
-      throw new RunFailure(
-          RunFailureCode.CONFIRMATION_REJECTED.name(),
-          "refundable amount changed since confirmation");
-    }
-
-    // 合并 formData（键已在 consume 中校验为白名单内），值转字符串；金额由可信来源覆盖
+    // 合并 formData（键已在 consume 中校验为白名单内），值转字符串；可信参数由重校验结果覆盖
     Map<String, String> args = new LinkedHashMap<>(step.fixedArgs());
     formData.forEach((k, v) -> args.put(k, String.valueOf(v)));
-    args.put("amount", trustedAmount);
+    args.putAll(rc.trustedArgs(recheck));
     JsonNode created;
     try {
       created = invoke(run, step.toolId(), step.version(), args, traceId, sink, "step");
@@ -304,23 +342,10 @@ public class RunOrchestrator {
     run.advance(now());
     log.info("confirmed step executed runId={} tokenStep={}", runId, token.stepSeq());
 
-    UiSchema result = uiBuilder.refundResult(created);
+    UiSchema result = screens.result(step.toolId(), created, screenContext(run));
     lastUi.put(runId, result);
     emit(sink, SseEvent.UI_REPLACE, new SseEvent.UiReplaceData(runId, result));
     complete(run, sink);
-  }
-
-  /** 确认屏上 RefundConfirmCard 展示的金额（取自已下发的 UI，而不是重算），没有则为空串。 */
-  private String shownRefundAmount(String runId) {
-    UiSchema ui = lastUi.get(runId);
-    if (ui == null) {
-      return "";
-    }
-    return ui.components().stream()
-        .filter(c -> c.type() == UiSchema.ComponentType.RefundConfirmCard)
-        .map(c -> c.props().path("amount").asText(""))
-        .findFirst()
-        .orElse("");
   }
 
   /** 拒绝本次确认请求但不改变 Run 状态：向该连接发 run.failed{CONFIRMATION_REJECTED} 并关闭。 */
@@ -358,6 +383,20 @@ public class RunOrchestrator {
     while (true) {
       Optional<Step> cur = run.currentStep();
       if (cur.isEmpty()) {
+        // 结果屏 = 计划中最后一个成功步骤的 result（中间只读步骤不发 ui.replace）
+        lastExecuted(run)
+            .ifPresent(
+                last -> {
+                  UiSchema ui =
+                      screens.result(
+                          last.toolId(),
+                          stepOutputs
+                              .getOrDefault(run.runId(), Map.of())
+                              .getOrDefault(last.toolId(), mapper.createObjectNode()),
+                          screenContext(run));
+                  lastUi.put(run.runId(), ui);
+                  emit(sink, SseEvent.UI_REPLACE, new SseEvent.UiReplaceData(run.runId(), ui));
+                });
         complete(run, sink);
         return;
       }
@@ -376,37 +415,47 @@ public class RunOrchestrator {
   }
 
   private void waitForConfirmation(Run run, Step step, RunEventSink sink) {
-    Map<String, JsonNode> cache = stepOutputs.getOrDefault(run.runId(), Map.of());
-    String orderId = step.fixedArgs().getOrDefault("orderId", "");
-    // 令牌先于 UI 生成：UI 需要 token 字符串；白名单在 UI 生成后再回填校验 —— 先用固定字段名集合（Form 只声明 reason）
-    ConfirmationToken token =
-        tokens.issue(
-            run.runId(),
-            UiSchemaBuilder.CONFIRM_ACTION_ID,
-            step.seq(),
-            argsDigest(step.fixedArgs()),
-            java.util.Set.of(UiSchemaBuilder.REASON_FIELD));
-    UiSchema ui =
-        uiBuilder.refundConfirmation(
-            orderId,
-            cache.getOrDefault("order.detail.get", mapper.createObjectNode()),
-            cache.getOrDefault("refund.eligibility.check", mapper.createObjectNode()),
-            cache.getOrDefault("refund.preview", mapper.createObjectNode()),
-            token.token());
-    if (!UiSchemaBuilder.formKeys(ui).equals(token.allowedFormKeys())) {
+    if (!screens.coversConfirmation(step.toolId())) {
+      // fail-closed：需确认工具没有领域确认屏就不用兜底屏放行
       throw new RunFailure(
-          RunFailureCode.INTERNAL_ERROR.name(), "form keys / token whitelist mismatch");
+          RunFailureCode.INTERNAL_ERROR.name(), "no confirmation screen for " + step.toolId());
+    }
+    Map<String, JsonNode> cache = stepOutputs.getOrDefault(run.runId(), Map.of());
+    ScreenContext ctx = screenContext(run);
+    // 两遍生成：令牌绑定 actionId 且屏需要 token 字符串，先用占位令牌读出 action id 与 Form 字段白名单，再签发正式令牌生成正式屏
+    UiSchema probe =
+        screens.confirmation(
+            step.toolId(), step.fixedArgs(), cache, ScreenRegistry.PLACEHOLDER_TOKEN, ctx);
+    String actionId = ScreenRegistry.submitActionId(probe);
+    Set<String> formKeys = ScreenRegistry.formKeys(probe);
+    ConfirmationToken token =
+        tokens.issue(run.runId(), actionId, step.seq(), argsDigest(step.fixedArgs()), formKeys);
+    UiSchema ui = screens.confirmation(step.toolId(), step.fixedArgs(), cache, token.token(), ctx);
+    if (!ScreenRegistry.formKeys(ui).equals(token.allowedFormKeys())
+        || !ScreenRegistry.submitActionId(ui).equals(actionId)) {
+      throw new RunFailure(
+          RunFailureCode.INTERNAL_ERROR.name(),
+          "confirmation screen not stable across token issue");
     }
     lastUi.put(run.runId(), ui);
     emit(sink, SseEvent.UI_REPLACE, new SseEvent.UiReplaceData(run.runId(), ui));
     emit(
         sink,
         SseEvent.CONFIRMATION_REQUIRED,
-        new SseEvent.ConfirmationRequiredData(
-            run.runId(), UiSchemaBuilder.CONFIRM_ACTION_ID, token.expiresAt()));
+        new SseEvent.ConfirmationRequiredData(run.runId(), actionId, token.expiresAt()));
     run.transition(RunState.WAITING_CONFIRMATION, now());
     runs.save(run);
     sink.close();
+  }
+
+  private static ScreenContext screenContext(Run run) {
+    return new ScreenContext(run.runId(), run.principal().userId(), run.principal().tenantId());
+  }
+
+  /** 计划中最后一个已执行的步骤（nextSeq - 1）。 */
+  private static Optional<Step> lastExecuted(Run run) {
+    int seq = run.nextSeq() - 1;
+    return seq < 1 ? Optional.empty() : run.plan().map(p -> p.step(seq));
   }
 
   /** 一次工具调用：tool.selected → tool.started → Gateway → tool.completed。失败转 RunFailure。 */
@@ -419,7 +468,7 @@ public class RunOrchestrator {
       RunEventSink sink,
       String kind) {
     String toolCallId = "tc_" + String.format("%06d", callSeq.incrementAndGet());
-    String displayName = ToolDisplayNames.of(toolId);
+    String displayName = displayNames.of(toolId);
     emit(
         sink,
         SseEvent.TOOL_SELECTED,
@@ -469,7 +518,7 @@ public class RunOrchestrator {
         sink,
         SseEvent.TOOL_COMPLETED,
         new SseEvent.ToolCompletedData(
-            run.runId(), toolCallId, resp.status(), ms, summaryOf(toolId, resp.output())));
+            run.runId(), toolCallId, resp.status(), ms, screens.summary(toolId, resp.output())));
     if (resp.status() != SseEvent.ToolStatus.succeeded) {
       // 按 tool-invoke.response.error.code 结构化映射（spec §4.2），不嗅探异常文本
       ToolInvoke.ErrorCode gw = resp.error() == null ? null : resp.error().code();
@@ -499,24 +548,6 @@ public class RunOrchestrator {
     }
   }
 
-  private static String summaryOf(String toolId, JsonNode out) {
-    if (out == null) {
-      return null;
-    }
-    return switch (toolId) {
-      case "refund.eligibility.check" ->
-          out.path("eligible").asBoolean(false) ? "订单满足退款条件" : "订单不满足退款条件";
-      case "refund.preview" ->
-          "可退 "
-              + out.path("amount").asText("")
-              + " 元，预计 "
-              + out.path("estimatedDays").asText("")
-              + " 天到账";
-      case "refund.create" -> "退款单 " + out.path("refundId").asText("") + " 已提交";
-      default -> null;
-    };
-  }
-
   private void complete(Run run, RunEventSink sink) {
     run.transition(RunState.COMPLETED, now());
     runs.save(run);
@@ -535,7 +566,10 @@ public class RunOrchestrator {
           sink,
           SseEvent.RUN_FAILED,
           new SseEvent.RunFailedData(
-              run.runId(), RunFailureCode.valueOf(e.code()), userMessage(e.code()), now()));
+              run.runId(),
+              RunFailureCode.valueOf(e.code()),
+              e.userText() != null ? e.userText() : userMessage(e.code()),
+              now()));
     } finally {
       sink.close();
     }

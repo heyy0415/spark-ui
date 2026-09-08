@@ -1,30 +1,34 @@
 package com.strato.runtime.application;
 
+import com.strato.spi.ToolNameSink;
+import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.stereotype.Component;
 
 /**
- * 工具的用户可读名称（tool.selected.displayName），与各 Manifest 的 name 一致。 放在 application 层：编排器与 LLM 装配都要用，且
- * application 不得反向依赖 infra。
+ * 工具的用户可读名称（tool.selected.displayName）注册表：实现 spi ToolNameSink，由 Registry 在启动注册每个 Manifest 时回填其
+ * name，runtime 不再硬编码。消费方（编排器、两个 LlmClient、校验器）持有本 Bean 引用而不是快照，注册晚于构造也能看到。
  */
-public final class ToolDisplayNames {
+@Component
+public class ToolDisplayNames implements ToolNameSink {
 
-  static final Map<String, String> NAMES =
-      Map.of(
-          "order.detail.get", "查询订单详情",
-          "order.list.search", "搜索订单",
-          "refund.eligibility.check", "检查退款资格",
-          "refund.preview", "退款试算",
-          "refund.create", "创建退款",
-          "refund.status.get", "查询退款状态");
+  private final Map<String, String> names = new ConcurrentHashMap<>();
 
-  private ToolDisplayNames() {}
-
-  public static Map<String, String> all() {
-    return NAMES;
+  @Override
+  public void register(String toolId, String name) {
+    if (toolId == null || toolId.isBlank() || name == null || name.isBlank()) {
+      return;
+    }
+    names.put(toolId, name);
   }
 
   /** 未知 toolId 回退为 toolId 本身。 */
-  public static String of(String toolId) {
-    return NAMES.getOrDefault(toolId, toolId);
+  public String of(String toolId) {
+    return names.getOrDefault(toolId, toolId);
+  }
+
+  public Map<String, String> all() {
+    return Collections.unmodifiableMap(names);
   }
 }
