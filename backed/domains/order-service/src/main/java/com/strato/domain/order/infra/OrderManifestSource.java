@@ -14,7 +14,11 @@ import org.springframework.stereotype.Component;
 public class OrderManifestSource implements ToolManifestSource {
 
   private static final List<String> FILES =
-      List.of("order.detail.get.json", "order.list.search.json");
+      List.of(
+          "order.detail.get.json",
+          "order.list.search.json",
+          "order.logistics.get.json",
+          "order.delete.json");
 
   private final ObjectMapper mapper;
 

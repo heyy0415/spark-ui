@@ -1,19 +1,179 @@
 {
-  "toolId": "order.detail.get", "version": "1.0.0", "domain": "order",
-  "name": "查询订单详情", "description": "按订单号查询订单基本信息、金额与状态。只读，无副作用。",
+  "toolId": "order.detail.get",
+  "version": "1.1.0",
+  "domain": "order",
+  "name": "查询订单详情",
+  "description": "按订单号查询订单全部信息：商品行、金额、状态、收货地址（手机号脱敏）以及物流概要（已发货时）。只读，无副作用。",
   "protocol": "in-process",
-  "inputSchema": { "type": "object", "additionalProperties": false, "required": ["orderId"],
-    "properties": { "orderId": { "type": "string", "minLength": 1, "maxLength": 64 } } },
-  "outputSchema": { "type": "object", "additionalProperties": false,
-    "required": ["orderId", "productName", "amount", "currency", "status", "createdAt"],
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "orderId"
+    ],
     "properties": {
-      "orderId": { "type": "string" }, "productName": { "type": "string" },
-      "amount": { "type": "string", "pattern": "^\\d+(\\.\\d{1,2})?$" },
-      "currency": { "type": "string", "enum": ["CNY"] },
-      "status": { "type": "string", "enum": ["PAID", "SHIPPED", "COMPLETED", "REFUNDED", "CANCELLED"] },
-      "createdAt": { "type": "string", "format": "date-time" } } },
-  "risk": { "level": "low", "sideEffect": false, "reversible": true, "confirmation": "never" },
-  "authorization": { "permission": "order:read" },
-  "execution": { "timeoutMs": 3000, "maxRetries": 1, "idempotency": "none" },
-  "owner": { "team": "order-platform" }, "status": "active"
+      "orderId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "orderId",
+      "productId",
+      "productName",
+      "quantity",
+      "amount",
+      "currency",
+      "status",
+      "createdAt",
+      "items",
+      "address"
+    ],
+    "properties": {
+      "orderId": {
+        "type": "string"
+      },
+      "productId": {
+        "type": "string"
+      },
+      "productName": {
+        "type": "string"
+      },
+      "thumbnail": {
+        "type": "string"
+      },
+      "quantity": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "amount": {
+        "type": "string",
+        "pattern": "^\\d+(\\.\\d{1,2})?$"
+      },
+      "currency": {
+        "type": "string",
+        "enum": [
+          "CNY"
+        ]
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "PAID",
+          "SHIPPED",
+          "COMPLETED",
+          "REFUNDED",
+          "CANCELLED"
+        ]
+      },
+      "createdAt": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "productId",
+            "productName",
+            "unitPrice",
+            "quantity",
+            "amount"
+          ],
+          "properties": {
+            "productId": {
+              "type": "string"
+            },
+            "productName": {
+              "type": "string"
+            },
+            "unitPrice": {
+              "type": "string",
+              "pattern": "^\\d+(\\.\\d{1,2})?$"
+            },
+            "quantity": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "amount": {
+              "type": "string",
+              "pattern": "^\\d+(\\.\\d{1,2})?$"
+            }
+          }
+        }
+      },
+      "address": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "receiver",
+          "phoneMasked",
+          "region"
+        ],
+        "properties": {
+          "receiver": {
+            "type": "string"
+          },
+          "phoneMasked": {
+            "type": "string",
+            "pattern": "^1\\d{2}\\*{4}\\d{4}$"
+          },
+          "region": {
+            "type": "string"
+          }
+        }
+      },
+      "logistics": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "carrier",
+          "trackingNo",
+          "status"
+        ],
+        "properties": {
+          "carrier": {
+            "type": "string"
+          },
+          "trackingNo": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_TRANSIT",
+              "OUT_FOR_DELIVERY",
+              "DELIVERED"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "risk": {
+    "level": "low",
+    "sideEffect": false,
+    "reversible": true,
+    "confirmation": "never"
+  },
+  "authorization": {
+    "permission": "order:read"
+  },
+  "execution": {
+    "timeoutMs": 3000,
+    "maxRetries": 1,
+    "idempotency": "none"
+  },
+  "owner": {
+    "team": "order-platform"
+  },
+  "status": "active"
 }

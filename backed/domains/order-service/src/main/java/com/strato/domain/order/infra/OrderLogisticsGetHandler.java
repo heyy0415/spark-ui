@@ -7,31 +7,31 @@ import com.strato.spi.ExecutionContext;
 import com.strato.spi.ToolHandler;
 import org.springframework.stereotype.Component;
 
-/** order.detail.get@1.1.0。DELETED 订单视为业务错误（Gateway → HANDLER_ERROR），不泄露已删除内容。 */
+/** order.logistics.get@1.0.0。无物流的订单（PAID / CANCELLED）不报错，返回 NOT_SHIPPED + 空 events。 */
 @Component
-public class OrderDetailGetHandler implements ToolHandler {
+public class OrderLogisticsGetHandler implements ToolHandler {
 
   private final OrderRepository orders;
   private final OrderJson json;
 
-  public OrderDetailGetHandler(OrderRepository orders, OrderJson json) {
+  public OrderLogisticsGetHandler(OrderRepository orders, OrderJson json) {
     this.orders = orders;
     this.json = json;
   }
 
   @Override
   public String toolId() {
-    return "order.detail.get";
+    return "order.logistics.get";
   }
 
   @Override
   public String version() {
-    return "1.1.0";
+    return "1.0.0";
   }
 
   @Override
   public JsonNode handle(JsonNode args, ExecutionContext ctx) {
     Order o = OrderAccess.require(orders, ctx.principal().tenantId(), args.get("orderId").asText());
-    return json.detail(o);
+    return json.logistics(o);
   }
 }

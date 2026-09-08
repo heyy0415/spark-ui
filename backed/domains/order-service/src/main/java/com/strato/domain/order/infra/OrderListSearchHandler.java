@@ -11,17 +11,21 @@ import com.strato.spi.ToolHandler;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
-/** order.list.search@1.0.0。 */
+/**
+ * order.list.search@1.1.0：按 createdAt 降序（仓储保证），排除 DELETED，limit 默认 20；total 为过滤后的总数（不受 limit 影响）。
+ */
 @Component
 public class OrderListSearchHandler implements ToolHandler {
 
   private static final int DEFAULT_LIMIT = 20;
 
   private final OrderRepository orders;
+  private final OrderJson json;
   private final ObjectMapper mapper;
 
-  public OrderListSearchHandler(OrderRepository orders, ObjectMapper mapper) {
+  public OrderListSearchHandler(OrderRepository orders, OrderJson json, ObjectMapper mapper) {
     this.orders = orders;
+    this.json = json;
     this.mapper = mapper;
   }
 
@@ -32,27 +36,20 @@ public class OrderListSearchHandler implements ToolHandler {
 
   @Override
   public String version() {
-    return "1.0.0";
+    return "1.1.0";
   }
 
   @Override
   public JsonNode handle(JsonNode args, ExecutionContext ctx) {
     String status = args.hasNonNull("status") ? args.get("status").asText() : null;
     int limit = args.hasNonNull("limit") ? args.get("limit").asInt() : DEFAULT_LIMIT;
-    List<Order> all = orders.findByTenant(ctx.principal().tenantId());
     List<Order> matched =
-        all.stream().filter(o -> status == null || o.status().name().equals(status)).toList();
+        orders.findByTenant(ctx.principal().tenantId()).stream()
+            .filter(o -> o.status() != Order.OrderStatus.DELETED)
+            .filter(o -> status == null || o.status().name().equals(status))
+            .toList();
     ArrayNode items = mapper.createArrayNode();
-    matched.stream()
-        .limit(limit)
-        .forEach(
-            o -> {
-              ObjectNode n = items.addObject();
-              n.put("orderId", o.orderId());
-              n.put("productName", o.productName());
-              n.put("amount", o.amountText());
-              n.put("status", o.status().name());
-            });
+    matched.stream().limit(limit).forEach(o -> items.add(json.listItem(o)));
     ObjectNode out = mapper.createObjectNode();
     out.set("items", items);
     out.put("total", matched.size());

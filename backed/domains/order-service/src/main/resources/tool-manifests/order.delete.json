@@ -1,0 +1,62 @@
+{
+  "toolId": "order.delete",
+  "version": "1.0.0",
+  "domain": "order",
+  "name": "删除订单",
+  "description": "删除一个已完成 / 已取消 / 已退款的订单（软删，列表不再显示）。进行中的订单（已支付、已发货）不允许删除。有副作用、不可逆，必须经用户确认，调用需携带幂等键。",
+  "protocol": "in-process",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "orderId"
+    ],
+    "properties": {
+      "orderId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "orderId",
+      "deleted",
+      "deletedAt"
+    ],
+    "properties": {
+      "orderId": {
+        "type": "string"
+      },
+      "deleted": {
+        "type": "boolean",
+        "const": true
+      },
+      "deletedAt": {
+        "type": "string",
+        "format": "date-time"
+      }
+    }
+  },
+  "risk": {
+    "level": "high",
+    "sideEffect": true,
+    "reversible": false,
+    "confirmation": "required"
+  },
+  "authorization": {
+    "permission": "order:delete"
+  },
+  "execution": {
+    "timeoutMs": 5000,
+    "maxRetries": 0,
+    "idempotency": "required"
+  },
+  "owner": {
+    "team": "order-platform"
+  },
+  "status": "active"
+}

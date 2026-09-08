@@ -15,7 +15,7 @@ strato:
     grants:
       - userId: user_001
         tenantId: tenant_001
-        permissions: ["order:read", "refund:read", "refund:create"]
+        permissions: ["order:read", "order:delete", "product:read", "aftersale:read", "aftersale:create", "refund:read", "refund:create"]
       - userId: user_002
         tenantId: tenant_001
-        permissions: ["order:read", "refund:read"]
+        permissions: ["order:read", "product:read", "aftersale:read", "refund:read"]

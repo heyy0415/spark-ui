@@ -1,0 +1,95 @@
+{
+  "toolId": "order.logistics.get",
+  "version": "1.0.0",
+  "domain": "order",
+  "name": "查询订单物流",
+  "description": "按订单号查询物流轨迹：承运商、运单号、当前状态与事件列表。未发货订单返回 NOT_SHIPPED 与空事件列表，不报错。只读，无副作用。",
+  "protocol": "in-process",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "orderId"
+    ],
+    "properties": {
+      "orderId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "orderId",
+      "carrier",
+      "trackingNo",
+      "status",
+      "events"
+    ],
+    "properties": {
+      "orderId": {
+        "type": "string"
+      },
+      "carrier": {
+        "type": "string"
+      },
+      "trackingNo": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "NOT_SHIPPED",
+          "IN_TRANSIT",
+          "OUT_FOR_DELIVERY",
+          "DELIVERED"
+        ]
+      },
+      "events": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "time",
+            "location",
+            "description"
+          ],
+          "properties": {
+            "time": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "location": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "risk": {
+    "level": "low",
+    "sideEffect": false,
+    "reversible": true,
+    "confirmation": "never"
+  },
+  "authorization": {
+    "permission": "order:read"
+  },
+  "execution": {
+    "timeoutMs": 3000,
+    "maxRetries": 1,
+    "idempotency": "none"
+  },
+  "owner": {
+    "team": "order-platform"
+  },
+  "status": "active"
+}
