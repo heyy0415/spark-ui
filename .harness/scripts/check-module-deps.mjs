@@ -58,6 +58,20 @@ for (const mod of ['agent-runtime', 'tool-registry', 'tool-gateway', 'platform-s
   }
 }
 
+// platform-spi 是最底层接口包：pom 不得依赖任何 com.strato artifact；contracts-java 只允许依赖 platform-spi
+{
+  const allowed = { 'platform-spi': [], 'contracts-java': ['platform-spi'] };
+  for (const [mod, ok] of Object.entries(allowed)) {
+    const pom = join(backed, mod, 'pom.xml');
+    if (!existsSync(pom)) continue;
+    const text = await readFile(pom, 'utf-8');
+    const depsBlock = (text.match(/<dependencies>([\s\S]*?)<\/dependencies>/g) ?? []).join('\n');
+    for (const m of depsBlock.matchAll(/<groupId>com\.strato<\/groupId><artifactId>([^<]+)<\/artifactId>/g)) {
+      if (!ok.includes(m[1])) fail(`${mod}/pom.xml must not depend on com.strato:${m[1]} (bottom layer)`);
+    }
+  }
+}
+
 async function* walk(dir) {
   for (const e of await readdir(dir)) {
     const p = join(dir, e);

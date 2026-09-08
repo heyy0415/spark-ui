@@ -1,0 +1,35 @@
+[
+  {
+    "refund_id": "rf_seed000001",
+    "order_id": "10007",
+    "tenant_id": "tenant_001",
+    "amount": "258.00",
+    "currency": "CNY",
+    "reason": "DAMAGED",
+    "status": "SUBMITTED",
+    "idempotency_key": "seed-refund-10007",
+    "created_at": "2026-09-05T12:00:00.000Z"
+  },
+  {
+    "refund_id": "rf_seed000002",
+    "order_id": "10008",
+    "tenant_id": "tenant_001",
+    "amount": "1798.00",
+    "currency": "CNY",
+    "reason": "CHANGED_MIND",
+    "status": "SUBMITTED",
+    "idempotency_key": "seed-refund-10008",
+    "created_at": "2026-09-06T12:00:00.000Z"
+  },
+  {
+    "refund_id": "rf_seed000003",
+    "order_id": "10009",
+    "tenant_id": "tenant_001",
+    "amount": "598.00",
+    "currency": "CNY",
+    "reason": "CHANGED_MIND",
+    "status": "SUBMITTED",
+    "idempotency_key": "seed-refund-10009",
+    "created_at": "2026-09-07T12:00:00.000Z"
+  }
+]

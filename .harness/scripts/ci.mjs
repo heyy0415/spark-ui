@@ -22,6 +22,7 @@ const root = join(harness, '..');
 const steps = [
   { name: 'check-contracts', cmd: 'node', args: [join(harness, 'scripts', 'check-contracts.mjs')] },
   { name: 'check-module-deps', cmd: 'node', args: [join(harness, 'scripts', 'check-module-deps.mjs')] },
+  { name: 'check-seed', cmd: 'node', args: [join(harness, 'scripts', 'check-seed.mjs')] },
   { name: 'fronted', cmd: 'pnpm', args: ['-C', join(root, 'fronted'), 'run', 'ci'] },
   {
     name: 'backed',

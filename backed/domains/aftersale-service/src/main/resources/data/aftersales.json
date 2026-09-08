@@ -1,0 +1,38 @@
+[
+  {
+    "aftersale_id": "AS-0001",
+    "order_id": "10010",
+    "tenant_id": "tenant_001",
+    "type": "REPAIR",
+    "status": "APPROVED",
+    "reason": "屏幕有划痕",
+    "created_at": "2026-09-03T10:00:00.000Z"
+  },
+  {
+    "aftersale_id": "AS-0002",
+    "order_id": "10007",
+    "tenant_id": "tenant_001",
+    "type": "RETURN",
+    "status": "COMPLETED",
+    "reason": "尺码不合适",
+    "created_at": "2026-09-04T10:00:00.000Z"
+  },
+  {
+    "aftersale_id": "AS-0003",
+    "order_id": "10008",
+    "tenant_id": "tenant_001",
+    "type": "EXCHANGE",
+    "status": "REJECTED",
+    "reason": "颜色不喜欢",
+    "created_at": "2026-09-05T10:00:00.000Z"
+  },
+  {
+    "aftersale_id": "AS-0004",
+    "order_id": "10009",
+    "tenant_id": "tenant_001",
+    "type": "RETURN",
+    "status": "CANCELLED",
+    "reason": "重复下单",
+    "created_at": "2026-09-06T10:00:00.000Z"
+  }
+]

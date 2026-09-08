@@ -50,6 +50,8 @@ const required = [
   'scripts/new-change.mjs',
   'scripts/check-contracts.mjs',
   'scripts/check-module-deps.mjs',
+  'scripts/check-seed.mjs',
+  'scripts/gen-seed.mjs',
   'scripts/mvn.mjs',
   'scripts/ci.mjs',
   'scripts/sse-parse.mjs',
