@@ -13,7 +13,7 @@ import {
 } from '@entities/agent-run';
 import { consumeSse } from '@shared/api';
 import type { AgentRunView } from '../model/runView';
-import { emptyView, reduceEvent } from '../model/runView';
+import { beginTurn, emptyView, reduceEvent } from '../model/runView';
 
 /** 服务端状态走 TanStack Query（coding-standard §4）；SSE 事件逐帧归约后写入 cache。 */
 const viewKey = (conversationId: string) => ['agent-run', conversationId] as const;
@@ -125,10 +125,9 @@ export function useAgentRun({ conversationId, principal }: UseAgentRunOptions) {
   const start = useMutation({
     mutationFn: async (intent: Omit<IntentRequest, 'conversationId'>) => {
       formRef.current = {};
-      qc.setQueryData(viewKey(conversationId), {
-        ...emptyView(conversationId),
-        phase: 'streaming',
-      });
+      qc.setQueryData<AgentRunView>(viewKey(conversationId), (prev) =>
+        beginTurn(prev ?? emptyView(conversationId), intent.message),
+      );
       await stream(AGENT_RUNS_PATH, buildIntentRequest({ ...intent, conversationId }));
     },
   });

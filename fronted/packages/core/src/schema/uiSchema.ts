@@ -3,24 +3,19 @@ import { z } from 'zod';
 /**
  * ui-schema.schema.json 的 Zod 投影（真源：.harness/contracts/ui-schema.schema.json）。
  * 本文件是前端 ui-schema 投影的唯一真源，chat 应用的 run-summary / sse-events 投影从 @strato-ui/core 组合它。
- * 字段名、enum 值、约束与契约逐一对应；ID / Token 一律 string。
+ * 字段名、enum 值、约束与契约逐一对应；ID / Token 一律 string；五个组件的 props 都是契约级约束（.strict()）。
  */
 
 const idPattern = /^[a-z0-9-]+$/;
 
-/** 白名单组件（与契约 componentType enum 一致；check-registry 校验此列表 == 契约 enum == 注册表键集合 == PROPS_SCHEMAS 键）。 */
-export const COMPONENT_TYPES = [
-  'Form',
-  'Card',
-  'Table',
-  'ResultCard',
-  'ConfirmationCard',
-  'OrderCard',
-  'RefundConfirmCard',
-] as const;
+/** 白名单组件：每个都是 antd / antd-mobile 官方组件的直接映射（check-registry 校验此列表 == 契约 enum == 注册表键 == PROPS_SCHEMAS 键）。 */
+export const COMPONENT_TYPES = ['Form', 'Card', 'Table', 'Result', 'Timeline'] as const;
 export const ComponentTypeSchema = z.enum(COMPONENT_TYPES);
 export type ComponentType = z.infer<typeof ComponentTypeSchema>;
 
+export const MoneySchema = z.string().regex(/^-?\d+(\.\d{1,2})?$/);
+
+// ---- Form
 export const FormFieldSchema = z
   .object({
     name: z
@@ -41,8 +36,116 @@ export const FormFieldSchema = z
   })
   .strict();
 export type FormField = z.infer<typeof FormFieldSchema>;
+export const FormPropsSchema = z
+  .object({ fields: z.array(FormFieldSchema).min(1).max(16) })
+  .strict();
+export type FormProps = z.infer<typeof FormPropsSchema>;
 
-export const FormPropsSchema = z.object({ fields: z.array(FormFieldSchema).min(1).max(16) });
+// ---- 共用：label/value 项（Card.items / Result.details）
+export const LabelValueSchema = z
+  .object({
+    label: z.string().min(1).max(80),
+    value: z.string().max(200),
+    tone: z.enum(['default', 'success', 'warning', 'danger']).optional(),
+  })
+  .strict();
+export type LabelValue = z.infer<typeof LabelValueSchema>;
+
+// ---- 共用：行内自然语言指令（前端点击后原样作为新消息发送；不是 URL、不带 token）
+export const InlineActionSchema = z
+  .object({
+    label: z.string().min(1).max(32),
+    intent: z
+      .string()
+      .min(1)
+      .max(200)
+      .regex(/^(?!.*(:\/\/|<)).*$/),
+  })
+  .strict();
+export type InlineAction = z.infer<typeof InlineActionSchema>;
+
+// ---- Card
+export const CardPropsSchema = z
+  .object({
+    title: z.string().max(80).optional(),
+    description: z.string().max(500).optional(),
+    items: z.array(LabelValueSchema).max(32).optional(),
+  })
+  .strict();
+export type CardProps = z.infer<typeof CardPropsSchema>;
+
+// ---- Table
+export const TableRowSchema = z
+  .object({
+    id: z.string().min(1).max(64),
+    cells: z.record(z.string(), z.string().max(200)),
+    actions: z.array(InlineActionSchema).max(6).optional(),
+  })
+  .strict();
+export type TableRow = z.infer<typeof TableRowSchema>;
+export const TablePropsSchema = z
+  .object({
+    columns: z
+      .array(
+        z
+          .object({
+            key: z
+              .string()
+              .min(1)
+              .max(64)
+              .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/),
+            title: z.string().min(1).max(80),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(16),
+    rows: z.array(TableRowSchema).max(50),
+    total: z.number().int().min(0).optional(),
+    emptyText: z.string().max(120).optional(),
+  })
+  .strict();
+export type TableProps = z.infer<typeof TablePropsSchema>;
+
+// ---- Result
+export const ResultPropsSchema = z
+  .object({
+    status: z.enum(['success', 'error', 'info', 'warning']),
+    title: z.string().min(1).max(80),
+    description: z.string().max(500).optional(),
+    details: z.array(LabelValueSchema).max(32).optional(),
+  })
+  .strict();
+export type ResultProps = z.infer<typeof ResultPropsSchema>;
+
+// ---- Timeline
+export const TimelinePropsSchema = z
+  .object({
+    items: z
+      .array(
+        z
+          .object({
+            time: z.string().datetime({ offset: true }),
+            label: z.string().min(1).max(80),
+            description: z.string().max(200).optional(),
+          })
+          .strict(),
+      )
+      .max(32),
+    emptyText: z.string().max(120).optional(),
+  })
+  .strict();
+export type TimelineProps = z.infer<typeof TimelinePropsSchema>;
+
+/** 组件 → props schema 的映射；SchemaRenderer 渲染前校验，UiComponentSchema 整体校验也用它。 */
+// Object.freeze：宿主运行期不得改写 props 约定（与注册表同级保证）
+export const PROPS_SCHEMAS = Object.freeze({
+  Form: FormPropsSchema,
+  Card: CardPropsSchema,
+  Table: TablePropsSchema,
+  Result: ResultPropsSchema,
+  Timeline: TimelinePropsSchema,
+} as const);
 
 const ComponentBaseSchema = z
   .object({
@@ -52,13 +155,11 @@ const ComponentBaseSchema = z
   })
   .strict();
 
-/** Form 组件的 props 受契约 if/then 约束；其他组件 props 为自由 JSON，由各封装组件渲染前自行 parse。 */
+/** 五个组件的 props 都受契约 if/then 约束：整体校验时逐个按 type 校验 props。 */
 export const UiComponentSchema = ComponentBaseSchema.superRefine((c, ctx) => {
-  if (c.type === 'Form') {
-    const r = FormPropsSchema.safeParse(c.props);
-    if (!r.success) {
-      ctx.addIssue({ code: 'custom', message: 'Form.props.fields invalid', path: ['props'] });
-    }
+  const r = PROPS_SCHEMAS[c.type].safeParse(c.props);
+  if (!r.success) {
+    ctx.addIssue({ code: 'custom', message: `${c.type}.props invalid`, path: ['props'] });
   }
 });
 export type UiComponent = z.infer<typeof UiComponentSchema>;

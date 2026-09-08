@@ -8,6 +8,10 @@
  *   3. 视口 375  同 URL               → adm-* > 0 且 ant-* = 0
  *   4. /dev/schema?example=unknown     → UnknownComponent 占位且 console.error 恰 1
  *   5. 视口 1280 / 主链路（chat 即首页）：输入 → 两条工具进度 + 确认卡片 → 选原因 → 确认 → 结果卡片；console 无 error
+ *   6. 8 个契约示例 × 1280 / 375 全部渲染，console.error 0（feat-commerce-domains）
+ *   7. 视口 1280 / 自然语言驱动：「看看我的订单」→ Table → 点 data-intent="查看订单 10030 的物流" → 用户消息 + Timeline
+ *      → 「有什么商品」→ Table → 点 data-intent="查看商品 P-1003 的详情" → Card
+ * 环境变量 STRATO_FRONT_BASE 可覆盖前端地址（默认 http://localhost:5173）。
  */
 import { mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -19,7 +23,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..', '..');
 const DEPLOY = deploymentDir();
 mkdirSync(DEPLOY, { recursive: true });
-const BASE = 'http://localhost:5173';
+const BASE = process.env.STRATO_FRONT_BASE ?? 'http://localhost:5173';
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
 let pass = 0;
@@ -135,6 +139,63 @@ try {
     check('console errors', 0, errors.length);
     if (errors.length) console.log('    errors:', errors.slice(0, 3));
     await page.screenshot({ path: join(DEPLOY, 'ui-desktop-flow.png'), fullPage: true });
+    await page.close();
+  }
+
+  // ---- step 6: all contract examples render at both viewports
+  console.log('--- step 6: 8 contract examples @1280 / @375');
+  {
+    const EXAMPLES = ['confirm', 'result', 'order-table', 'product-table', 'order-detail', 'logistics', 'aftersale-confirm', 'delete-confirm'];
+    for (const width of [1280, 375]) {
+      let errs = 0;
+      let rendered = 0;
+      for (const ex of EXAMPLES) {
+        const { page, errors } = await newPage(width);
+        await page.goto(`${BASE}/dev/schema?example=${ex}`, { waitUntil: 'networkidle0' });
+        await page.waitForSelector('[data-screen-id]');
+        await sleep(300);
+        rendered += await page.$$eval('[data-component-id]', (e) => e.length);
+        errs += errors.length;
+        if (errors.length) console.log(`    ${ex}@${width} errors:`, errors.slice(0, 2));
+        await page.close();
+      }
+      checkTrue(`examples @${width} rendered components > 0`, rendered > 0);
+      check(`examples @${width} console errors`, 0, errs);
+    }
+  }
+
+  // ---- step 7: natural-language driven flow via inline intents
+  console.log('--- step 7: order table → inline intent → logistics → product table → product card @1280');
+  {
+    const { page, errors } = await newPage(1280);
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('#agent-input');
+    await page.type('#agent-input', '看看我的订单');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('[data-component-id="orders"]', { timeout: 15000 });
+    await sleep(600);
+    check('order table rows', 20, await page.$$eval('[data-component-id="orders"] tbody tr', (e) => e.length));
+    check('user message shown', 1, await page.$$eval('[aria-label="对话消息"] li[data-role="user"]', (e) => e.length));
+    await page.screenshot({ path: join(DEPLOY, 'ui-order-table.png'), fullPage: true });
+    await page.click('[data-intent="查看订单 10030 的物流"]');
+    await page.waitForSelector('[data-component-id="logistics-events"]', { timeout: 15000 });
+    await sleep(600);
+    check('intent text became user message', true, await page.$$eval('[aria-label="对话消息"] li[data-role="user"]', (e) => e.some((li) => li.textContent.includes('查看订单 10030 的物流'))));
+    check('logistics card present', 1, await page.$$eval('[data-component-id="logistics"]', (e) => e.length));
+    checkTrue('timeline items ≥ 3', (await page.$$eval('[data-component-id="logistics-events"] .ant-timeline-item', (e) => e.length)) >= 3);
+    await page.screenshot({ path: join(DEPLOY, 'ui-logistics.png'), fullPage: true });
+    await page.type('#agent-input', '有什么商品');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('[data-component-id="products"]', { timeout: 15000 });
+    await sleep(600);
+    check('product table rows', 20, await page.$$eval('[data-component-id="products"] tbody tr', (e) => e.length));
+    await page.screenshot({ path: join(DEPLOY, 'ui-product-table.png'), fullPage: true });
+    await page.click('[data-intent="查看商品 P-1003 的详情"]');
+    await page.waitForSelector('[data-component-id="product"]', { timeout: 15000 });
+    await sleep(600);
+    check('product card title', true, await page.$eval('[data-component-id="product"]', (e) => e.textContent.includes('无线耳机 Pro')));
+    check('console errors', 0, errors.length);
+    if (errors.length) console.log('    errors:', errors.slice(0, 3));
     await page.close();
   }
 } finally {

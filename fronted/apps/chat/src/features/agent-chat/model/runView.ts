@@ -17,11 +17,17 @@ export interface ToolProgress {
 
 export type RunPhase = 'idle' | 'streaming' | 'waiting_confirmation' | 'completed' | 'failed';
 
+/** 消息区条目：用户发出的文本与助手的提示分开展示。 */
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  text: string;
+}
+
 export interface AgentRunView {
   runId: string | null;
   conversationId: string;
   phase: RunPhase;
-  messages: string[];
+  messages: ChatMessage[];
   tools: ToolProgress[];
   ui: UiSchema | null;
   pendingActionId: string | null;
@@ -41,13 +47,26 @@ export function emptyView(conversationId: string): AgentRunView {
   };
 }
 
+/** 用户发送一条消息（输入框或行内指令）：记入消息区，进度清空，上一屏保留到新屏 ui.replace 到达。 */
+export function beginTurn(view: AgentRunView, text: string): AgentRunView {
+  return {
+    ...view,
+    phase: 'streaming',
+    messages: [...view.messages, { role: 'user', text }],
+    tools: [],
+    pendingActionId: null,
+    failure: null,
+  };
+}
+
 /** 纯归约：一帧事件 → 新视图。ui.patch 按组件 id 合并覆盖。 */
 export function reduceEvent(view: AgentRunView, ev: SseEvent): AgentRunView {
   switch (ev.event) {
     case 'run.started':
-      return { ...emptyView(ev.data.conversationId), runId: ev.data.runId, phase: 'streaming' };
+      // 连续对话：保留消息记录与上一屏，只换 runId
+      return { ...view, runId: ev.data.runId, phase: 'streaming', tools: [], failure: null };
     case 'message.delta':
-      return { ...view, messages: [...view.messages, ev.data.text] };
+      return { ...view, messages: [...view.messages, { role: 'assistant', text: ev.data.text }] };
     case 'tool.selected':
       return {
         ...view,

@@ -1,10 +1,10 @@
-import { List, Result } from 'antd-mobile';
-import type { RenderedComponentProps, ResultCardProps } from '../../registry/types';
+import { List, Result as AdmResult } from 'antd-mobile';
+import type { RenderedComponentProps, ResultProps } from '../../registry/types';
 
-export function ResultCardMobile({ id, props }: RenderedComponentProps<ResultCardProps>) {
+export function ResultMobile({ id, props }: RenderedComponentProps<ResultProps>) {
   return (
     <div data-component-id={id}>
-      <Result status={props.status} title={props.title} description={props.description} />
+      <AdmResult status={props.status} title={props.title} description={props.description} />
       {props.details && props.details.length > 0 ? (
         <List>
           {props.details.map((d, i) => (

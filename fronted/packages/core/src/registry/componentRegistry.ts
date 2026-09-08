@@ -5,7 +5,7 @@ import type { RenderedComponentProps } from './types';
 /**
  * 白名单组件注册表（project-structure §1「Strato UI 专项」）。
  * 键集合必须与 ui-schema.schema.json 的 componentType enum 完全一致，scripts/check-registry.mjs 机械校验。
- * 每个 type 有桌面（antd）与移动（antd-mobile）两套实现，按端型 React.lazy 固定路径加载；
+ * 每个 type 是 antd / antd-mobile 官方组件的直接映射，文件名 == type，按端型 React.lazy 固定路径加载；
  * 禁止按模型输出拼路径动态 import。
  */
 
@@ -28,28 +28,12 @@ export const desktopRegistry: Registry = Object.freeze({
   Table: asRegistered(
     lazy(() => import('../components/desktop/Table').then((m) => ({ default: m.TableDesktop }))),
   ),
-  ResultCard: asRegistered(
-    lazy(() =>
-      import('../components/desktop/ResultCard').then((m) => ({ default: m.ResultCardDesktop })),
-    ),
+  Result: asRegistered(
+    lazy(() => import('../components/desktop/Result').then((m) => ({ default: m.ResultDesktop }))),
   ),
-  ConfirmationCard: asRegistered(
+  Timeline: asRegistered(
     lazy(() =>
-      import('../components/desktop/ConfirmationCard').then((m) => ({
-        default: m.ConfirmationCardDesktop,
-      })),
-    ),
-  ),
-  OrderCard: asRegistered(
-    lazy(() =>
-      import('../components/desktop/OrderCard').then((m) => ({ default: m.OrderCardDesktop })),
-    ),
-  ),
-  RefundConfirmCard: asRegistered(
-    lazy(() =>
-      import('../components/desktop/RefundConfirmCard').then((m) => ({
-        default: m.RefundConfirmCardDesktop,
-      })),
+      import('../components/desktop/Timeline').then((m) => ({ default: m.TimelineDesktop })),
     ),
   ),
 });
@@ -64,28 +48,12 @@ export const mobileRegistry: Registry = Object.freeze({
   Table: asRegistered(
     lazy(() => import('../components/mobile/Table').then((m) => ({ default: m.TableMobile }))),
   ),
-  ResultCard: asRegistered(
-    lazy(() =>
-      import('../components/mobile/ResultCard').then((m) => ({ default: m.ResultCardMobile })),
-    ),
+  Result: asRegistered(
+    lazy(() => import('../components/mobile/Result').then((m) => ({ default: m.ResultMobile }))),
   ),
-  ConfirmationCard: asRegistered(
+  Timeline: asRegistered(
     lazy(() =>
-      import('../components/mobile/ConfirmationCard').then((m) => ({
-        default: m.ConfirmationCardMobile,
-      })),
-    ),
-  ),
-  OrderCard: asRegistered(
-    lazy(() =>
-      import('../components/mobile/OrderCard').then((m) => ({ default: m.OrderCardMobile })),
-    ),
-  ),
-  RefundConfirmCard: asRegistered(
-    lazy(() =>
-      import('../components/mobile/RefundConfirmCard').then((m) => ({
-        default: m.RefundConfirmCardMobile,
-      })),
+      import('../components/mobile/Timeline').then((m) => ({ default: m.TimelineMobile })),
     ),
   ),
 });

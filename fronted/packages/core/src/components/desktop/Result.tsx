@@ -1,10 +1,10 @@
-import { Descriptions, Result } from 'antd';
-import type { RenderedComponentProps, ResultCardProps } from '../../registry/types';
+import { Descriptions, Result as AntResult } from 'antd';
+import type { RenderedComponentProps, ResultProps } from '../../registry/types';
 
-export function ResultCardDesktop({ id, props }: RenderedComponentProps<ResultCardProps>) {
+export function ResultDesktop({ id, props }: RenderedComponentProps<ResultProps>) {
   return (
     <div data-component-id={id}>
-      <Result status={props.status} title={props.title} subTitle={props.description}>
+      <AntResult status={props.status} title={props.title} subTitle={props.description}>
         {props.details && props.details.length > 0 ? (
           <Descriptions
             size="small"
@@ -16,7 +16,7 @@ export function ResultCardDesktop({ id, props }: RenderedComponentProps<ResultCa
             }))}
           />
         ) : null}
-      </Result>
+      </AntResult>
     </div>
   );
 }

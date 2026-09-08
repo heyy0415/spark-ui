@@ -47,18 +47,28 @@ const ui = parseUiSchema(payloadFromBackend); // 不要写 payload as UiSchema
 
 - `StratoDeviceProvider`：挂载时按 `window.innerWidth < 768` 一次性判定端型；不监听 resize。
 - `StratoThemeProvider`：同一套令牌同时下发 antd `ConfigProvider`、antd-mobile `--adm-*` 变量与包内 `--strato-*` 变量。令牌全部可选，默认值见下。
-- `SchemaRenderer`：只渲染注册表内的组件；`onFormChange` 收集 `Form` 组件的值，由宿主在确认动作时回传。
+- `SchemaRenderer`：只渲染注册表内的组件；`onFormChange` 收集 `Form` 组件的值，由宿主在确认动作时回传；`onIntent` 接收 `Table` 行内指令的文本，宿主把它当作用户输入原样发送（新一轮对话）。
 - `ActionBar`：渲染 `ui.actions`，点击回调整个 action 对象；`confirmationToken` 只回传，不解析。
 
 ## 公共 API
 
 运行时：`SchemaRenderer`、`ActionBar`、`UnknownComponent`、`desktopRegistry`、`mobileRegistry`、`REGISTRY_KEYS`、`PROPS_SCHEMAS`、`UiSchemaSchema`、`UiComponentSchema`、`UiActionSchema`、`FormPropsSchema`、`COMPONENT_TYPES`、`parseUiSchema`、`StratoThemeProvider`、`StratoDeviceProvider`、`useDevice`、`MOBILE_MAX_WIDTH`。
 
-类型：`UiSchema`、`UiComponent`、`UiAction`、`ComponentType`、`FormValues`、`DeviceKind`、`SchemaRendererProps`、`ActionBarProps`、`StratoThemeTokens`、`StratoThemeProviderProps`。
+类型：`UiSchema`、`UiComponent`、`UiAction`、`ComponentType`、`FormProps`、`CardProps`、`TableProps`、`TableRow`、`ResultProps`、`TimelineProps`、`LabelValue`、`InlineAction`、`FormValues`、`ComponentHandlers`、`DeviceKind`、`SchemaRendererProps`、`ActionBarProps`、`StratoThemeTokens`、`StratoThemeProviderProps`。
 
 `StratoThemeTokens`（默认值）：`colorPrimary #3370ff`、`colorText #1f2329`、`colorTextSecondary #646a73`、`colorBorder #dee0e3`、`colorBgLayout #f7f8fa`、`colorBgContainer #ffffff`、`borderRadius 6`。
 
-白名单组件（7）：`Form`、`Card`、`Table`、`ResultCard`、`ConfirmationCard`、`OrderCard`、`RefundConfirmCard`。每个都有桌面与移动两套实现，接受同一份 props 类型。
+白名单组件（5）——每个都是官方组件的直接映射，core 内**没有**业务命名组件（`scripts/check-registry.mjs` 守护文件名与 import 白名单）：
+
+| type       | 桌面（antd 6）                                                     | 移动（antd-mobile 5）                     | 用途                      |
+| ---------- | ------------------------------------------------------------------ | ----------------------------------------- | ------------------------- |
+| `Form`     | `Form` + `Input` / `Select` / `InputNumber`                        | `Form` + `Input` / `Selector` / `Stepper` | 确认屏表单                |
+| `Card`     | `Card` + `Descriptions`（`items[].tone` → `Typography.Text type`） | `Card` + `List`                           | 订单 / 商品 / 摘要 / 警示 |
+| `Table`    | `Table`（末列 `Button` 为行内指令，`data-intent`）                 | 每行一个 `List` 分组 + `Button`           | 订单 / 商品 / 售后列表    |
+| `Result`   | `Result` + `Descriptions`                                          | `Result` + `List`                         | 写操作结果                |
+| `Timeline` | `Timeline`                                                         | `Steps direction="vertical"`              | 物流轨迹                  |
+
+五个组件的 props 都是契约级约束（`ui-schema.schema.json` if/then；Zod `.strict()` 同源）。
 
 ## 安全边界
 
@@ -68,6 +78,7 @@ const ui = parseUiSchema(payloadFromBackend); // 不要写 payload as UiSchema
 | 每个组件的 props 先经 Zod 校验再渲染，失败渲染占位                                     | 不把模型输出直接当 UI Schema 构造                                                     |
 | 未知 `type` → `UnknownComponent` 占位 + `console.error('[strato-ui] …')`，其余组件照常 | `confirmationToken` 只回传给后端，不解析、不落日志                                    |
 | 无 eval / new Function / dangerouslySetInnerHTML / 任意路径 import                     | 页面上下文视为不可信，鉴权在后端                                                      |
+| `onIntent` 只回调纯文本；core 不发请求、不解释文本                                     | 把 `onIntent` 文本当用户输入原样提交，不拼接、不改写                                  |
 | UI Schema 中不存在可被渲染为链接或富文本的 URL / HTML 字段                             | 不用 `as UiSchema` 绕过校验                                                           |
 
 ### 不要这样做

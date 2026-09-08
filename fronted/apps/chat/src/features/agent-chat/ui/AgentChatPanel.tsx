@@ -15,6 +15,14 @@ export interface AgentChatPanelProps {
   pageContext: PageContextQuery;
 }
 
+/** 演示页示例问题：点击 = 发送同一条文本（与行内指令同一路径）。 */
+const EXAMPLE_CHIPS = [
+  '看看我的订单',
+  '有什么商品',
+  '查看订单 10030 的物流',
+  '订单 10002 申请售后',
+];
+
 export function AgentChatPanel({ conversationId, principal, pageContext }: AgentChatPanelProps) {
   const [input, setInput] = useState('');
   const { view, start, submitAction, onFormChange, busy } = useAgentRun({
@@ -22,9 +30,8 @@ export function AgentChatPanel({ conversationId, principal, pageContext }: Agent
     principal,
   });
 
-  const onSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    const message = input.trim();
+  /** 发送一条用户消息：输入框、示例 chip、行内指令都走这里，文本原样提交、不拼接不改写。 */
+  const send = (message: string) => {
     if (!message || busy) {
       return;
     }
@@ -38,6 +45,16 @@ export function AgentChatPanel({ conversationId, principal, pageContext }: Agent
       },
       clientCapabilities: { uiSchemaVersion: '1.0', components: [...COMPONENT_TYPES] },
     });
+  };
+
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const message = input.trim();
+    if (!message) {
+      return;
+    }
+    setInput('');
+    send(message);
   };
 
   const onAction = (a: UiAction) => submitAction.mutate(a);
@@ -71,6 +88,21 @@ export function AgentChatPanel({ conversationId, principal, pageContext }: Agent
         </Button>
       </form>
 
+      <div className={styles['chips']} aria-label="示例问题">
+        {EXAMPLE_CHIPS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            className={styles['chip']}
+            data-chip={c}
+            disabled={busy}
+            onClick={() => send(c)}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
+
       {errText ? (
         <p role="alert" className={styles['error']}>
           {errText}
@@ -78,9 +110,12 @@ export function AgentChatPanel({ conversationId, principal, pageContext }: Agent
       ) : null}
 
       {view.messages.length > 0 ? (
-        <ul className={styles['messages']} aria-label="助手消息">
+        <ul className={styles['messages']} aria-label="对话消息">
           {view.messages.map((m, i) => (
-            <li key={i}>{m}</li>
+            <li key={i} data-role={m.role} className={styles['message']}>
+              <span className={styles['role']}>{m.role === 'user' ? '我' : '助手'}</span>
+              {m.text}
+            </li>
           ))}
         </ul>
       ) : null}
@@ -105,7 +140,7 @@ export function AgentChatPanel({ conversationId, principal, pageContext }: Agent
 
       {view.ui ? (
         <section className={styles['ui']} aria-live="polite">
-          <SchemaRenderer ui={view.ui} onFormChange={onFormChange} />
+          <SchemaRenderer ui={view.ui} onFormChange={onFormChange} onIntent={send} />
           {view.phase === 'waiting_confirmation' ? (
             <ActionBar actions={view.ui.actions} disabled={busy} onAction={onAction} />
           ) : null}

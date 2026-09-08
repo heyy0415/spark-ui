@@ -32,6 +32,7 @@
 - **禁止**在组件渲染期间执行副作用（log、读 localStorage、router push）。
 - 避免在依赖数组中放对象字面量；必要时用 `useMemo`。
 - **组件库**：桌面端 antd 6，移动端 antd-mobile 5。只允许在 `fronted/packages/core/src/components/**` 与 `fronted/packages/core/src/theme/**` 内 import 这两个库；`apps/chat` 任何文件不得 import antd / antd-mobile / @ant-design，只能使用 `@strato-ui/core` 包入口导出（禁止 `@strato-ui/core/src/*` 深路径）。oxlint `no-restricted-imports` 守护。
+- **core 组件 = 官方组件映射**：`fronted/packages/core/src/components/{desktop,mobile}/*.tsx` 文件名必须等于契约 `componentType`（`ActionBar` 例外），即 antd / antd-mobile 官方组件名；禁止业务命名组件（`OrderCard` / `RefundConfirmCard` 之类）；这些文件只能 import `antd` / `antd-mobile` / `react` / 本包 `registry` / `schema`。新增 type 前先回答「能否用现有五个组件的 props 表达」。`check-registry` 机械守护。
 - antd 主题只通过 `ConfigProvider` 的 `theme.token` 配置，与 `app/styles/global.css` 的 CSS 变量保持同一套色值；禁止覆盖 antd 内部类名。
 
 ## 5. Hook 规则

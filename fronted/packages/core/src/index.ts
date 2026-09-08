@@ -9,7 +9,7 @@ export { UnknownComponent } from './renderer/UnknownComponent';
 
 export { desktopRegistry, mobileRegistry, REGISTRY_KEYS } from './registry/componentRegistry';
 export { PROPS_SCHEMAS } from './registry/types';
-export type { FormValues, ActionBarProps } from './registry/types';
+export type { FormValues, ActionBarProps, ComponentHandlers } from './registry/types';
 
 export {
   UiSchemaSchema,
@@ -19,7 +19,20 @@ export {
   COMPONENT_TYPES,
   parseUiSchema,
 } from './schema/uiSchema';
-export type { UiSchema, UiComponent, UiAction, ComponentType } from './schema/uiSchema';
+export type {
+  UiSchema,
+  UiComponent,
+  UiAction,
+  ComponentType,
+  FormProps,
+  CardProps,
+  TableProps,
+  TableRow,
+  ResultProps,
+  TimelineProps,
+  LabelValue,
+  InlineAction,
+} from './schema/uiSchema';
 
 export { StratoThemeProvider } from './theme/StratoThemeProvider';
 export type { StratoThemeTokens, StratoThemeProviderProps } from './theme/StratoThemeProvider';

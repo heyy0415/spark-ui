@@ -4,7 +4,7 @@ import { useDevice } from '../device/DeviceContext';
 import { desktopRegistry, mobileRegistry } from '../registry/componentRegistry';
 import type { RegisteredComponent } from '../registry/componentRegistry';
 import { PROPS_SCHEMAS } from '../registry/types';
-import type { FormComponentHandlers, FormValues } from '../registry/types';
+import type { ComponentHandlers, FormValues } from '../registry/types';
 import { UnknownComponent } from './UnknownComponent';
 import styles from './SchemaRenderer.module.css';
 
@@ -17,14 +17,19 @@ export interface SchemaRendererProps {
   ui: UiSchema;
   /** Form 组件的值变化回调（收集 formData）。 */
   onFormChange?: (values: FormValues) => void;
+  /** Table 行内指令点击：回调 intent 原文；宿主应把它当用户输入原样提交，不拼接、不改写。 */
+  onIntent?: (intent: string) => void;
 }
 
-export function SchemaRenderer({ ui, onFormChange }: SchemaRendererProps) {
+export function SchemaRenderer({ ui, onFormChange, onIntent }: SchemaRendererProps) {
   const device = useDevice();
   const registry = device === 'mobile' ? mobileRegistry : desktopRegistry;
-  const handlers = useMemo<FormComponentHandlers>(
-    () => (onFormChange ? { onChange: onFormChange } : {}),
-    [onFormChange],
+  const handlers = useMemo<ComponentHandlers>(
+    () => ({
+      ...(onFormChange ? { onChange: onFormChange } : {}),
+      ...(onIntent ? { onIntent } : {}),
+    }),
+    [onFormChange, onIntent],
   );
 
   return (

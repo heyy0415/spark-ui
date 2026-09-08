@@ -1,12 +1,12 @@
 import { Form as AntForm, Input, InputNumber, Select } from 'antd';
 import { useCallback } from 'react';
-import type { FormComponentProps, FormValues, RenderedComponentProps } from '../../registry/types';
+import type { FormProps, FormValues, RenderedComponentProps } from '../../registry/types';
 
 /**
  * Form 封装：字段定义来自契约 props.fields[]；只回传 formData，不自行发请求（05-styling-spec）。
  * 每次值变化把当前全部值交给 handlers.onChange，由 feature 层收集。
  */
-export function FormDesktop({ id, props, handlers }: RenderedComponentProps<FormComponentProps>) {
+export function FormDesktop({ id, props, handlers }: RenderedComponentProps<FormProps>) {
   const [form] = AntForm.useForm<FormValues>();
   const onValuesChange = useCallback(
     (_changed: Partial<FormValues>, all: FormValues) => {
