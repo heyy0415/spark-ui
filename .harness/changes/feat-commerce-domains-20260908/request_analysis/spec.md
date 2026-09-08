@@ -1,5 +1,6 @@
 # Spec: feat-commerce-domains-20260908
 
+> v3 — 响应 `review/spec_review_v2.md`（REVISION REQUIRED，M-A–M-E / S-A–S-F）：M-A 确认屏不再放空 Form（删除 / Fallback 确认屏 = `[OrderCard, ConfirmationCard]`，token 白名单空集）；M-B 新增 e2e 专用 PAID 夹具 `10006`，种子售后 / 退款挂 `10008+`；M-C 夹具与可见区状态表写死（`10030` 最新 SHIPPED、`10029` COMPLETED），e2e-frontend 点 10030；M-D 自检数统一 6；M-E `OrderSnapshot` 增 `productName` / `quantity`；S-A 动词命中但缺实体 → 友好提示（`MissingEntity` 信号）；S-B 重校验拒绝用独立文案；S-C 需确认工具无 recheck → fail-closed + 自检；S-D spi 增 jsr310；S-E T02 拆 a/b、依赖字段修正；S-F recheck version 取自计划前置步骤、`ToolDisplayNames` 改可变注册表且 LlmClient 持引用不持快照；L 项吸收。
 > v2 — 响应 `review/spec_review_v1.md`（REVISION REQUIRED，M1–M7 / S1–S12）：M1 规则规划器改「动词 → 目标工具 + 前置依赖」确定性表，`refund.status.get` 不进退款计划，结果屏 = 最后成功步骤；M2 实体抽取前移到路由后、拦截前，实体为多类型 map；M3 路由顺序 `refund → aftersale → order → product`，去单字关键词；M4 `ScreenBuilder` 签名用 `JsonNode`，spi 自有 `OrderSnapshot`；M5 spi `ConfirmationRecheck` 契约，⑬ 期望 `CONFIRMATION_REJECTED` + 另测 handler 双保险；M6 排序 `createdAt desc`、⑦ `items 20 / total 30`；M7 T06 / T07 / T08 / T10 各拆 a/b。S1 displayName 取 Registry name 表、`summaryOf` 交 ScreenBuilder；S2 既有断言同步清单；S3 verify-pack 重写基线；S4 确认屏只用 `previousOutputs`（aftersale.list.get 带订单摘要）；S5 user_002 四项只读；S6 售后种子挂 10006+、e2e 用 `data-intent` 定位；S7 DDL 硬格式；S8 hint / 文案随领域扩；S9 inlineAction 自检；S10 README 两列；S11 `gen-seed.mjs`；S12 非目标补四项。
 > v1 — 阶段 1 产出。用户决策：① 纯自然语言驱动，行内按钮 = 自然语言快捷指令（点击即发送一条意图文本，走同一条 Runtime 链路，不预签 action）；② 删除订单 / 申请售后 / 退款三个写操作都走确认流；售后只到「创建售后单」；③ mock 数据 = 每领域 `data/*.json` 种子 + 配套 `schema.sql`（MySQL DDL，snake_case 列名 = json 键名），启动时由种子加载器读入内存；④ 单租户单用户（tenant_001 / user_001），商品全局可见。
 
@@ -22,7 +23,7 @@
 | product | `product.list.search` **新** | 1.0.0 | low | never | `keyword?`、`category?`、`limit?` | `items[]{productId, title, price, currency, stock, category, thumbnail?}`、`total` |
 | product | `product.detail.get` **新** | 1.0.0 | low | never | `productId` | 商品全字段 + `specs[]{name, value}` + `salesCount` |
 | aftersale | `aftersale.create` **新** | 1.0.0 | **high** | required | `orderId`、`type ∈ {RETURN, EXCHANGE, REPAIR}`、`reason` | `aftersaleId, orderId, type, status:SUBMITTED, createdAt` |
-| aftersale | `aftersale.list.get` **新** | 1.0.0 | low | never | `orderId?` | `items[]{aftersaleId, orderId, type, status, createdAt}` |
+| aftersale | `aftersale.list.get` **新** | 1.0.0 | low | never | `orderId?` | `items[]{aftersaleId, orderId, type, status, createdAt}`；带 `orderId` 时另返回 `order{orderId, productName, quantity, amount, currency, status}` 摘要（供售后确认屏渲染 OrderCard） |
 | refund | `refund.eligibility.check` | 1.2.0 | low | never | 不变 | 不变 |
 | refund | `refund.preview` | 1.3.0 | low | never | 不变 | 不变 |
 | refund | `refund.create` | 2.1.0 | high | required | 不变 | 不变 |
@@ -48,10 +49,25 @@ data/
 
 - 规模：商品 **20**（4 类：数码 / 家居 / 服饰 / 食品，含库存 0 与库存充足、价格 9.90 ~ 6999.00）；订单 **30**（状态覆盖 PAID / SHIPPED / COMPLETED / REFUNDED / CANCELLED；每单 1~3 个商品行；SHIPPED / COMPLETED 有物流 3~6 条轨迹事件；地址手机号存脱敏形态 `138****1234`）；售后单 **4**（RETURN / EXCHANGE / REPAIR，含一条 APPROVED）；退款单 **3**（对应 REFUNDED 订单）。
 - 时间：2026-08-01 ~ 2026-09-07，`created_at` 单调可读；金额 = Σ(单价 × 数量) 精确一致（seed 加载时校验，不一致启动失败）。
-- 订单 ID `10001`–`10030`；商品 ID `P-1001`–`P-1020`。e2e / 自检夹具：`10001`（PAID，可退款）、`10002`（SHIPPED，可售后，**种子里无售后单**）、`10003`（自检）、`10004`（幂等 e2e）、`10005`（COMPLETED，可删除）。种子的 4 条售后单只挂在 `10006+` 的订单上；3 条退款单对应 3 个 REFUNDED 订单（`10006+`）。`order.list.search` 默认排序 **`createdAt desc`**（写进 manifest description）；夹具 5 单的 `created_at` 最早，保证默认 20 行列表**不含**它们，e2e 的删除 / 售后 / 退款操作不影响列表断言。
-- 种子由一次性脚本 `.harness/scripts/gen-seed.mjs` 生成（固定随机种子，可复现；生成规则内联注释），生成物提交进仓库；`check-seed` 除金额 / 外键外还校验：PAID 订单无物流事件、SHIPPED / COMPLETED 事件 ≥ 3、同表 `created_at` 严格递增、手机号 `^1\d{2}\*{4}\d{4}$`。
+- 订单 ID `10001`–`10030`；商品 ID `P-1001`–`P-1020`。`order.list.search` 默认排序 **`createdAt desc`**（写进 manifest description），默认 20 行 = `10030` … `10011`。**夹具与可见区状态表**（`gen-seed.mjs` 以断言写死，`check-seed` 校验）：
+
+| 订单 | 状态 | created_at 位置 | 用途 |
+|---|---|---|---|
+| `10001` | PAID | 最早区 | 首期 e2e §6.2.8 退款主链路（会被退掉） |
+| `10002` | SHIPPED | 最早区 | 上一 change M2 幂等 / 本 change ⑪ 售后（种子无售后单） |
+| `10003` | PAID | 最早区 | 启动自检 |
+| `10004` | PAID | 最早区 | Gateway 幂等 e2e ④ |
+| `10005` | COMPLETED | 最早区 | ⑫ 删除成功 |
+| `10006` | PAID | 最早区 | ⑮ 无 pageContext 退款（不能复用 10001，它已被 §6.2.8 退掉） |
+| `10007`–`10010` | 混合 | 早区（不在默认 20 行） | 种子售后 4 条、退款 3 条只挂在这里的 REFUNDED / COMPLETED 单 |
+| `10011`–`10028` | 5 种状态各 ≥ 2 | 可见区 | 默认列表主体 |
+| `10029` | COMPLETED | 次新 | 默认列表首屏有「删除订单」按钮 |
+| `10030` | SHIPPED | **最新** | ⑦ 首行；e2e-frontend 点 `data-intent="查看订单 10030 的物流"` |
+
+e2e 对夹具区（10001–10006）的写操作都不影响默认 20 行列表断言；⑫ 删除 10005 后 `total 30 → 29`。
+- 种子由一次性脚本 `.harness/scripts/gen-seed.mjs` 生成（固定随机种子，可复现；夹具表以断言写死），生成物提交进仓库；`check-seed` 除金额 / 外键外还校验：PAID 订单无物流事件、SHIPPED / COMPLETED 事件 ≥ 3、同表 `created_at` 严格递增、手机号 `^1\d{2}\*{4}\d{4}$`、夹具表每一行（状态 + 相对位置）、`10030` 为最大 `created_at` 且 SHIPPED。
 - **DDL 硬格式**（`check-seed` 只按此解析，不合格式报错）：每列独占一行、列名反引号包裹、约束行以 `PRIMARY KEY | UNIQUE | KEY | INDEX | CONSTRAINT | FOREIGN` 开头、无行尾注释、`CREATE TABLE IF NOT EXISTS \`snake_name\` (` 单独一行。
-- `SeedLoader`（`platform-spi`）：自建 `ObjectMapper`（spi 无 Spring），`PropertyNamingStrategies.SNAKE_CASE` 把 json 键映射到 record 组件；`load(String resource, Class<T>) → List<T>`；金额字段 record 内为 `BigDecimal`，json 中为字符串。
+- `SeedLoader`（`platform-spi`）：自建 `ObjectMapper`（spi 无 Spring；pom 增 `jackson-datatype-jsr310`，注册 `JavaTimeModule`），`PropertyNamingStrategies.SNAKE_CASE` 把 json 键映射到 record 组件；`load(String resource, Class<T>) → List<T>`；金额 `BigDecimal`（json 字符串）、时间 `Instant`（json ISO-8601）。
 - 加载：`platform-spi` 新增 `SeedLoader`（读 classpath `data/*.json` → record 列表，Jackson），各领域 `InMemory*Repository` 构造时调用；**加载器无 Spring 依赖**，后续 MySQL / Redis 实现只需换 Repository。
 - `check-contracts` 不管这些 json；新增 `.harness/scripts/check-seed.mjs`：每个 json 的键集合 == 同名表 DDL 列集合；订单金额 = 行金额和；外键（order_items.order_id、logistics.order_id、aftersales.order_id、refunds.order_id、order_items.product_id）全部可解析。纳入 `ci.mjs`。
 
@@ -91,17 +107,17 @@ public interface ScreenBuilder {
 public record ScreenContext(String runId, String userId, String tenantId) {}
 ```
 
-- runtime `ScreenRegistry` 按 toolId 查表；查不到走 `FallbackScreenBuilder`（结果 → `Card` 列出输出键值；确认 → `ConfirmationCard` 列参数 + 空 `Form`）。runtime 收到 `JsonNode` 后 `treeToValue(UiSchema)` + `SchemaValidator.assertValid("ui-schema")`，校验仍只在 runtime 一处。
+- runtime `ScreenRegistry` 按 toolId 查表；查不到走 `FallbackScreenBuilder`（结果 → `Card` 列出输出键值；确认 → `ConfirmationCard` 列参数，**不含 Form**——契约 `Form.fields minItems 1`，空 Form 会被 `assertValid` 拒）。无 Form 的确认屏 token `allowedFormKeys = {}`，`formKeys(ui)` 对无 Form 屏返回空集，前端提交 `formData: {}`。runtime 收到 `JsonNode` 后 `treeToValue(UiSchema)` + `SchemaValidator.assertValid("ui-schema")`，校验仍只在 runtime 一处。
 - **结果屏 = 计划中最后一个成功步骤的 `result`**；中间只读步骤不发 `ui.replace`（现状）。
-- 确认屏只能用 `previousOutputs`（经 Gateway 的干净输出）与 `fixedArgs`，**不得**经 spi 直读领域数据（S4 取 (b)）：`aftersale.list.get` 输出增 `order{orderId, productName, amount, currency, status}` 摘要，`AftersaleScreens.confirmation` 用它渲染 `OrderCard`；`order.delete` 确认屏用同 Run 内 `order.detail.get` 的输出（规划器把它作为前置只读步骤）。`OrderSnapshotProvider`（spi 自有 record `OrderSnapshot{orderId, status, amount, currency, createdAt}`）**只**给 refund / aftersale 的领域策略（`EligibilityPolicy` / `AftersalePolicy`）用，不给屏用。
-- 各领域实现放本模块 `infra/screen/`：`RefundScreens`（原 `UiSchemaBuilder` 两屏搬迁，行为不变）、`OrderScreens`（OrderList 行内按钮按状态、OrderCard 多商品、LogisticsTimeline、删除确认）、`ProductScreens`、`AftersaleScreens`。`displayName` 不再硬编码：runtime 启动时经 `ToolSearchPort.names(principal?)`… **不**改 tool-search 契约，改为 `StartupManifestRegistrar` 注册时把 `toolId → name` 写入 runtime 的 `ToolDisplayNames`（改为可变注册表，Registry 侧通过 spi `ToolNameSink` 回填）；`summaryOf` 删除，改调 `ScreenBuilder.summary`。
+- 确认屏只能用 `previousOutputs`（经 Gateway 的干净输出）与 `fixedArgs`，**不得**经 spi 直读领域数据（S4 取 (b)）：`aftersale.list.get` 输出增 `order{orderId, productName, amount, currency, status}` 摘要，`AftersaleScreens.confirmation` 用它渲染 `OrderCard`；`order.delete` 确认屏用同 Run 内 `order.detail.get` 的输出（规划器把它作为前置只读步骤）。`OrderSnapshotProvider`（spi 自有 record `OrderSnapshot{orderId, status, amount, currency, productName, quantity, createdAt}`；多商品单 `productName` = 首行商品名，`quantity` = 总件数）给 refund / aftersale 的领域策略与 `aftersale.list.get` 的 `order` 摘要用；**屏层不直接调它**（屏只用 `previousOutputs`）。
+- 各领域实现放本模块 `infra/screen/`：`RefundScreens`（原 `UiSchemaBuilder` 两屏搬迁，行为不变）、`OrderScreens`（OrderList 行内按钮按状态、OrderCard 多商品、LogisticsTimeline、删除确认）、`ProductScreens`、`AftersaleScreens`。`displayName` 不再硬编码：spi 新增 `ToolNameSink { void register(String toolId, String name); }`，runtime 的 `ToolDisplayNames` 改为实现它的可变注册表 Bean（`ConcurrentHashMap`），Registry 的 `StartupManifestRegistrar` 注册每个 Manifest 时回填（方向：registry → spi ← runtime，无反向依赖）；`RuleBasedLlmClient` / `SpringAiLlmClient` **持有 `ToolDisplayNames` 引用**而不是构造期 `all()` 快照。`summaryOf` 删除，改调 `ScreenBuilder.summary`。
 
 | 触发工具 | 屏 |
 |---|---|
 | `order.list.search` 结果 | `OrderList`（行内按钮按状态：PAID → 退款；SHIPPED → 查看物流 + 申请售后；COMPLETED → 查看物流 + 申请售后 + 删除订单；CANCELLED / REFUNDED → 删除订单）；`total > items.length` 时 `emptyText = "共 N 单，仅展示最近 M 单"` |
 | `order.detail.get` 结果 | `OrderCard`（多商品、物流状态）+ 有物流则 `LogisticsTimeline` |
 | `order.logistics.get` 结果 | `LogisticsTimeline` |
-| `order.delete` 确认 | `OrderCard`（来自前置 `order.detail.get`）+ `ConfirmationCard{title:"确认删除订单", message:"删除后订单将从列表消失，不可恢复"}` + 空 `Form`；结果 → `ResultCard` |
+| `order.delete` 确认 | `OrderCard`（来自前置 `order.detail.get`）+ `ConfirmationCard{title:"确认删除订单", message:"删除后订单将从列表消失，不可恢复"}`（无 Form）；结果 → `ResultCard` |
 | `product.list.search` 结果 | `ProductList`（行内按钮：查看商品） |
 | `product.detail.get` 结果 | `Card{title, description, items: 价格 / 库存 / 分类 / 销量 / 规格…}` |
 | `aftersale.create` 确认 | `OrderCard`（来自 `aftersale.list.get.order` 摘要）+ `Form{type: select[RETURN/EXCHANGE/REPAIR] required, reason: text required}`；结果 → `ResultCard` |
@@ -118,7 +134,7 @@ public record ScreenContext(String runId, String userId, String tenantId) {}
 
 1. **目标工具**：`IntentVerbs` 表（runtime 常量，按顺序匹配）：`删除|删掉 → order.delete`；`物流|到哪|快递 → order.logistics.get`；`售后|换货|维修|退货 → aftersale.create`；`退款|退钱 → refund.create`；`详情|看看这个|查看商品 → <domain>.detail.get`；无动词命中：有该领域实体 → `<domain>.detail.get`，无实体 → `<domain>.list.search`（aftersale 无实体 → `aftersale.list.get`）。目标工具必须在候选内，否则 `TOOL_SELECTION_INVALID`（user_002 说「删除」→ 候选无 `order.delete` → 此路径；⑭ 期望写死为 `run.failed TOOL_SELECTION_INVALID`）。
 2. **前置只读依赖**（写在表里，不靠排序）：`refund.create ← [refund.eligibility.check, refund.preview]`；`order.delete ← [order.detail.get]`；`aftersale.create ← [aftersale.list.get]`；其余无前置。`refund.status.get` **不进**退款计划。
-3. 需确认工具**只在动词命中时**进入计划，绝不追加；每步参数从 `entities` 填，缺必填 → `TOOL_SELECTION_INVALID`（此时 `EntityRequirementCheck` 已在前面拦截，理论不可达，作纵深防御）。
+3. 需确认工具**只在动词命中时**进入计划，绝不追加；每步参数从 `entities` 填。**动词命中但目标工具必填实体缺失**（如无号码无 pageContext 的「删除订单」，领域候选含无实体工具所以 `EntityRequirementCheck` 放行了）→ 规划器抛 `MissingEntity(entityType)` 信号，`RunOrchestrator` 走与 `EntityRequirementCheck` 相同的 `message.delta(提示文案)` + `run.completed`（不算失败，与 refund 领域行为一致）。真正的候选外 / 表外情况才是 `TOOL_SELECTION_INVALID`。
 
 `PlanSelfCheck` 扩为对 5 条核心消息断言 toolId 序列：「帮我把这个订单退款」+ order → `[eligibility.check, preview, create]`；「查看订单 10002 的物流」→ `[order.logistics.get]`；「订单 10002 申请售后」→ `[aftersale.list.get, aftersale.create]`；「删除订单 10005」→ `[order.detail.get, order.delete]`；「有什么商品」→ `[product.list.search]`。真模型模式：prompt 附动词表与前置依赖说明，输出仍过 `ToolSelectionValidator`（增加校验：需确认工具的前置只读步骤必须齐全且在前）。
 
@@ -135,6 +151,8 @@ public interface ConfirmationRecheck {
   Map<String,String> trustedArgs(JsonNode recheckOutput);             // 覆盖 formData 的可信参数（如 amount）
 }
 ```
+
+`recheckToolId` 的 **version** 由 runtime 从当前计划中同 toolId 的前置只读步骤取（三个 recheck 工具都恰是各自的前置步骤：eligibility.check / order.detail.get / aftersale.list.get）；取不到 → `INTERNAL_ERROR`。需确认工具若查不到 `ConfirmationRecheck` 或 `ScreenBuilder.confirmToolIds()` 未覆盖 → **fail-closed**：`INTERNAL_ERROR` 结束 Run；启动自检 `ConfirmationCoverageSelfCheck` 断言 Registry 中所有 `confirmation=required` 工具都被两者覆盖。`reject` 非空时 `run.failed.code` 仍 `CONFIRMATION_REJECTED`（不动 sse 契约），但用户文案区分：令牌 / 并发拒绝 → 现文案「确认已过期或已被使用，请重新发起」；重校验策略拒绝 → 「订单状态已变化，本次操作未执行」；`reject` 返回的内部原因只进日志。
 
 各领域实现：`RefundRecheck`（recheck = `refund.eligibility.check`；`reject` = 不 eligible 或 `refundableAmount != shownUi.RefundConfirmCard.amount`；`trustedArgs = {amount}`，即首期 M3 逻辑原样迁出）；`OrderDeleteRecheck`（recheck = `order.detail.get`；`reject` = `DeletionPolicy` 不允许该 status）；`AftersaleRecheck`（recheck = `aftersale.list.get`；`reject` = `AftersalePolicy`：订单状态不在 {SHIPPED, COMPLETED} 或已有进行中售后）。runtime `executeConfirmed` 通用化：查 `ConfirmationRecheck` → 调 recheck 工具 → `reject` 非空 → `CONFIRMATION_REJECTED` → 合并 `trustedArgs` → 执行 → 结果屏。**领域策略不进 runtime**。`TRUSTED_ONLY_ARGS = {amount}` 与 formData 键白名单逻辑不变。
 
@@ -154,7 +172,7 @@ public interface ConfirmationRecheck {
 
 - `check-seed.mjs`（§2.2）纳入 `ci.mjs`；doctor 必需文件加它。
 - `e2e-backend.sh` 新增（规则模式；全部**无 pageContext**，只靠消息内实体，顺序放在现有 M2 幂等用例之后）：
-  ⑦「看看我的订单」→ `ui.replace` 含 `OrderList`，`items.length == 20`、`total == 30`、首行 `orderId` 为 created_at 最新的种子单；
+  ⑦「看看我的订单」→ `ui.replace` 含 `OrderList`，`items.length == 20`、`total == 30`、`items[0].orderId == 10030`、`items[1]`（10029）的 inlineActions 含「删除订单」；
   ⑧「查看订单 10002 的物流」→ `LogisticsTimeline`，`orderId == 10002`，`events.length ≥ 3`；
   ⑨「有什么商品」→ `ProductList` `total == 20 && items.length == 20`；
   ⑩「查看商品 P-1003 的详情」→ `Card` 且 title 含 P-1003 的商品名；
@@ -162,10 +180,11 @@ public interface ConfirmationRecheck {
   ⑫「删除订单 10005」→ 确认屏 `[OrderCard, ConfirmationCard, Form]` → 确认 → `ResultCard`；之后 `order.list.search {}` `total == 29`；
   ⑬「删除订单 10001」→ 确认 → `run.failed CONFIRMATION_REJECTED`；⑬' 直接 Gateway `order.delete 10001` → HTTP 502 `INTERNAL_ERROR`（`HANDLER_ERROR` 映射）且审计 `failed:HANDLER_ERROR`；
   ⑭ `user_002` 「删除订单 10005」→ `run.failed TOOL_SELECTION_INVALID`（候选无 `order.delete`）；
-  ⑮「订单 10001 退款」（无 pageContext）→ 事件序列与现有 §6.2.8（带 pageContext）完全一致（M2 的证明）。
-- **既有断言同步清单**（T10a 必改）：`e2e-backend.sh` 自检「contracts 9 schemas, 20 examples OK」→ 25；`PlanSelfCheck` 日志文案改为「plan 5 messages OK」并同步 e2e 期望；`deploy-verify.sh` selfcheck 数 5 不变（Plan 自检仍 1 条）；`check-registry` 输出 10。
+  ⑮「订单 10006 退款」（无 pageContext；10001 已被 §6.2.8 退掉不能复用）→ 发起序列 == §6.2.8、确认后序列 == §6.2.9、`ResultCard`、`refund.status.get 10006` == 1（M2 的证明）；
+  ⑯「删除订单」（无号码、无 pageContext）→ `run.started message.delta run.completed`，text 含「选择一个订单」（S-A：动词命中但缺实体走友好提示）。
+- **既有断言同步清单**（T10a 必改）：`e2e-backend.sh` 自检「contracts 9 schemas, 20 examples OK」→ 25；`PlanSelfCheck` 日志文案改为「plan 5 messages OK」；新增自检 `InlineActionSelfCheck`、`ConfirmationCoverageSelfCheck` 各一行；`deploy-verify.sh` 与 `e2e-backend.sh` 的 selfcheck 总数 **5 → 7**；`check-registry` 输出 10。
 - `OrderScreens` / `ProductScreens` 自检 `InlineActionSelfCheck`：对种子全部订单生成的每个 `inlineAction` 断言「intent 含该行 orderId」且 label ↔ 动词映射一致（S9）。
-- `e2e-frontend.mjs` 新增步骤：输入「看看我的订单」→ `[data-component-id="order-list"]` 出现 → 点击 `[data-intent="查看订单 10007 的物流"]`（10007 为种子中 created_at 最新的 SHIPPED 单，写死）→ 消息区出现该文本作为用户消息 → `[data-screen-id]` 含 `LogisticsTimeline` → 输入「有什么商品」→ ProductList → 点 `[data-intent="查看商品 P-1003 的详情"]` → Card。截图 `ui-order-list.png`、`ui-logistics.png`、`ui-product-list.png`。
+- `e2e-frontend.mjs` 新增步骤：输入「看看我的订单」→ `[data-component-id="order-list"]` 出现 → 点击 `[data-intent="查看订单 10030 的物流"]`（10030 = 最新 SHIPPED，夹具表写死）→ 消息区出现该文本作为用户消息 → `[data-screen-id]` 含 `LogisticsTimeline` → 输入「有什么商品」→ ProductList → 点 `[data-intent="查看商品 P-1003 的详情"]` → Card。截图 `ui-order-list.png`、`ui-logistics.png`、`ui-product-list.png`。
 - 文档：`wiki/domain-model.md`（三领域实体与状态机）、`wiki/api-contracts.md`（11 工具）、`backed/README.md`、`fronted/packages/core/README.md`（10 组件 + `onIntent`）、`project-structure.md` §2（`ScreenBuilder` 归属领域模块）、`contracts.md` §4（`actions[].intent` 是自然语言不是 URL）。
 
 ## 3. 非目标（Out of Scope）
@@ -195,7 +214,7 @@ public interface ConfirmationRecheck {
 路由 product（「商品」）；无实体无动词 → `product.list.search {}` → `ProductList 20 行` → 点击 → 「查看商品 P-1003 的详情」→ 抓 `{product:P-1003}`，动词「查看商品」→ `product.detail.get` → `Card`。
 
 ### 4.5 「订单 10001 退款」
-带或不带 pageContext 都一样：抓 `{order:10001}`，动词「退款」→ `refund.create`，前置 `[eligibility.check, preview]` → 三步 + 确认 + `RefundRecheck`（金额比对）+ 结果，与首期事件序列完全一致；屏与重校验逻辑搬到 refund-service。
+带或不带 pageContext 都一样：抓 `{order:10006}`（e2e ⑮）或 `{order:10001}`（§6.2.8），动词「退款」→ `refund.create`，前置 `[eligibility.check, preview]` → 三步 + 确认 + `RefundRecheck`（金额比对）+ 结果，与首期事件序列完全一致；屏与重校验逻辑搬到 refund-service。
 
 ## 5. 契约影响
 
@@ -212,9 +231,9 @@ public interface ConfirmationRecheck {
 
 ### 6.2 后端
 - [ ] `mvn verify` 0；`check-module-deps` 0：refund-service / aftersale-service 不 import `com.strato.domain.order.`（只经 spi `OrderSnapshotProvider`）；植入 → 红。
-- [ ] 启动日志 `startup registration done: 11 tools from 4 sources`；自检 **6/6**（新增 `InlineActionSelfCheck`；`PlanSelfCheck` 改 5 条消息；`RefundIdempotencySelfCheck` 用 10003 不变）；`deploy-verify.sh` / `e2e-backend.sh` selfcheck 期望同步为 6。
+- [ ] 启动日志 `startup registration done: 11 tools from 4 sources`；自检 **7/7**（新增 `InlineActionSelfCheck`、`ConfirmationCoverageSelfCheck`；`PlanSelfCheck` 改 5 条消息；`RefundIdempotencySelfCheck` 用 10003 不变）；`deploy-verify.sh` / `e2e-backend.sh` selfcheck 期望同步为 7。
 - [ ] 单独 Gateway：`order.list.search {}` → `total == 30`、`items.length == 20`、`items[0].orderId` 为最新种子单；`{status:"DELETED"}` 被 inputSchema enum 拒绝（400）。
-- [ ] `e2e-backend.sh` 规则模式：首期 + 上一 change 全部用例仍绿，新增 ⑦–⑮（含 ⑬'）全绿；LIVE 模式：⑦–⑫、⑮ 同样断言（真模型需产出相同 toolId 序列，失败按 prompt 缺陷处理并记录），⑬ / ⑬' / ⑭ 两模式都跑。
+- [ ] `e2e-backend.sh` 规则模式：首期 + 上一 change 全部用例仍绿，新增 ⑦–⑯（含 ⑬'）全绿；LIVE 模式：⑦–⑫、⑮ 同样断言（真模型需产出相同 toolId 序列，失败按 prompt 缺陷处理并记录），⑬ / ⑬' / ⑭ 两模式都跑。
 - [ ] `grep -rn "SeededOrderLookup" backed` 0；`grep -rn "UiSchemaBuilder" backed/agent-runtime/src` 只剩兜底屏类（改名 `FallbackScreenBuilder`）。
 - [ ] `order.delete` 对 PAID 订单：⑬ 走确认流 → `CONFIRMATION_REJECTED` 且 `order.delete` 审计 0 行；⑬' 直连 Gateway → 审计 `failed:HANDLER_ERROR`；两者之后订单列表仍含 10001。
 - [ ] `grep -rn "OrderSnapshotProvider" backed/domains/*/src/main/java/*/infra/screen` 0 行（确认屏不直读领域数据）。
@@ -226,7 +245,7 @@ public interface ConfirmationRecheck {
 - [ ] `/dev/schema?example=order-list|product-list|logistics` 三个新示例在 1280 / 375 下渲染，console.error 0。
 
 ### 6.4 全仓
-- [ ] `pnpm -C .harness run ci`（含 check-seed）四段 + 1 段全 0；doctor 0；deploy-verify 12/12（自检 5）。
+- [ ] `pnpm -C .harness run ci`（含 check-seed）四段 + 1 段全 0；doctor 0；deploy-verify 12/12（自检 7）。
 
 ## 7. 风险与权衡
 
@@ -245,4 +264,4 @@ public interface ConfirmationRecheck {
 - `thumbnail` 图标白名单 12 个：`phone, laptop, headphones, watch, home, lamp, shirt, shoe, coffee, cookie, gift, box`。
 - 快捷 chip 只在 `apps/chat` 演示页，不进 core。
 - `user_002` 的 e2e ⑭：动词「删除」命中但目标 `order.delete` 不在候选 → `TOOL_SELECTION_INVALID`（已在 §2.4.3 写死）。
-- 种子中 created_at 最新的 SHIPPED 订单固定为 `10007`（gen-seed 保证），e2e-frontend 据此定位。
+- 夹具与可见区状态表（§2.2）由 `gen-seed.mjs` 断言保证、`check-seed.mjs` 校验。
