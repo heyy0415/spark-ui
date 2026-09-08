@@ -1,5 +1,6 @@
 # Tasks: feat-commerce-domains-20260908
 
+> v3.1 — 吸收评审 v3：T02a 夹具表含金额与售后 / 退款分布；T02b `check-seed` 增金额 / 售后 / 退款校验；T03 输入 T02b、`order.logistics.get` NOT_SHIPPED、`order.detail.get` DELETED 行为、`OrderSnapshotProvider` 实现挪到 T05 前置小步（L-3）；T06a 输出列 `RunFailure.userText` 与 `RuleBasedLlmClient` / `SpringAiLlmClient` / `ToolSelectionValidator` / `RunOrchestrator` 签名；T07a 验收改用 10006；T07b LIVE `MissingEntity` 映射；T09 chip 统一；T10a ⑫ / ⑬ 断言；依赖图补 `T04 → T05`。
 > v3 — 响应 `review/spec_review_v2.md`：T02 拆 T02a（生成器 / json / DDL / README）与 T02b（spi SeedLoader + jsr310 / OrderSnapshot / check-seed / ci）；T06a 增 `ConfirmationCoverageSelfCheck`、recheck version 取前置步骤、`ToolDisplayNames` 引用注入、拒绝文案分类；T06b 删除确认屏无 Form；T07b 增 `MissingEntity` 信号；T10a 用例 ⑮ 用 10006、⑯ 新增、selfcheck 7、e2e-frontend 点 10030；依赖字段与图一致。16 task。
 > v2 — 响应 `review/spec_review_v1.md`：T06 / T07 / T08 / T10 各拆 a/b（M7）；T06 依赖补 T04；T02 增 `gen-seed.mjs` 与 DDL 硬格式；T03 增排序与 `order` 摘要；T05 增 `OrderSnapshot` spi record 与 aftersale.list.get 摘要；T07a 含实体抽取前移与路由表；T07b 含动词表与 `ConfirmationRecheck`；T10a 含既有断言同步清单。15 task。
 > v1。所属端 contracts / backed / fronted / harness。编码顺序：契约 → 数据与 spi → 领域服务 → runtime → 前端 → Harness。每个 task ≤ 0.5 天。移动 / 重命名与逻辑分开提交。
@@ -15,7 +16,7 @@
 - **依赖**：—
 
 ### T02a 种子生成器、json、DDL、README
-- **目标**：`.harness/scripts/gen-seed.mjs`（固定随机种子；夹具与可见区状态表以断言写死：10001–10006 状态与最早 created_at、售后 4 / 退款 3 只挂 10007–10010、10011–10028 五状态各 ≥ 2、10029 COMPLETED、10030 SHIPPED 最新；products 20 / orders 30 / order_items / logistics_events）→ 写入三领域 `resources/data/*.json`（product / aftersale 目录先建，pom 由 T04 / T05 补）；每领域 `schema.sql`（spec §2.2 硬格式）与 `README.md`（导入命令）。
+- **目标**：`.harness/scripts/gen-seed.mjs`（固定随机种子；夹具与可见区状态表以断言写死：10001–10006 状态、**金额**（128.00 / 299.00 / 1.00 / 59.00 / — / 88.00）与最早 created_at、退款 3 条各挂 10007–10009（REFUNDED）、售后 4 条（APPROVED 挂 10010 COMPLETED，其余 3 条非进行中挂 10007–10009）、10011–10028 五状态各 ≥ 2、10029 COMPLETED、10030 SHIPPED 最新；products 20 / orders 30 / order_items / logistics_events）→ 写入三领域 `resources/data/*.json`（product / aftersale 目录先建，pom 由 T04 / T05 补）；每领域 `schema.sql`（spec §2.2 硬格式）与 `README.md`（导入命令）。
 - **所属端**：harness / backed
 - **输入**：spec §2.2 夹具表
 - **输出**：`gen-seed.mjs`、`backed/domains/{order,product,aftersale,refund}-service/src/main/resources/data/**`
@@ -23,19 +24,19 @@
 - **依赖**：—
 
 ### T02b SeedLoader、OrderSnapshot、check-seed
-- **目标**：`platform-spi` pom 增 `jackson-datatype-jsr310`；`SeedLoader`（自建 ObjectMapper + JavaTimeModule，SNAKE_CASE，`load(resource, Class<T>)`）、`OrderSnapshotProvider` + `OrderSnapshot{orderId, status, amount, currency, productName, quantity, createdAt}`、`ToolNameSink`、`ScreenBuilder` / `ScreenContext` / `ConfirmationRecheck` 接口（JsonNode 签名；接口先落，T06a 用）；`.harness/scripts/check-seed.mjs`（键 == DDL 列、金额和、外键、状态-物流一致、created_at 递增、手机号、夹具表、DDL 格式）纳入 `ci.mjs` 与 doctor 必需文件；`check-module-deps` 新规则「platform-spi pom 不得含任何 `com.strato` artifact」。
+- **目标**：`platform-spi` pom 增 `jackson-datatype-jsr310`；`SeedLoader`（自建 ObjectMapper + JavaTimeModule，SNAKE_CASE，`load(resource, Class<T>)`）、`OrderSnapshotProvider` + `OrderSnapshot{orderId, status, amount, currency, productName, quantity, createdAt}`、`ToolNameSink`、`ScreenBuilder` / `ScreenContext` / `ConfirmationRecheck` 接口（JsonNode 签名；接口先落，T06a 用）；`.harness/scripts/check-seed.mjs`（键 == DDL 列、金额和、外键、状态-物流一致、created_at 递增、手机号、夹具表含金额、每单进行中售后 ≤ 1、退款一单一条且挂 REFUNDED、DDL 格式）纳入 `ci.mjs` 与 doctor 必需文件；`check-module-deps` 新规则「platform-spi pom 不得含任何 `com.strato` artifact」。
 - **所属端**：backed / harness
 - **输入**：T02a、`backed/platform-spi/**`、`.harness/scripts/{ci,harness-doctor,check-module-deps}.mjs`
 - **输出**：spi 7 个文件 + pom、`check-seed.mjs`、三个 harness 脚本改动
-- **验收**：`mvn -pl platform-spi verify` 0；`node check-seed.mjs` 0；植入外键悬空 / 金额不等 / PAID 带物流 / DDL 行尾注释 / 10030 非 SHIPPED 各 → 红；spi pom 植入 `contracts-java` 依赖 → check-module-deps 红
+- **验收**：`mvn -pl platform-spi verify` 0；`node check-seed.mjs` 0；植入外键悬空 / 金额不等 / PAID 带物流 / DDL 行尾注释 / 10030 非 SHIPPED / 10004 金额 60.00 / 同单两条进行中售后 各 → 红；spi pom 植入 `contracts-java` 依赖 → check-module-deps 红
 - **依赖**：T02a
 
 ## Phase B — 领域服务
 
 ### T03 order-service 扩展
-- **目标**：`Order` 增 `items[]`、`address`、`logistics?`；`OrderItem`、`LogisticsEvent`；仓储用 `SeedLoader`（加载时校验金额和，不一致启动失败）；`order.list.search` 默认 `createdAt desc`（description 写明）、`limit` 默认 20、排除 DELETED、输出扩字段（1.1.0）；`order.detail.get` 输出扩（1.1.0）；新 handler `OrderLogisticsGetHandler`、`OrderDeleteHandler`（`DeletionPolicy` 纯函数；软删）；实现 `OrderSnapshotProvider`；4 Manifest；权限 `order:delete`；`user_002` 权限改为四项只读。
+- **目标**：`Order` 增 `items[]`、`address`、`logistics?`；`OrderItem`、`LogisticsEvent`；仓储用 `SeedLoader`（加载时校验金额和，不一致启动失败）；`order.list.search` 默认 `createdAt desc`（description 写明）、`limit` 默认 20、排除 DELETED、输出扩字段（1.1.0）；`order.detail.get` 输出扩（1.1.0）；新 handler `OrderLogisticsGetHandler`（无物流 → `status NOT_SHIPPED, events []`）、`OrderDeleteHandler`（`DeletionPolicy` 纯函数；软删；`order.detail.get` 对 DELETED → `HANDLER_ERROR`）；实现 `OrderSnapshotProvider`（含 `productName` / `quantity`）；4 Manifest；权限 `order:delete`；`user_002` 权限改为四项只读。
 - **所属端**：backed
-- **输入**：T02、现 order-service、`application.yml`
+- **输入**：T02b、现 order-service、`application.yml`
 - **输出**：`backed/domains/order-service/**`、`application.yml`
 - **验收**：`mvn verify` 0；Gateway `order.list.search {}` → `total 30 / items 20 / items[0]` 最新；`{status:"DELETED"}` → 400；`order.delete 10001` → 502 `HANDLER_ERROR`；`order.delete 10005` → `deleted:true`，之后 `total 29`；`user_002` search refund 候选仍 3
 - **依赖**：T02b
@@ -51,7 +52,7 @@
 ### T05 aftersale-service 新建 + refund-service 改造 + 模块红线
 - **目标**：新模块 aftersale-service（`Aftersale`、`AftersalePolicy`、`aftersale.list.get` 带 `orderId` 时输出 `order{orderId, productName, quantity, amount, currency, status}` 摘要（经 `OrderSnapshotProvider`）、`aftersale.create`、Manifest、seed）；refund-service 删 `SeededOrderLookup`，`OrderLookup` 委托 `OrderSnapshotProvider`，refunds 从 json 加载；`check-module-deps` 新规则「`domains/*` 之间不得 import `com.strato.domain.<other>`」（spi 规则已在 T02b）。
 - **所属端**：backed / harness
-- **输入**：T02、T03、现 refund-service、`check-module-deps.mjs`
+- **输入**：T02b、T03、T04、现 refund-service、`check-module-deps.mjs`
 - **输出**：`backed/domains/aftersale-service/**`、refund-service 改动、脚本
 - **验收**：`mvn verify` 0；`grep -rn "com.strato.domain.order" backed/domains/refund-service backed/domains/aftersale-service` 0；新规则植入 → 红；注册 11 tools from 4 sources；首期退款 e2e 用例仍绿
 - **依赖**：T03、T04
@@ -62,7 +63,7 @@
 - **目标**：runtime `ScreenRegistry`、`FallbackScreenBuilder`（确认屏无 Form）、`RecheckRegistry`；`ToolDisplayNames` 改为实现 `ToolNameSink` 的可变注册表 Bean，`LlmConfiguration` 把它按引用注入两个 LlmClient；Registry `StartupManifestRegistrar` 回填；删 `summaryOf` 改 `ScreenBuilder.summary`；`RunOrchestrator`：确认屏 / 结果屏查表、`executeConfirmed` 通用化（recheck version 取计划前置步骤；无 recheck → fail-closed `INTERNAL_ERROR`；拒绝文案分令牌 / 策略两类）；`ConfirmationCoverageSelfCheck`；`UiSchemaBuilder` 搬到 `refund-service/infra/screen/RefundScreens` + `RefundRecheck`。
 - **所属端**：backed
 - **输入**：T01、T02b（spi 接口）、T05、现 `UiSchemaBuilder` / `RunOrchestrator` / `ToolDisplayNames` / `LlmConfiguration`
-- **输出**：runtime 4 类 + 改动、refund-service `infra/screen/` 2 类
+- **输出**：runtime 4 类 + `RunFailure`（增 `userText`）+ `RuleBasedLlmClient` / `SpringAiLlmClient` / `ToolSelectionValidator.validate` / `RunOrchestrator` 签名（`ToolDisplayNames` 由 `Map` 快照改为 Bean 引用）+ `LlmConfiguration`、refund-service `infra/screen/` 2 类
 - **验收**：`mvn verify` 0；`grep -rn "refundConfirmation\|refundResult\|summaryOf\|RefundConfirmCard\|\"1.2.0\"" backed/agent-runtime/src` 0；自检 `confirmation coverage OK`；首期 e2e 退款链路事件序列、UI components、金额比对拒绝用例全部不变；`tool.selected.displayName` 与 manifest name 一致
 - **依赖**：T01、T02b、T05
 
@@ -79,11 +80,11 @@
 - **所属端**：backed
 - **输入**：T06a、现 `RunOrchestrator` / `DomainRouter` / `EntityRequirementCheck` / `DomainResolver` / `PromptBuilder`
 - **输出**：`application/EntityExtractor.java` + 5 处改动
-- **验收**：`mvn verify` 0；无 pageContext 的「订单 10001 退款」事件序列 == 带 pageContext 的 §6.2.8；「订单 10002 申请售后」路由日志 `domain=aftersale source=rule`；「有什么商品」`domain=product`；日志无用户原文
+- **验收**：`mvn verify` 0；无 pageContext 的「订单 10006 退款」发起序列 == 带 pageContext 的 §6.2.8；「订单 10002 申请售后」路由日志 `domain=aftersale source=rule`；「有什么商品」`domain=product`；日志无用户原文
 - **依赖**：T06b
 
 ### T07b 规则规划器动词表与前置依赖
-- **目标**：`RuleBasedLlmClient` 删 `WITH_ENTITY / WITHOUT_ENTITY`；`IntentVerbs` 表 + `Prerequisites` 表（spec §2.4.3）；目标工具不在候选 → `TOOL_SELECTION_INVALID`；动词命中但目标必填实体缺失 → `MissingEntity` 信号，`RunOrchestrator` 走友好提示 + `run.completed`；`ToolSelectionValidator` 增「需确认步骤前置齐全且在前」校验；`PlanSelfCheck` 改 5 条消息断言（日志「plan 5 messages OK」）；`PromptBuilder.system` 附动词表与前置依赖说明；启动时校验 `IntentVerbs` / `Prerequisites` 引用的 toolId 都已注册（`ToolNameSink` 回填后）。
+- **目标**：`RuleBasedLlmClient` 删 `WITH_ENTITY / WITHOUT_ENTITY`；`IntentVerbs` 表 + `Prerequisites` 表（spec §2.4.3）；目标工具不在候选 → `TOOL_SELECTION_INVALID`；动词命中但目标必填实体缺失 → `MissingEntity` 信号（`ToolSelectionValidator` 对 LIVE 模式输出同样映射），`RunOrchestrator` 走友好提示 + `run.completed`；`ToolSelectionValidator` 增「需确认步骤前置齐全且在前」校验；`PlanSelfCheck` 改 5 条消息断言（日志「plan 5 messages OK」）；`PromptBuilder.system` 附动词表与前置依赖说明；启动时校验 `IntentVerbs` / `Prerequisites` 引用的 toolId 都已注册（`ToolNameSink` 回填后）。
 - **所属端**：backed
 - **输入**：T07a、现 `RuleBasedLlmClient` / `PlanSelfCheck` / `ToolSelectionValidator`
 - **输出**：`infra/llm/{IntentVerbs,RuleBasedLlmClient,PromptBuilder,ToolSelectionValidator}.java`、`infra/selfcheck/PlanSelfCheck.java`
@@ -109,7 +110,7 @@
 - **依赖**：T08a
 
 ### T09 chat 应用：意图按钮、连续对话、示例 chip
-- **目标**：`AgentChatPanel` 接 `onIntent` → 显示用户消息 + `start.mutate`；新 Run 期间保留上一屏直到新 `ui.replace`；消息区区分用户 / 助手；演示页示例 chip（「看看我的订单」「有什么商品」「查看订单 10007 的物流」）；playground 三个新示例入口。
+- **目标**：`AgentChatPanel` 接 `onIntent` → 显示用户消息 + `start.mutate`；新 Run 期间保留上一屏直到新 `ui.replace`；消息区区分用户 / 助手；演示页示例 chip（「看看我的订单」「有什么商品」「查看订单 10030 的物流」「订单 10002 申请售后」）；playground 三个新示例入口。
 - **所属端**：fronted
 - **输入**：T08b
 - **输出**：`apps/chat/src/**`
@@ -119,7 +120,7 @@
 ## Phase E — Harness、文档、验收
 
 ### T10a e2e 脚本与既有断言同步
-- **目标**：`e2e-backend.sh` 新增 ⑦–⑯ + ⑬'（放 M2 幂等用例之后；⑮ 用 10006）；既有断言同步：自检「20 examples」→ 25、plan 自检文案、新增两条自检名、selfcheck 数 → 7（`deploy-verify.sh` 同）；`e2e-frontend.mjs` 新增 ≥ 8 项（`data-intent="查看订单 10030 的物流"` 等精确定位）+ 3 张截图。
+- **目标**：`e2e-backend.sh` 新增 ⑦–⑯ + ⑬'（放 M2 幂等用例之后；⑮ 用 10006；⑫ 确认屏 `[OrderCard, ConfirmationCard]` 提交 `{}`；⑬ 审计按 runId 作用域）；既有断言同步：自检「20 examples」→ 25、plan 自检文案、新增两条自检名、selfcheck 数 → 7（`deploy-verify.sh` 同）；`e2e-frontend.mjs` 新增 ≥ 8 项（`data-intent="查看订单 10030 的物流"` 等精确定位）+ 3 张截图。
 - **所属端**：harness
 - **输入**：T07b、T09、现两脚本
 - **输出**：两脚本
@@ -146,7 +147,7 @@
 
 ```
 T02a → T02b → T03 → T05 ─┐
-T02b → T04 ──────────────┼→ T06a → T06b → T07a → T07b ─┐
+T02b → T04 → T05 ────────┼→ T06a → T06b → T07a → T07b ─┐
 T01 ─────────────────────┘                              ├→ T10a → T10b → T11
 T01 → T08a → T08b → T09 ────────────────────────────────┘
 （T06a 依赖 T01 / T02b / T05；T06b 依赖 T06a / T04；T07a 依赖 T06b）
