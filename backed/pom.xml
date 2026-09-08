@@ -17,6 +17,8 @@
     <module>tool-gateway</module>
     <module>agent-runtime</module>
     <module>domains/order-service</module>
+    <module>domains/product-service</module>
+    <module>domains/aftersale-service</module>
     <module>domains/refund-service</module>
     <module>app</module>
   </modules>
@@ -57,6 +59,8 @@
       <dependency><groupId>com.strato</groupId><artifactId>tool-gateway</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.strato</groupId><artifactId>agent-runtime</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.strato</groupId><artifactId>order-service</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.strato</groupId><artifactId>product-service</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.strato</groupId><artifactId>aftersale-service</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.strato</groupId><artifactId>refund-service</artifactId><version>${project.version}</version></dependency>
     </dependencies>
   </dependencyManagement>

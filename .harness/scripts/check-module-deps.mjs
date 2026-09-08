@@ -118,6 +118,31 @@ for (const [mod, others] of Object.entries(peers)) {
   }
 }
 
+// 领域模块互不依赖（project-structure §2）：domains/<a> 源码不得引用 com.strato.domain.<b>（b ≠ a），也不得在 pom 里依赖其他领域 artifact。
+// 跨领域读数据只能经 platform-spi 端口（如 OrderSnapshotProvider）。
+{
+  const domainsDir = join(backed, 'domains');
+  const mods = existsSync(domainsDir) ? await readdir(domainsDir) : [];
+  for (const mod of mods) {
+    const src = join(domainsDir, mod, 'src', 'main', 'java', 'com', 'strato', 'domain');
+    if (!existsSync(src)) continue;
+    const own = (await readdir(src)).filter((d) => !d.endsWith('.java'));
+    const pom = join(domainsDir, mod, 'pom.xml');
+    if (existsSync(pom)) {
+      const depsBlock = ((await readFile(pom, 'utf-8')).match(/<dependencies>([\s\S]*?)<\/dependencies>/g) ?? []).join('\n');
+      for (const id of domainIds) {
+        if (id !== mod && depsBlock.includes(`<artifactId>${id}</artifactId>`)) fail(`domains/${mod}/pom.xml depends on sibling domain "${id}" (domains must not depend on each other)`);
+      }
+    }
+    for await (const file of walk(src)) {
+      const text = await readFile(file, 'utf-8');
+      for (const m of text.matchAll(/\bcom\.strato\.domain\.([a-z]+)\./g)) {
+        if (!own.includes(m[1])) fail(`${relative(root, file)}: domains/${mod} must not reference com.strato.domain.${m[1]} (cross-domain only via platform-spi)`);
+      }
+    }
+  }
+}
+
 if (violations > 0) {
   console.error(`\ncheck-module-deps: ${violations} violations`);
   process.exit(1);

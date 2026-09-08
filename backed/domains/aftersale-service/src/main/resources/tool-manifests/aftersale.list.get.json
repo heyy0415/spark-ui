@@ -1,0 +1,131 @@
+{
+  "toolId": "aftersale.list.get",
+  "version": "1.0.0",
+  "domain": "aftersale",
+  "name": "查询售后单",
+  "description": "查询售后单列表；给定订单号时只返回该订单的售后单，并附带订单摘要（商品、件数、金额、状态）。只读，无副作用。",
+  "protocol": "in-process",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "orderId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "aftersaleId",
+            "orderId",
+            "type",
+            "status",
+            "reason",
+            "createdAt"
+          ],
+          "properties": {
+            "aftersaleId": {
+              "type": "string"
+            },
+            "orderId": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "RETURN",
+                "EXCHANGE",
+                "REPAIR"
+              ]
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "SUBMITTED",
+                "APPROVED",
+                "REJECTED",
+                "COMPLETED",
+                "CANCELLED"
+              ]
+            },
+            "reason": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        }
+      },
+      "order": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "orderId",
+          "productName",
+          "quantity",
+          "amount",
+          "currency",
+          "status"
+        ],
+        "properties": {
+          "orderId": {
+            "type": "string"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^\\d+(\\.\\d{1,2})?$"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "CNY"
+            ]
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "risk": {
+    "level": "low",
+    "sideEffect": false,
+    "reversible": true,
+    "confirmation": "never"
+  },
+  "authorization": {
+    "permission": "aftersale:read"
+  },
+  "execution": {
+    "timeoutMs": 3000,
+    "maxRetries": 1,
+    "idempotency": "none"
+  },
+  "owner": {
+    "team": "aftersale-platform"
+  },
+  "status": "active"
+}

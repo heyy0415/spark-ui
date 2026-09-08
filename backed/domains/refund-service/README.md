@@ -1,6 +1,6 @@
 # refund-service（模拟领域服务）
 
-首期内存实现，提供 4 个工具。**不依赖** gateway / registry / runtime，也不依赖 order-service（领域模块互不依赖）：订单快照由本模块 `SeededOrderLookup` 提供，真实系统中替换为 RPC / 事件订阅。
+内存实现，提供 4 个工具。**不依赖** gateway / registry / runtime，也不 import order-service（领域模块互不依赖）：订单快照经 `platform-spi` 的 `OrderSnapshotProvider`（`SnapshotOrderLookup` 适配），真实系统中替换为 RPC / 事件订阅。退款单种子来自 `src/main/resources/data/refunds.json`（3 条，挂 10007–10009），DDL 与导入见 `data/`。
 
 | 工具 | 版本 | 风险 | 权限 |
 |---|---|---|---|
@@ -13,4 +13,4 @@
 
 启动自检 `RefundIdempotencySelfCheck` 直接调用 Handler（不经 Gateway、不产生审计行），固定使用订单 10003。
 
-包结构：`domain`（Refund、RefundRepository、EligibilityPolicy、OrderLookup；无框架依赖）/ `application`（RefundService）/ `infra`（内存仓储、订单快照、4 个 Handler、ManifestSource、selfcheck）。
+包结构：`domain`（Refund、RefundRepository、EligibilityPolicy、OrderLookup；无框架依赖）/ `application`（RefundService）/ `infra`（种子仓储、订单快照适配、4 个 Handler、ManifestSource、selfcheck）。

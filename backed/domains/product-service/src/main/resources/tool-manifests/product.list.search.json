@@ -1,0 +1,102 @@
+{
+  "toolId": "product.list.search",
+  "version": "1.0.0",
+  "domain": "product",
+  "name": "搜索商品",
+  "description": "按关键词（标题 / 描述包含）与分类筛选商品目录，默认返回前 20 条（limit 最大 50）。只读，无副作用。",
+  "protocol": "in-process",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "keyword": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "category": {
+        "type": "string",
+        "maxLength": 32
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "productId",
+            "title",
+            "price",
+            "currency",
+            "stock",
+            "category"
+          ],
+          "properties": {
+            "productId": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "price": {
+              "type": "string",
+              "pattern": "^\\d+(\\.\\d{1,2})?$"
+            },
+            "currency": {
+              "type": "string",
+              "enum": [
+                "CNY"
+              ]
+            },
+            "stock": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "category": {
+              "type": "string"
+            },
+            "thumbnail": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "total": {
+        "type": "integer",
+        "minimum": 0
+      }
+    }
+  },
+  "risk": {
+    "level": "low",
+    "sideEffect": false,
+    "reversible": true,
+    "confirmation": "never"
+  },
+  "authorization": {
+    "permission": "product:read"
+  },
+  "execution": {
+    "timeoutMs": 3000,
+    "maxRetries": 1,
+    "idempotency": "none"
+  },
+  "owner": {
+    "team": "product-platform"
+  },
+  "status": "active"
+}

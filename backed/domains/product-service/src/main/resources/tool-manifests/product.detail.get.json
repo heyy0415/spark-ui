@@ -1,0 +1,114 @@
+{
+  "toolId": "product.detail.get",
+  "version": "1.0.0",
+  "domain": "product",
+  "name": "查询商品详情",
+  "description": "按商品编号查询商品全部信息：价格、库存、分类、销量与规格列表。只读，无副作用。",
+  "protocol": "in-process",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "productId"
+    ],
+    "properties": {
+      "productId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "productId",
+      "title",
+      "price",
+      "currency",
+      "stock",
+      "category",
+      "description",
+      "salesCount",
+      "specs",
+      "createdAt"
+    ],
+    "properties": {
+      "productId": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      },
+      "price": {
+        "type": "string",
+        "pattern": "^\\d+(\\.\\d{1,2})?$"
+      },
+      "currency": {
+        "type": "string",
+        "enum": [
+          "CNY"
+        ]
+      },
+      "stock": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "category": {
+        "type": "string"
+      },
+      "thumbnail": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "salesCount": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "specs": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "value"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "createdAt": {
+        "type": "string",
+        "format": "date-time"
+      }
+    }
+  },
+  "risk": {
+    "level": "low",
+    "sideEffect": false,
+    "reversible": true,
+    "confirmation": "never"
+  },
+  "authorization": {
+    "permission": "product:read"
+  },
+  "execution": {
+    "timeoutMs": 3000,
+    "maxRetries": 1,
+    "idempotency": "none"
+  },
+  "owner": {
+    "team": "product-platform"
+  },
+  "status": "active"
+}

@@ -1,0 +1,100 @@
+{
+  "toolId": "aftersale.create",
+  "version": "1.0.0",
+  "domain": "aftersale",
+  "name": "申请售后",
+  "description": "为已发货或已完成的订单创建售后单（退货 / 换货 / 维修）。每个订单同时只能有一个进行中的售后单。有副作用，必须经用户确认，调用需携带幂等键。",
+  "protocol": "in-process",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "orderId",
+      "type",
+      "reason"
+    ],
+    "properties": {
+      "orderId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "RETURN",
+          "EXCHANGE",
+          "REPAIR"
+        ]
+      },
+      "reason": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "aftersaleId",
+      "orderId",
+      "type",
+      "status",
+      "reason",
+      "createdAt"
+    ],
+    "properties": {
+      "aftersaleId": {
+        "type": "string"
+      },
+      "orderId": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "RETURN",
+          "EXCHANGE",
+          "REPAIR"
+        ]
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "SUBMITTED",
+          "APPROVED",
+          "REJECTED",
+          "COMPLETED",
+          "CANCELLED"
+        ]
+      },
+      "reason": {
+        "type": "string"
+      },
+      "createdAt": {
+        "type": "string",
+        "format": "date-time"
+      }
+    }
+  },
+  "risk": {
+    "level": "high",
+    "sideEffect": true,
+    "reversible": false,
+    "confirmation": "required"
+  },
+  "authorization": {
+    "permission": "aftersale:create"
+  },
+  "execution": {
+    "timeoutMs": 5000,
+    "maxRetries": 0,
+    "idempotency": "required"
+  },
+  "owner": {
+    "team": "aftersale-platform"
+  },
+  "status": "active"
+}
