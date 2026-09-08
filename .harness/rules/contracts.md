@@ -40,6 +40,8 @@
 - `components[].type` 必须落在前端注册表白名单内；白名单清单同步维护在 `ui-schema.schema.json` 的 `enum` 中。新增组件 = 改 Schema enum + 前端注册表 + 后端生成逻辑，三处同一 change。
 - `actions[].confirmationToken` 为不透明字符串，前端只回传，不解析。
 - UI Schema 中**不得**出现 URL、脚本、HTML 字符串字段。
+- 列表组件内的 `actions[].intent`（`inlineAction`）是一段**自然语言文本**：前端点击后把它原样作为新的用户消息发送，走完整的路由 / 候选过滤 / 校验 / 确认链路；不是命令、不是 URL、不带 token。Schema 以 pattern 禁止 `://` 与 `<`。
+- `inlineAction` 的 `label ↔ intent` 语义绑定固定：`查看物流 → 含「物流」`、`申请售后 → 含「售后」`、`删除订单 → 含「删除」`、`退款 → 含「退款」`、`查看商品 → 含「查看商品」`，且 intent 必须含该行实体 ID。后端 `InlineActionSelfCheck` 与契约示例都按此约束。
 
 ## 5. Tool Manifest 专项
 

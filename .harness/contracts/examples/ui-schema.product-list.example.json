@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0",
+  "screenId": "product-list",
+  "title": "商品",
+  "components": [
+    {
+      "id": "product-list",
+      "type": "ProductList",
+      "props": {
+        "items": [
+          {
+            "productId": "P-1003",
+            "title": "无线耳机 Pro",
+            "price": "899.00",
+            "currency": "CNY",
+            "stock": 120,
+            "category": "数码",
+            "thumbnail": "headphones",
+            "actions": [
+              {
+                "label": "查看商品",
+                "intent": "查看商品 P-1003 的详情"
+              }
+            ]
+          },
+          {
+            "productId": "P-1011",
+            "title": "智能台灯",
+            "price": "199.00",
+            "currency": "CNY",
+            "stock": 0,
+            "category": "家居",
+            "thumbnail": "lamp",
+            "actions": [
+              {
+                "label": "查看商品",
+                "intent": "查看商品 P-1011 的详情"
+              }
+            ]
+          }
+        ],
+        "total": 20
+      }
+    }
+  ],
+  "actions": []
+}

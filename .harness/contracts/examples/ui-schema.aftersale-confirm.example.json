@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0",
+  "screenId": "aftersale-confirmation",
+  "title": "申请售后",
+  "components": [
+    {
+      "id": "order",
+      "type": "OrderCard",
+      "props": {
+        "orderId": "10002",
+        "productName": "蓝牙耳机",
+        "amount": "299.00",
+        "currency": "CNY",
+        "status": "SHIPPED",
+        "quantity": 1,
+        "logisticsStatus": "IN_TRANSIT"
+      }
+    },
+    {
+      "id": "aftersale-form",
+      "type": "Form",
+      "props": {
+        "fields": [
+          {
+            "name": "type",
+            "type": "select",
+            "label": "售后类型",
+            "required": true,
+            "options": [
+              {
+                "label": "退货",
+                "value": "RETURN"
+              },
+              {
+                "label": "换货",
+                "value": "EXCHANGE"
+              },
+              {
+                "label": "维修",
+                "value": "REPAIR"
+              }
+            ]
+          },
+          {
+            "name": "reason",
+            "type": "text",
+            "label": "问题描述",
+            "required": true
+          }
+        ]
+      }
+    }
+  ],
+  "actions": [
+    {
+      "id": "confirm-aftersale",
+      "type": "submit",
+      "label": "提交售后申请",
+      "style": "primary",
+      "confirmationToken": "ct_ExAmPlE0123456789abcdef"
+    },
+    {
+      "id": "cancel",
+      "type": "cancel",
+      "label": "取消",
+      "style": "default"
+    }
+  ]
+}

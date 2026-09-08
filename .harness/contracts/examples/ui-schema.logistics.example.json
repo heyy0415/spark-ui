@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "screenId": "logistics",
+  "title": "物流轨迹",
+  "components": [
+    {
+      "id": "logistics",
+      "type": "LogisticsTimeline",
+      "props": {
+        "orderId": "10030",
+        "carrier": "顺丰速运",
+        "trackingNo": "SF1234567890",
+        "status": "IN_TRANSIT",
+        "events": [
+          {
+            "time": "2026-09-07T11:00:00Z",
+            "location": "深圳",
+            "description": "已揽收"
+          },
+          {
+            "time": "2026-09-07T18:30:00Z",
+            "location": "深圳转运中心",
+            "description": "已发出"
+          },
+          {
+            "time": "2026-09-08T06:20:00Z",
+            "location": "上海转运中心",
+            "description": "到达"
+          }
+        ]
+      }
+    }
+  ],
+  "actions": []
+}

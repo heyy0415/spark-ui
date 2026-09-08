@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "screenId": "delete-confirmation",
+  "title": "确认删除订单",
+  "components": [
+    {
+      "id": "order",
+      "type": "OrderCard",
+      "props": {
+        "orderId": "10005",
+        "productName": "运动鞋",
+        "amount": "459.00",
+        "currency": "CNY",
+        "status": "COMPLETED",
+        "quantity": 1
+      }
+    },
+    {
+      "id": "confirm",
+      "type": "ConfirmationCard",
+      "props": {
+        "title": "确认删除订单",
+        "message": "删除后订单将从列表消失，不可恢复。",
+        "items": [
+          {
+            "label": "订单号",
+            "value": "10005"
+          },
+          {
+            "label": "状态",
+            "value": "COMPLETED"
+          }
+        ]
+      }
+    }
+  ],
+  "actions": [
+    {
+      "id": "confirm-delete",
+      "type": "submit",
+      "label": "确认删除",
+      "style": "danger",
+      "confirmationToken": "ct_ExAmPlE0123456789abcdef"
+    },
+    {
+      "id": "cancel",
+      "type": "cancel",
+      "label": "取消",
+      "style": "default"
+    }
+  ]
+}
