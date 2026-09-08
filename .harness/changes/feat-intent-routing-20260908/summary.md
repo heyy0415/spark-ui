@@ -4,7 +4,7 @@
 |---|---|
 | Change ID | feat-intent-routing-20260908 |
 | 类型 | feat |
-| 状态 | IN REVIEW（阶段 4 通过，等待 HITL ③） |
+| 状态 | AWAITING USER CONFIRMATION（阶段 1–7 完成） |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | backed / fronted / harness |
 | 起止时间 | 2026-09-08 ~ — |
@@ -18,11 +18,11 @@
 | 1 | 需求分析 | DONE（v2.1） | — | spec.md（8 章）, tasks.md（11 task）；用户决策：规则优先 + 模型补位、规划前拦截缺实体、并入前后端评审遗留 8 项 | 2026-09-08 |
 | 2 | 需求评审 | DONE | 2/3 | v1 RR（5 MUST：order 领域拦截规则失效、domains() 无 principal、幂等自检不可注入、e2e ④ 不可通过、freeze 破坏 check-registry；8 SHOULD）→ v2 → v2 **APPROVED**（0 MUST，6 SHOULD 已吸收为 v2.1）。HITL ② 用户「继续」 | 2026-09-08 |
 | 3 | 编码实现 | DONE | — | T01–T09；e2e-backend 规则 62/62、LIVE 62/62（`source=model` 实证）；deploy-verify 12/12；e2e-frontend 21/21；全仓 ci 0；doctor 0 | 2026-09-08 |
-| 4 | 编码评审 | DONE | 1/2 | 机械项全绿 → `code_review_v2.md` **APPROVED**（0 MUST FIX，5 SHOULD 全部修掉；评审方 200 key × 16 线程幂等压测执行恰 200 次）。**等待 HITL ③** | 2026-09-08 |
-| 5 | 代码推送 | TODO | — | — | — |
-| 6 | CI 验证 | TODO | — | — | — |
-| 7 | 部署验证 | TODO | — | — | — |
-| 8 | 用户确认 | TODO | — | — | — |
+| 4 | 编码评审 | DONE | 1/2 | 机械项全绿 → `code_review_v2.md` **APPROVED**（0 MUST FIX，5 SHOULD 全部修掉；评审方 200 key × 16 线程幂等压测执行恰 200 次）。HITL ③ 用户「继续」 | 2026-09-08 |
+| 5 | 代码推送 | DONE | — | 7 个 commit（`87cc2f2`…`34927be`）；工作区干净；无远端 | 2026-09-08 |
+| 6 | CI 验证 | DONE | — | 清 dist 后 `run ci` 四段 0 → `ci_result/ci_summary.md`；bundle / jar 体积无恶化 | 2026-09-08 |
+| 7 | 部署验证 | DONE | — | `deploy-verify` 12/12（自检 5/5）→ `deployment/preview_report.md`；不部署、不发包 | 2026-09-08 |
+| 8 | 用户确认 | WAITING | — | 等待用户最终确认 | — |
 
 ## 契约变更
 - NONE
