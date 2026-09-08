@@ -4,10 +4,10 @@
 |---|---|
 | Change ID | feat-intent-routing-20260908 |
 | 类型 | feat |
-| 状态 | AWAITING USER CONFIRMATION（阶段 1–7 完成） |
+| 状态 | DONE |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | backed / fronted / harness |
-| 起止时间 | 2026-09-08 ~ — |
+| 起止时间 | 2026-09-08 ~ 2026-09-08 |
 | Spec | [request_analysis/spec.md](request_analysis/spec.md) |
 | Tasks | [request_analysis/tasks.md](request_analysis/tasks.md) |
 
@@ -22,7 +22,7 @@
 | 5 | 代码推送 | DONE | — | 7 个 commit（`87cc2f2`…`34927be`）；工作区干净；无远端 | 2026-09-08 |
 | 6 | CI 验证 | DONE | — | 清 dist 后 `run ci` 四段 0 → `ci_result/ci_summary.md`；bundle / jar 体积无恶化 | 2026-09-08 |
 | 7 | 部署验证 | DONE | — | `deploy-verify` 12/12（自检 5/5）→ `deployment/preview_report.md`；不部署、不发包 | 2026-09-08 |
-| 8 | 用户确认 | WAITING | — | 等待用户最终确认 | — |
+| 8 | 用户确认 | DONE | — | 用户以新需求（订单 / 退款 / 商品三领域 + 可交互 UI + 可导入 mock 数据）继续，视为验收通过。不部署、不发包、无远端 | 2026-09-08 |
 
 ## 契约变更
 - NONE
