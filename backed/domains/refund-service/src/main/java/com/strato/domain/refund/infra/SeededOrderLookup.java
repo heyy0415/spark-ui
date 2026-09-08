@@ -18,7 +18,8 @@ public class SeededOrderLookup implements OrderLookup {
       Map.of(
           "tenant_001/10001", new Row("PAID", "128.00", Instant.parse("2026-08-30T02:15:00Z")),
           "tenant_001/10002", new Row("SHIPPED", "299.00", Instant.parse("2026-09-01T09:40:00Z")),
-          "tenant_001/10003", new Row("PAID", "1.00", Instant.parse("2026-09-02T00:00:00Z")));
+          "tenant_001/10003", new Row("PAID", "1.00", Instant.parse("2026-09-02T00:00:00Z")),
+          "tenant_001/10004", new Row("PAID", "59.00", Instant.parse("2026-09-03T00:00:00Z")));
 
   @Override
   public Optional<EligibilityPolicy.Snapshot> snapshot(String tenantId, String orderId) {

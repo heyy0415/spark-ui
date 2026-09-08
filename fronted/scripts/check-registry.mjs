@@ -50,7 +50,10 @@ const desktop = keysOf('desktopRegistry');
 const mobile = keysOf('mobileRegistry');
 
 const typesSrc = readFileSync(typesPath, 'utf-8');
-const pm = typesSrc.match(/export const PROPS_SCHEMAS = \{([\s\S]*?)\n\} as const;/);
+// 接受 `= {…} as const;` 与 `= Object.freeze({…} as const);` 两种写法
+const pm = typesSrc.match(
+  /export const PROPS_SCHEMAS = (?:Object\.freeze\()?\{([\s\S]*?)\n\}(?: as const)?\)?;/,
+);
 const propsKeys = pm
   ? [...pm[1].matchAll(/^\s{2}([A-Za-z]+):/gm)].map((x) => x[1])
   : (fail('cannot find PROPS_SCHEMAS'), []);

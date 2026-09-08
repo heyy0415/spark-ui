@@ -210,6 +210,26 @@ for (const name of skillNames) {
   if (hits === 0) ok('scripts: no hard-coded change directory');
 }
 
+// L1 硬约束一致性（Hashimoto：上一 change 唯一 MUST FIX 是三份 L1 文件的 antd 措辞陈旧）
+{
+  const l1 = [join(root, 'CLAUDE.md'), join(root, 'AGENTS.md'), join(H, 'agents', 'platform-owner.md')];
+  let bad = 0;
+  for (const f of l1) {
+    if (!existsSync(f)) continue;
+    const text = await readFile(f, 'utf-8');
+    const antdLine = text.split('\n').find((l) => /antd/.test(l) && /import|出现/.test(l));
+    if (!antdLine || !antdLine.includes('packages/core/src/components/**')) {
+      err(`L1 antd constraint stale in ${f.replace(root + '/', '')}: must reference packages/core/src/components/**`);
+      bad++;
+    }
+    if (text.includes('shared/ui/**')) {
+      err(`L1 file still mentions shared/ui/** (old layout): ${f.replace(root + '/', '')}`);
+      bad++;
+    }
+  }
+  if (bad === 0) ok('L1 antd constraint consistent across CLAUDE.md / AGENTS.md / platform-owner.md');
+}
+
 // changes
 const changesDir = join(H, 'changes');
 if (existsSync(changesDir)) {

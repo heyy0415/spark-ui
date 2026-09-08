@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import type { UiAction } from '../schema/uiSchema';
+import { FormPropsSchema } from '../schema/uiSchema';
 
 /**
  * 各白名单组件 props 的前端约束。契约中 props 为自由 JSON（Form 除外），这里是前端内部约束；
@@ -8,24 +10,8 @@ import { z } from 'zod';
 
 const MoneySchema = z.string().regex(/^-?\d+(\.\d{1,2})?$/);
 
-export const FormFieldPropsSchema = z
-  .object({
-    name: z
-      .string()
-      .min(1)
-      .max(64)
-      .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/),
-    type: z.enum(['text', 'select', 'number']),
-    label: z.string().min(1).max(80),
-    required: z.boolean().optional(),
-    options: z.array(z.object({ label: z.string(), value: z.string() })).optional(),
-  })
-  .strict();
-
-export const FormComponentPropsSchema = z.object({
-  fields: z.array(FormFieldPropsSchema).min(1).max(16),
-});
-export type FormComponentProps = z.infer<typeof FormComponentPropsSchema>;
+/** Form 的 props 约束是契约级（ui-schema if/then），真源在 schema/uiSchema.ts，这里只复用不重定义。 */
+export type FormComponentProps = z.infer<typeof FormPropsSchema>;
 
 export const CardPropsSchema = z.object({
   title: z.string().max(80).optional(),
@@ -87,15 +73,16 @@ export const RefundConfirmCardPropsSchema = z.object({
 export type RefundConfirmCardProps = z.infer<typeof RefundConfirmCardPropsSchema>;
 
 /** 组件 → props schema 的映射；SchemaRenderer 用它在渲染前校验。 */
-export const PROPS_SCHEMAS = {
-  Form: FormComponentPropsSchema,
+// Object.freeze：宿主运行期不得改写 props 约定（与注册表同级保证）
+export const PROPS_SCHEMAS = Object.freeze({
+  Form: FormPropsSchema,
   Card: CardPropsSchema,
   Table: TablePropsSchema,
   ResultCard: ResultCardPropsSchema,
   ConfirmationCard: ConfirmationCardPropsSchema,
   OrderCard: OrderCardPropsSchema,
   RefundConfirmCard: RefundConfirmCardPropsSchema,
-} as const;
+} as const);
 
 export type ComponentTypeName = keyof typeof PROPS_SCHEMAS;
 
@@ -111,4 +98,11 @@ export interface RenderedComponentProps<P> {
   id: string;
   props: P;
   handlers?: FormComponentHandlers;
+}
+
+/** actions[] 渲染实现的统一 props（renderer 与 desktop / mobile 实现共用，避免类型环）。 */
+export interface ActionBarProps {
+  actions: UiAction[];
+  disabled?: boolean;
+  onAction: (action: UiAction) => void;
 }

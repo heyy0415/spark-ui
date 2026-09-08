@@ -1,15 +1,10 @@
 import { Button as AntButton, Space } from 'antd';
-import type { UiAction } from '../../schema/uiSchema';
+import type { ActionBarProps } from '../../registry/types';
 
 /**
  * UI Schema actions[] 的桌面渲染。前端只用 actionId 提交（agent-safety §4），confirmationToken 由调用方原样回传。
  * style ∈ {default, primary, danger} → antd type/danger。
  */
-export interface ActionBarProps {
-  actions: UiAction[];
-  disabled?: boolean;
-  onAction: (action: UiAction) => void;
-}
 
 export function ActionBarDesktop({ actions, disabled, onAction }: ActionBarProps) {
   if (actions.length === 0) {

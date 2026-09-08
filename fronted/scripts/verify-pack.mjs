@@ -261,12 +261,16 @@ try {
 
   // (f)
   const sizeKb = dirSizeKb(join(pkgDir, 'dist'));
-  if (!existsSync(baselinePath)) {
+  // 基线只在显式 --write-baseline 时写入（pnpm 透传后 argv 含 "--"，用 includes 判断），缺失不再静默生成
+  const writeBaseline = process.argv.includes('--write-baseline');
+  if (writeBaseline) {
     writeFileSync(
       baselinePath,
       JSON.stringify({ distKb: sizeKb, recordedAt: new Date().toISOString() }, null, 2) + '\n',
     );
     ok(`(f) dist ${sizeKb} KB — baseline written to scripts/verify-pack.baseline.json`);
+  } else if (!existsSync(baselinePath)) {
+    fail('(f) baseline missing — run `pnpm -C fronted run verify-pack -- --write-baseline`');
   } else {
     const base = JSON.parse(readFileSync(baselinePath, 'utf-8')).distKb;
     check(

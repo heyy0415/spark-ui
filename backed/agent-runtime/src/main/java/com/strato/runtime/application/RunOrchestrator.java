@@ -15,7 +15,6 @@ import com.strato.runtime.application.port.RunEventSink;
 import com.strato.runtime.application.port.ToolGatewayClient;
 import com.strato.runtime.application.port.ToolRegistryClient;
 import com.strato.runtime.domain.ConfirmationToken;
-import com.strato.runtime.domain.DomainRouter;
 import com.strato.runtime.domain.Plan;
 import com.strato.runtime.domain.Run;
 import com.strato.runtime.domain.RunFailure;
@@ -58,7 +57,7 @@ public class RunOrchestrator {
   private static final String RECHECK_TOOL = "refund.eligibility.check";
 
   private final RunRepository runs;
-  private final DomainRouter router;
+  private final DomainResolver resolver;
   private final ToolRegistryClient registry;
   private final ToolGatewayClient gateway;
   private final LlmClient llm;
@@ -80,6 +79,7 @@ public class RunOrchestrator {
 
   public RunOrchestrator(
       RunRepository runs,
+      DomainResolver resolver,
       ToolRegistryClient registry,
       ToolGatewayClient gateway,
       LlmClient llm,
@@ -88,7 +88,7 @@ public class RunOrchestrator {
       SchemaValidator validator,
       Clock clock) {
     this.runs = runs;
-    this.router = DomainRouter.defaultRules();
+    this.resolver = resolver;
     this.registry = registry;
     this.gateway = gateway;
     this.llm = llm;
@@ -114,7 +114,15 @@ public class RunOrchestrator {
           new SseEvent.RunStartedData(runId, intent.conversationId(), now()));
       run.transition(RunState.PLANNING, now());
 
-      Optional<String> domain = router.route(intent.message());
+      IntentRequest.SelectedEntity selected =
+          intent.pageContext() == null ? null : intent.pageContext().selectedEntity();
+      DomainResolver.RouteDecision route =
+          resolver.resolve(
+              intent.message(),
+              Optional.ofNullable(selected).map(IntentRequest.SelectedEntity::type),
+              principal);
+      Optional<String> domain = route.domain();
+      log.info("route runId={} domain={} source={}", runId, domain.orElse("-"), route.source());
       if (domain.isEmpty()) {
         emit(
             sink, SseEvent.MESSAGE_DELTA, new SseEvent.MessageDeltaData(runId, NO_CAPABILITY_TEXT));
@@ -134,6 +142,16 @@ public class RunOrchestrator {
       if (found.tools().isEmpty()) {
         emit(
             sink, SseEvent.MESSAGE_DELTA, new SseEvent.MessageDeltaData(runId, NO_CAPABILITY_TEXT));
+        complete(run, sink);
+        return runId;
+      }
+
+      // 规划前拦截：领域内全部候选都需要页面实体而上下文没有 → 提示并结束，不进规划、不调 Gateway
+      Optional<String> needEntity =
+          EntityRequirementCheck.check(domain.get(), found.tools(), selected);
+      if (needEntity.isPresent()) {
+        log.info("entity required but missing runId={} domain={}", runId, domain.get());
+        emit(sink, SseEvent.MESSAGE_DELTA, new SseEvent.MessageDeltaData(runId, needEntity.get()));
         complete(run, sink);
         return runId;
       }

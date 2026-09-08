@@ -5,12 +5,11 @@
 export { SchemaRenderer } from './renderer/SchemaRenderer';
 export type { SchemaRendererProps } from './renderer/SchemaRenderer';
 export { ActionBar } from './renderer/ActionBar';
-export type { ActionBarProps } from './renderer/ActionBar';
 export { UnknownComponent } from './renderer/UnknownComponent';
 
 export { desktopRegistry, mobileRegistry, REGISTRY_KEYS } from './registry/componentRegistry';
 export { PROPS_SCHEMAS } from './registry/types';
-export type { FormValues } from './registry/types';
+export type { FormValues, ActionBarProps } from './registry/types';
 
 export {
   UiSchemaSchema,

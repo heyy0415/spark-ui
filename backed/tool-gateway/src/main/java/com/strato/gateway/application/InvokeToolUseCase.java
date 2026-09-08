@@ -11,6 +11,7 @@ import com.strato.gateway.domain.ArgsDigest;
 import com.strato.gateway.domain.AuditSink;
 import com.strato.gateway.domain.GatewayException;
 import com.strato.gateway.domain.IdempotencyStore;
+import com.strato.gateway.domain.IdempotencyStore.Claim;
 import com.strato.gateway.domain.RetryPolicy;
 import com.strato.spi.ExecutionContext;
 import com.strato.spi.Principal;
@@ -51,6 +52,9 @@ public class InvokeToolUseCase implements ToolInvokePort {
   private final SchemaValidator validator;
   private final Map<String, ToolHandler> handlers;
   private final ExecutorService executor;
+
+  /** 本次 execute 是否为重放 / 等待得到的结果（每线程一次调用），供审计口径区分。 */
+  private final ThreadLocal<Boolean> replayed = new ThreadLocal<>();
 
   public InvokeToolUseCase(
       ToolResolver resolver,
@@ -104,8 +108,11 @@ public class InvokeToolUseCase implements ToolInvokePort {
     }
     String digest = ArgsDigest.of(req.arguments().toString());
     String principalText = ec.userId() + "@" + ec.tenantId();
+    replayed.set(Boolean.FALSE);
     try {
       ToolInvoke.Response resp = pipeline(req, ec);
+      // 重放 / 等待拿到的结果审计为 replayed（仅日志口径，契约 status 不变），让 succeeded 恰好等于真实执行次数
+      String auditStatus = Boolean.TRUE.equals(replayed.get()) ? "replayed" : resp.status().name();
       audit.record(
           new AuditSink.Entry(
               ec.runId(),
@@ -114,7 +121,7 @@ public class InvokeToolUseCase implements ToolInvokePort {
               req.toolVersion(),
               principalText,
               digest,
-              resp.status().name(),
+              auditStatus,
               resp.durationMs(),
               ec.traceId()));
       return resp;
@@ -133,6 +140,7 @@ public class InvokeToolUseCase implements ToolInvokePort {
               ec.traceId()));
       throw e;
     } finally {
+      replayed.remove();
       MDC.remove("runId");
       MDC.remove("toolCallId");
       MDC.remove("traceId");
@@ -162,29 +170,97 @@ public class InvokeToolUseCase implements ToolInvokePort {
     }
 
     // 3. 鉴权
-    Principal principal = new Principal(ec.userId(), ec.tenantId());
-    if (!permissions.permissionsOf(principal).contains(manifest.authorization().permission())) {
+    if (!permissions
+        .permissionsOf(new Principal(ec.userId(), ec.tenantId()))
+        .contains(manifest.authorization().permission())) {
       throw new GatewayException(
           ToolInvoke.ErrorCode.FORBIDDEN,
           "missing permission " + manifest.authorization().permission());
     }
 
-    // 4. 幂等（仅对声明 required 的工具）
+    // 4. 幂等（仅对声明 required 的工具）：先占位后填充。拿不到执行权的等待或重放
     boolean idem = manifest.execution().idempotency() == ToolManifest.Idempotency.required;
     if (idem) {
-      var cached = idempotency.find(ec.tenantId(), ec.idempotencyKey());
-      if (cached.isPresent()) {
-        log.info("idempotent replay toolId={} key={}", req.toolId(), ec.idempotencyKey());
-        return cached.get();
+      ToolInvoke.Response replayed = claimOrAwait(req, ec, manifest.execution().timeoutMs());
+      if (replayed != null) {
+        return replayed;
+      }
+      // 此处已持有 Owner：执行成功 complete，任何异常释放占位
+      try {
+        ToolInvoke.Response resp = execute(req, ec, manifest, start);
+        idempotency.complete(ec.tenantId(), ec.idempotencyKey(), resp);
+        return resp;
+      } catch (RuntimeException e) {
+        idempotency.release(ec.tenantId(), ec.idempotencyKey());
+        throw e;
       }
     }
+    return execute(req, ec, manifest, start);
+  }
 
+  /**
+   * 在 deadline 内反复 claim：Owner → 返回 null（由调用方执行）；Replay / Awaiting 正常完成 → 返回结果并标记 replayed；
+   * Awaiting 被 release 唤醒 → 再 claim；deadline 到 → TIMEOUT。
+   */
+  private ToolInvoke.Response claimOrAwait(
+      ToolInvoke.Request req, ToolInvoke.ExecutionContext ec, long timeoutMs) {
+    long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+    while (true) {
+      Claim claim = idempotency.claim(ec.tenantId(), ec.idempotencyKey());
+      switch (claim) {
+        case Claim.Owner o -> {
+          return null;
+        }
+        case Claim.Replay r -> {
+          log.info("idempotent replay toolId={} key={}", req.toolId(), ec.idempotencyKey());
+          return asReplayed(r.response());
+        }
+        case Claim.Awaiting a -> {
+          long remain = deadline - System.nanoTime();
+          if (remain <= 0) {
+            throw new GatewayException(
+                ToolInvoke.ErrorCode.TIMEOUT,
+                "idempotent owner did not finish in " + timeoutMs + "ms");
+          }
+          try {
+            ToolInvoke.Response r = a.future().get(remain, TimeUnit.NANOSECONDS);
+            log.info("idempotent await toolId={} key={}", req.toolId(), ec.idempotencyKey());
+            return asReplayed(r);
+          } catch (TimeoutException e) {
+            throw new GatewayException(
+                ToolInvoke.ErrorCode.TIMEOUT,
+                "idempotent owner did not finish in " + timeoutMs + "ms",
+                e);
+          } catch (ExecutionException e) {
+            // 执行者 release 了占位：循环重新 claim（可能成为 Owner）
+            log.info(
+                "idempotent owner released toolId={} key={}, re-claiming",
+                req.toolId(),
+                ec.idempotencyKey());
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new GatewayException(ToolInvoke.ErrorCode.HANDLER_ERROR, "interrupted", e);
+          }
+        }
+      }
+    }
+  }
+
+  /** 重放 / 等待得到的结果：内容相同但 status 仍为 succeeded（契约）；审计口径由 REPLAYED 标记区分。 */
+  private ToolInvoke.Response asReplayed(ToolInvoke.Response r) {
+    replayed.set(Boolean.TRUE);
+    return r;
+  }
+
+  private ToolInvoke.Response execute(
+      ToolInvoke.Request req, ToolInvoke.ExecutionContext ec, ToolManifest manifest, long start) {
     // 5. 调用（超时 + 按策略重试）
     ToolHandler handler = handlers.get(manifest.key());
     if (handler == null) {
       throw new GatewayException(
           ToolInvoke.ErrorCode.TOOL_NOT_FOUND, "no handler bound for " + manifest.key());
     }
+    Principal principal = new Principal(ec.userId(), ec.tenantId());
     ExecutionContext ctx =
         new ExecutionContext(
             ec.runId(), ec.toolCallId(), principal, ec.idempotencyKey(), ec.traceId());
@@ -204,7 +280,7 @@ public class InvokeToolUseCase implements ToolInvokePort {
 
     ToolInvoke.Response resp =
         ToolInvoke.Response.succeeded(ec.toolCallId(), elapsedMs(start), safe);
-    return idem ? idempotency.putIfAbsent(ec.tenantId(), ec.idempotencyKey(), resp) : resp;
+    return resp;
   }
 
   private JsonNode callWithRetry(

@@ -6,9 +6,11 @@ import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
  */
 export function RouteErrorBoundary() {
   const error = useRouteError();
-  const title = isRouteErrorResponse(error)
-    ? `${error.status} · ${error.statusText}`
-    : '页面出错了';
+  // statusText 可能为空串（部分服务端 / 浏览器不返回），避免渲染出 "404 · " 这样的空尾标题
+  const title =
+    isRouteErrorResponse(error) && error.statusText
+      ? `${error.status} · ${error.statusText}`
+      : '页面出错了';
   console.error('[route-error]', error);
   return (
     <section role="alert" aria-labelledby="route-error-title">

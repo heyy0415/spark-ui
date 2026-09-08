@@ -32,7 +32,7 @@ echo "boot: ready after ${i}s"
 
 echo "--- selfchecks"
 PLAN_CHECK="plan 3 steps, step3 requiresConfirmation OK"; [ "$LIVE_LLM" = 1 ] && PLAN_CHECK="plan skipped (live LLM"
-for s in "contracts 9 schemas, 20 examples OK" "refund.create idempotent OK" "$PLAN_CHECK" "invalid toolId rejected OK" "token expired/replayed/digest-mismatch/extra-key rejected OK"; do
+for s in "contracts 9 schemas, 20 examples OK" "refund.create idempotent OK" "$PLAN_CHECK" "invalid toolId rejected OK" "token expired/replayed/digest-mismatch/extra-key rejected OK" "gateway idempotency claim OK"; do
   check "selfcheck: $s" 1 "$(grep -v SelfCheckRunner "$DEPLOY/backend.log" | grep -c "selfcheck: $s")"
 done
 
@@ -130,6 +130,49 @@ SHOWN=$(data "$DEPLOY/run_events.log" ui.replace | json "[c for c in d['ui']['co
 EXECUTED=$(data "$DEPLOY/confirm_events.log" ui.replace | json "[x for x in d['ui']['components'][0]['props']['details'] if x['label']=='退款金额'][0]['value']")
 check "shown amount" 128.00 "$SHOWN"; check "executed amount non-empty" 1 "$([ -n "$EXECUTED" ] && echo 1 || echo 0)"; check "executed amount equals shown" "$SHOWN" "$EXECUTED"
 
+echo "--- 意图路由 ①：缺实体拦截（无 pageContext 说「退钱」）"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_r1","message":"退钱","clientCapabilities":{"uiSchemaVersion":"1.0","components":["Card"]}}' > "$DEPLOY/route1_events.log"
+check "① events" "run.started message.delta run.completed" "$(events "$DEPLOY/route1_events.log")"
+R1=$(data "$DEPLOY/route1_events.log" run.started | json "d['runId']")
+T1=$(data "$DEPLOY/route1_events.log" message.delta | json "d['text']")
+check "① text mentions selecting an order" 1 "$(echo "$T1" | grep -c '选择一个订单')"
+check "① text does not echo user message" 0 "$(echo "$T1" | grep -c '退钱')"
+check "① no gateway audit for this run" 0 "$(grep -c "audit runId=$R1" "$DEPLOY/backend.log")"
+curl -s "$BASE/agent/runs/$R1" -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' > "$DEPLOY/route1_summary.json"
+check "① state COMPLETED without failureCode" "COMPLETED-none" "$(json "d['state']+'-'+str(d.get('failureCode','none'))" < "$DEPLOY/route1_summary.json")"
+
+echo "--- 意图路由 ②：entityType=order 但闲聊 → 无能力路径（规则不误路由）"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_r2","message":"今天天气怎么样","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10001"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Card"]}}' > "$DEPLOY/route2_events.log"
+check "② events" "run.started message.delta run.completed" "$(events "$DEPLOY/route2_events.log")"
+
+echo "--- 意图路由 ③：模型补位（仅 LIVE）"
+if [ "$LIVE_LLM" = 1 ]; then
+  curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_r3","message":"我想把钱要回来","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10002"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","ResultCard","ConfirmationCard","OrderCard","RefundConfirmCard"]}}' > "$DEPLOY/route3_events.log"
+  R3=$(data "$DEPLOY/route3_events.log" run.started | json "d['runId']")
+  check "③a route by model" 1 "$(grep -c "route runId=$R3 domain=refund source=model" "$DEPLOY/backend.log")"
+  check "③b event sequence" "run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required" "$(events "$DEPLOY/route3_events.log")"
+else
+  echo "  - ③ skipped (rule mode)"
+fi
+
+echo "--- 幂等 ④：同 idempotencyKey 两次 refund.create（订单 10004）"
+idem() { curl -s -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -d "{\"toolId\":\"refund.create\",\"toolVersion\":\"2.1.0\",\"arguments\":{\"orderId\":\"10004\",\"amount\":\"59.00\",\"reason\":\"DAMAGED\"},\"executionContext\":{\"runId\":\"run_e2eidem\",\"toolCallId\":\"$1\",\"userId\":\"user_001\",\"tenantId\":\"tenant_001\",\"idempotencyKey\":\"e2e-idem-10004\"}}"; }
+ID1=$(idem tc_idem1 | json "d['output']['refundId']"); ID2=$(idem tc_idem2 | json "d['output']['refundId']")
+check "④ same refundId" "$ID1" "$ID2"
+check "④ refundId non-empty" 1 "$([ -n "$ID1" ] && echo 1 || echo 0)"
+check "④ succeeded audit exactly once" 1 "$(grep -c 'runId=run_e2eidem .*status=succeeded' "$DEPLOY/backend.log")"
+check "④ replayed audit exactly once" 1 "$(grep -c 'runId=run_e2eidem .*status=replayed' "$DEPLOY/backend.log")"
+check "④ refunds for 10004" 1 "$(gw 10004)"
+
+echo "--- 意图路由 ⑥：order 领域缺实体 → order.list.search 回退（仅规则模式）"
+if [ "$LIVE_LLM" = 1 ]; then
+  echo "  - ⑥ skipped (live mode)"
+else
+  curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_r6","message":"订单","clientCapabilities":{"uiSchemaVersion":"1.0","components":["Card","Table"]}}' > "$DEPLOY/route6_events.log"
+  check "⑥ events" "run.started tool.selected tool.started tool.completed run.completed" "$(events "$DEPLOY/route6_events.log")"
+  check "⑥ tool" order.list.search "$(data "$DEPLOY/route6_events.log" tool.selected | json "d['toolId']")"
+fi
+
 echo "--- 无能力路径"
 curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_003","message":"今天天气怎么样","clientCapabilities":{"uiSchemaVersion":"1.0","components":["Card"]}}' > "$DEPLOY/nocap_events.log"
 check "events" "run.started message.delta run.completed" "$(events "$DEPLOY/nocap_events.log")"
@@ -139,6 +182,7 @@ check "unknown runId → 404" 404 "$(curl -s -o /dev/null -w '%{http_code}' -X P
 check "§6.2.14 audit fields" 9 "$(grep -m1 'audit runId=' "$DEPLOY/backend.log" | grep -o '[a-zA-Z]*=' | wc -l | tr -d ' ')"
 check "§6.2.15 user text in log" 0 "$(grep -c '帮我把这个订单退款' "$DEPLOY/backend.log")"
 check "ERROR lines" 0 "$(grep -c ' ERROR ' "$DEPLOY/backend.log")"
+check "⑤ route decisions logged" 1 "$([ "$(grep -c 'route runId=.* source=' "$DEPLOY/backend.log")" -ge 3 ] && echo 1 || echo 0)"
 
 pkill -f "app/target/app.jar"
 echo; echo "e2e-backend: $pass passed, $fail failed"

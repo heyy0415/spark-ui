@@ -1,11 +1,5 @@
 import { Button as AdmButton, Space } from 'antd-mobile';
-import type { UiAction } from '../../schema/uiSchema';
-
-export interface ActionBarProps {
-  actions: UiAction[];
-  disabled?: boolean;
-  onAction: (action: UiAction) => void;
-}
+import type { ActionBarProps } from '../../registry/types';
 
 /** actions[] 的移动端渲染；style → antd-mobile color。 */
 export function ActionBarMobile({ actions, disabled, onAction }: ActionBarProps) {

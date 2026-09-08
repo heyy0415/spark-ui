@@ -1,6 +1,7 @@
 package com.strato.runtime.infra.llm;
 
 import com.strato.runtime.application.ToolDisplayNames;
+import com.strato.runtime.application.port.IntentClassifier;
 import com.strato.runtime.application.port.LlmClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,29 @@ public class LlmConfiguration {
           "STRATO_LLM_BASE_URL / STRATO_LLM_API_KEY / STRATO_LLM_MODEL not fully set; using rule-based planner");
       return new RuleBasedLlmClient(ToolDisplayNames.all());
     }
+    ChatClient chat = chatClient(baseUrl, apiKey);
+    log.info(
+        "LLM planner enabled: spring-ai openai-compatible model={} baseUrl={} completionsPath={}",
+        model,
+        baseUrl,
+        completionsPath(baseUrl));
+    return new SpringAiLlmClient(chat, model, ToolDisplayNames.all());
+  }
+
+  /** 意图分类器与规划器共用同一组环境变量与 ChatClient 装配（backend-standard §7）。 */
+  @Bean
+  public IntentClassifier intentClassifier(
+      @Value("${STRATO_LLM_BASE_URL:}") String baseUrl,
+      @Value("${STRATO_LLM_API_KEY:}") String apiKey,
+      @Value("${STRATO_LLM_MODEL:}") String model) {
+    if (baseUrl.isBlank() || apiKey.isBlank() || model.isBlank()) {
+      return new NoopIntentClassifier();
+    }
+    log.info("LLM intent classifier enabled: model={}", model);
+    return new SpringAiIntentClassifier(chatClient(baseUrl, apiKey), model);
+  }
+
+  private static ChatClient chatClient(String baseUrl, String apiKey) {
     OpenAiApi api =
         OpenAiApi.builder()
             .baseUrl(baseUrl)
@@ -37,13 +61,7 @@ public class LlmConfiguration {
             .completionsPath(completionsPath(baseUrl))
             .build();
     OpenAiChatModel chatModel = OpenAiChatModel.builder().openAiApi(api).build();
-    ChatClient chat = ChatClient.builder(chatModel).build();
-    log.info(
-        "LLM planner enabled: spring-ai openai-compatible model={} baseUrl={} completionsPath={}",
-        model,
-        baseUrl,
-        completionsPath(baseUrl));
-    return new SpringAiLlmClient(chat, model, ToolDisplayNames.all());
+    return ChatClient.builder(chatModel).build();
   }
 
   /**

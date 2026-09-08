@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Repository;
 
-/** 内存订单仓储，预置 3 条 tenant_001 订单。 10001 / 10002 供验收链路使用，10003 保留给启动自检（spec §2.2）。 */
+/** 内存订单仓储，预置 4 条 tenant_001 订单。 10001 / 10002 供验收链路使用，10003 保留给启动自检，10004 供 Gateway 幂等 e2e。 */
 @Repository
 public class InMemoryOrderRepository implements OrderRepository {
 
@@ -20,6 +20,7 @@ public class InMemoryOrderRepository implements OrderRepository {
     seed("10001", "示例商品", "128.00", Order.OrderStatus.PAID, "2026-08-30T02:15:00Z");
     seed("10002", "蓝牙耳机", "299.00", Order.OrderStatus.SHIPPED, "2026-09-01T09:40:00Z");
     seed("10003", "自检专用商品", "1.00", Order.OrderStatus.PAID, "2026-09-02T00:00:00Z");
+    seed("10004", "幂等验收专用商品", "59.00", Order.OrderStatus.PAID, "2026-09-03T00:00:00Z");
   }
 
   private void seed(String id, String name, String amount, Order.OrderStatus st, String at) {
