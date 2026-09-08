@@ -91,7 +91,7 @@ platform-spi、contracts-java ↛ 任何其他模块
 
 | 端 | 类型 | 风格 | 示例 |
 |---|---|---|---|
-| 前端 | 组件 / 类 | PascalCase | `RefundConfirmCard.tsx` |
+| 前端 | 组件 / 类 | PascalCase | `Timeline.tsx`（core 组件文件名 == 契约 type，官方组件名） |
 | 前端 | Hook | `useCamelCase` | `useAgentRun` |
 | 前端 | 模块 | camelCase | `sseClient.ts` |
 | 后端 | 类 | PascalCase，后缀表职责 | `ToolRegistryController`、`RefundPreviewUseCase` |

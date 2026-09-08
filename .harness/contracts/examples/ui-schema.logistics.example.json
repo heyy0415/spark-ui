@@ -5,29 +5,31 @@
   "components": [
     {
       "id": "logistics",
-      "type": "LogisticsTimeline",
+      "type": "Card",
       "props": {
-        "orderId": "10030",
-        "carrier": "顺丰速运",
-        "trackingNo": "SF1234567890",
-        "status": "IN_TRANSIT",
-        "events": [
+        "title": "订单 10001 物流",
+        "items": [
           {
-            "time": "2026-09-07T11:00:00Z",
-            "location": "深圳",
-            "description": "已揽收"
+            "label": "承运商",
+            "value": ""
           },
           {
-            "time": "2026-09-07T18:30:00Z",
-            "location": "深圳转运中心",
-            "description": "已发出"
+            "label": "运单号",
+            "value": ""
           },
           {
-            "time": "2026-09-08T06:20:00Z",
-            "location": "上海转运中心",
-            "description": "到达"
+            "label": "状态",
+            "value": "NOT_SHIPPED"
           }
         ]
+      }
+    },
+    {
+      "id": "logistics-events",
+      "type": "Timeline",
+      "props": {
+        "items": [],
+        "emptyText": "暂无物流信息"
       }
     }
   ],

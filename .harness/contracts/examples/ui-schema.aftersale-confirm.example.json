@@ -5,15 +5,27 @@
   "components": [
     {
       "id": "order",
-      "type": "OrderCard",
+      "type": "Card",
       "props": {
-        "orderId": "10002",
-        "productName": "蓝牙耳机",
-        "amount": "299.00",
-        "currency": "CNY",
-        "status": "SHIPPED",
-        "quantity": 1,
-        "logisticsStatus": "IN_TRANSIT"
+        "title": "订单 10002",
+        "items": [
+          {
+            "label": "商品",
+            "value": "蓝牙耳机"
+          },
+          {
+            "label": "件数",
+            "value": "1"
+          },
+          {
+            "label": "金额",
+            "value": "299.00 CNY"
+          },
+          {
+            "label": "状态",
+            "value": "SHIPPED"
+          }
+        ]
       }
     },
     {

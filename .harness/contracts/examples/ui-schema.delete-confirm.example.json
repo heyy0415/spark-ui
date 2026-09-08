@@ -5,30 +5,30 @@
   "components": [
     {
       "id": "order",
-      "type": "OrderCard",
+      "type": "Card",
       "props": {
-        "orderId": "10005",
-        "productName": "运动鞋",
-        "amount": "459.00",
-        "currency": "CNY",
-        "status": "COMPLETED",
-        "quantity": 1
-      }
-    },
-    {
-      "id": "confirm",
-      "type": "ConfirmationCard",
-      "props": {
-        "title": "确认删除订单",
-        "message": "删除后订单将从列表消失，不可恢复。",
+        "title": "订单 10005",
         "items": [
           {
-            "label": "订单号",
-            "value": "10005"
+            "label": "商品",
+            "value": "运动鞋"
+          },
+          {
+            "label": "件数",
+            "value": "1"
+          },
+          {
+            "label": "金额",
+            "value": "459.00 CNY"
           },
           {
             "label": "状态",
             "value": "COMPLETED"
+          },
+          {
+            "label": "提示",
+            "value": "删除后订单将从列表消失，不可恢复",
+            "tone": "danger"
           }
         ]
       }

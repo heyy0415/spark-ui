@@ -38,6 +38,8 @@
 ## 4. UI Schema 专项
 
 - `components[].type` 必须落在前端注册表白名单内；白名单清单同步维护在 `ui-schema.schema.json` 的 `enum` 中。新增组件 = 改 Schema enum + 前端注册表 + 后端生成逻辑，三处同一 change。
+- **白名单只收 antd / antd-mobile 官方组件的直接映射**（当前 5 个：`Form / Card / Table / Result / Timeline`），`type` 名即官方组件名；禁止业务命名组件（`OrderCard` 之类）。新增 type 前必须先回答「能否用现有组件的 props 表达」，只有「不能」才允许新增。五个组件的 props 全部在 Schema 内以 `if/then` 约束，前端 Zod `.strict()` 同源。
+- 变更记录：feat-commerce-domains-20260908 v3.2 把首期 4 个业务 type（`ResultCard / ConfirmationCard / OrderCard / RefundConfirmCard`）与 v3.1 短暂加入的 3 个（`OrderList / ProductList / LogisticsTimeline`）一并删除并收敛为上述 5 个；当时无外部消费方，`schemaVersion` 仍 `1.0`。
 - `actions[].confirmationToken` 为不透明字符串，前端只回传，不解析。
 - UI Schema 中**不得**出现 URL、脚本、HTML 字符串字段。
 - 列表组件内的 `actions[].intent`（`inlineAction`）是一段**自然语言文本**：前端点击后把它原样作为新的用户消息发送，走完整的路由 / 候选过滤 / 校验 / 确认链路；不是命令、不是 URL、不带 token。Schema 以 pattern 禁止 `://` 与 `<`。

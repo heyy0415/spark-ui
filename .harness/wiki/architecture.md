@@ -38,10 +38,10 @@
 3. Runtime 以服务身份 + principal 查询 Registry `POST /internal/tool-registry/search`，拿到过滤后的候选工具。
 4. LLM（Spring AI `ChatClient`，OpenAI 兼容接口，内部工具执行关闭）在候选内选择并给出计划；计划存后端 Run，不下发前端。
 5. 低风险只读工具（`refund.eligibility.check`、`refund.preview`）经 Gateway `POST /internal/tool-gateway/invoke` 自动执行，每次调用 SSE 推 `tool.selected` → `tool.started` → `tool.completed`。
-6. 高风险工具（`refund.create`）需确认：Runtime 生成 UI Schema（`RefundConfirmCard` + `confirm-refund` action，含不透明 `confirmationToken`），SSE 推 `ui.replace` + `confirmation.required`，Run 进入 `WAITING_CONFIRMATION`。
+6. 高风险工具（`refund.create`）需确认：Runtime 生成 UI Schema（订单 `Card` + 退款摘要 `Card` + `Form` + `confirm-refund` action，含不透明 `confirmationToken`），SSE 推 `ui.replace` + `confirmation.required`，Run 进入 `WAITING_CONFIRMATION`。
 7. 用户在前端确认，`POST /agent/runs/{runId}/actions/{actionId}` 携带 Token 与 formData。
 8. Runtime 用 Token 找回计划，重新校验权限、金额、订单状态、有效期，再经 Gateway 执行 `refund.create`。
-9. SSE 推 `ui.replace`（ResultCard）与 `run.completed`。全程 `runId` / `toolCallId` 贯穿审计。
+9. SSE 推 `ui.replace`（`Result`）与 `run.completed`。全程 `runId` / `toolCallId` 贯穿审计。
 
 ## 前端 FSD 分层
 

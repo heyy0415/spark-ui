@@ -9,8 +9,24 @@
     "components": [
       {
         "id": "order",
-        "type": "OrderCard",
-        "props": { "orderId": "10001", "productName": "示例商品", "amount": "128.00", "currency": "CNY", "status": "PAID" }
+        "type": "Card",
+        "props": {
+          "title": "订单 10001",
+          "items": [
+            {
+              "label": "商品",
+              "value": "示例商品"
+            },
+            {
+              "label": "金额",
+              "value": "128.00 CNY"
+            },
+            {
+              "label": "状态",
+              "value": "PAID"
+            }
+          ]
+        }
       },
       {
         "id": "refund-form",
@@ -22,14 +38,25 @@
               "type": "select",
               "label": "退款原因",
               "required": true,
-              "options": [{ "label": "商品破损", "value": "DAMAGED" }]
+              "options": [
+                {
+                  "label": "商品破损",
+                  "value": "DAMAGED"
+                }
+              ]
             }
           ]
         }
       }
     ],
     "actions": [
-      { "id": "confirm-refund", "type": "submit", "label": "确认退款", "style": "danger", "confirmationToken": "ct_9f8e7d6c5b4a39281706f5e4d3c2b1a0" }
+      {
+        "id": "confirm-refund",
+        "type": "submit",
+        "label": "确认退款",
+        "style": "danger",
+        "confirmationToken": "ct_9f8e7d6c5b4a39281706f5e4d3c2b1a0"
+      }
     ]
   },
   "createdAt": "2026-09-03T10:00:00.000Z",

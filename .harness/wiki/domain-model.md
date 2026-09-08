@@ -54,7 +54,7 @@
 
 `schemaVersion`、`screenId`、`title`、`components[] { id, type(白名单 enum), props }`、`actions[] { id, type(submit|cancel), label, style, confirmationToken? }`。
 
-首期组件白名单：`Form`、`Card`、`Table`、`ResultCard`、`ConfirmationCard`、`OrderCard`、`RefundConfirmCard`。每个 type 有桌面（antd）与移动（antd-mobile）两套实现，props 相同。
+组件白名单（5，均为 antd / antd-mobile 官方组件映射）：`Form`、`Card`、`Table`、`Result`、`Timeline`。每个 type 有桌面（antd）与移动（antd-mobile）两套实现，props 相同。
 
 ## 首期领域与工具
 

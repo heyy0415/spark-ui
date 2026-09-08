@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 
-/** 契约 ui-schema：Runtime → 前端的声明式 UI。components[].type 只能是七个白名单值。 */
+/** 契约 ui-schema：Runtime → 前端的声明式 UI。components[].type 只能是五个白名单值（antd / antd-mobile 官方组件映射）。 */
 public record UiSchema(
     String schemaVersion,
     String screenId,
@@ -19,10 +19,8 @@ public record UiSchema(
     Form,
     Card,
     Table,
-    ResultCard,
-    ConfirmationCard,
-    OrderCard,
-    RefundConfirmCard
+    Result,
+    Timeline
   }
 
   /** 一个组件实例；props 为自由 JSON（Form 除外，由 Schema 约束 fields[]）。 */
