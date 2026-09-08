@@ -1,0 +1,33 @@
+event:run.started
+data:{"runId":"run_c26e03ebcd22454d","conversationId":"conv_002","at":"2026-09-08T06:51:31.274505Z"}
+
+:ping
+
+:ping
+
+:ping
+
+event:tool.selected
+data:{"runId":"run_c26e03ebcd22454d","toolCallId":"tc_000005","toolId":"refund.eligibility.check","version":"1.2.0","displayName":"检查退款资格"}
+
+event:tool.started
+data:{"runId":"run_c26e03ebcd22454d","toolCallId":"tc_000005","at":"2026-09-08T06:52:16.914062Z"}
+
+event:tool.completed
+data:{"runId":"run_c26e03ebcd22454d","toolCallId":"tc_000005","status":"succeeded","durationMs":2,"summary":"订单满足退款条件"}
+
+event:tool.selected
+data:{"runId":"run_c26e03ebcd22454d","toolCallId":"tc_000006","toolId":"refund.preview","version":"1.3.0","displayName":"退款试算"}
+
+event:tool.started
+data:{"runId":"run_c26e03ebcd22454d","toolCallId":"tc_000006","at":"2026-09-08T06:52:16.918815Z"}
+
+event:tool.completed
+data:{"runId":"run_c26e03ebcd22454d","toolCallId":"tc_000006","status":"succeeded","durationMs":1,"summary":"可退 299.00 元，预计 3 天到账"}
+
+event:ui.replace
+data:{"runId":"run_c26e03ebcd22454d","ui":{"schemaVersion":"1.0","screenId":"refund-confirmation","title":"确认退款","components":[{"id":"order","type":"OrderCard","props":{"orderId":"10002","productName":"订单 10002","amount":"299.00","currency":"CNY","status":"PAID"}},{"id":"refund-summary","type":"RefundConfirmCard","props":{"orderId":"10002","amount":"299.00","currency":"CNY","eligible":true,"estimatedDays":3}},{"id":"refund-form","type":"Form","props":{"fields":[{"name":"reason","type":"select","label":"退款原因","required":true,"options":[{"label":"商品破损","value":"DAMAGED"},{"label":"未收到货","value":"NOT_RECEIVED"},{"label":"买错了","value":"CHANGED_MIND"}]}]}}],"actions":[{"id":"confirm-refund","type":"submit","label":"确认退款","style":"danger","confirmationToken":"ct_y48aDvxziB6TYpGTv3DGqrjr_D2Kfq_C"},{"id":"cancel","type":"cancel","label":"取消","style":"default"}]}}
+
+event:confirmation.required
+data:{"runId":"run_c26e03ebcd22454d","actionId":"confirm-refund","expiresAt":"2026-09-08T07:02:16.921286Z"}
+

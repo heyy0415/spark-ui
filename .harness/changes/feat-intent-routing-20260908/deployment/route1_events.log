@@ -1,0 +1,9 @@
+event:run.started
+data:{"runId":"run_7c1d9d6d36224af3","conversationId":"conv_r1","at":"2026-09-08T06:52:28.487927Z"}
+
+event:message.delta
+data:{"runId":"run_7c1d9d6d36224af3","text":"请先在页面上选择一个订单，再发起退款"}
+
+event:run.completed
+data:{"runId":"run_7c1d9d6d36224af3","at":"2026-09-08T06:52:28.489175Z"}
+

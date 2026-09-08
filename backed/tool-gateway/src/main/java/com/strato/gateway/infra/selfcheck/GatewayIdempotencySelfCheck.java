@@ -53,6 +53,7 @@ public class GatewayIdempotencySelfCheck implements SelfCheck {
       ownerThenAwaitingGetSameResult();
       releaseLetsWaiterReclaim();
       releaseAfterCompleteIsNoop();
+      log.info("selfcheck: gateway idempotency claim OK");
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("selfcheck interrupted", e);
