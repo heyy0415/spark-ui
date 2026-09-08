@@ -4,10 +4,10 @@
 |---|---|
 | Change ID | feat-strato-ui-monorepo-20260904 |
 | 类型 | feat |
-| 状态 | AWAITING USER CONFIRMATION（阶段 1–7 完成） |
+| 状态 | DONE |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | fronted / harness |
-| 起止时间 | 2026-09-04 ~ — |
+| 起止时间 | 2026-09-04 ~ 2026-09-08 |
 | Spec | [request_analysis/spec.md](request_analysis/spec.md) |
 | Tasks | [request_analysis/tasks.md](request_analysis/tasks.md) |
 
@@ -22,7 +22,7 @@
 | 5 | 代码推送 | DONE | — | 10 个 commit（`f146764`…`8c815e1`），移动与逻辑分开；工作区干净；无远端 | 2026-09-08 |
 | 6 | CI 验证 | DONE | — | 清 dist 后 `run ci` 四段 0 → `ci_result/ci_summary.md`；chat bundle -1.0%，core dist 40 KB 新基线 | 2026-09-08 |
 | 7 | 部署验证 | DONE | — | `deploy-verify` 12/12（预览走 core dist，`agent-input=1`，console.error 0）→ `deployment/preview_report.md`；不部署、不发包 | 2026-09-08 |
-| 8 | 用户确认 | WAITING | — | 等待用户最终确认 | — |
+| 8 | 用户确认 | DONE | — | 用户「继续」确认。本地联调时发现：无 `entityId` 上下文直接发起退款 → 规则规划器产出空参数 → Gateway INPUT_INVALID → `TOOL_EXECUTION_FAILED`；不是本 change 回归，记为下一 change 的「无实体上下文的优雅拒绝」需求。不部署、不发包、无远端 | 2026-09-08 |
 
 ## 契约变更
 - 1 处 description 注释路径（`ui-schema.schema.json` props.description：实现路径 → `@strato-ui/core`），字段与约束零变化，示例校验不变。ui-schema 的前端 Zod 投影从 apps/chat 迁到 packages/core。
