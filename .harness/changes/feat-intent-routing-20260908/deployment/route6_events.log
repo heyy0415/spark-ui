@@ -1,15 +1,15 @@
 event:run.started
-data:{"runId":"run_1e3807287f7d4156","conversationId":"conv_r6","at":"2026-09-08T06:50:09.176499Z"}
+data:{"runId":"run_9662f8781e734668","conversationId":"conv_r6","at":"2026-09-08T07:53:02.039949Z"}
 
 event:tool.selected
-data:{"runId":"run_1e3807287f7d4156","toolCallId":"tc_000011","toolId":"order.list.search","version":"1.0.0","displayName":"搜索订单"}
+data:{"runId":"run_9662f8781e734668","toolCallId":"tc_000011","toolId":"order.list.search","version":"1.0.0","displayName":"搜索订单"}
 
 event:tool.started
-data:{"runId":"run_1e3807287f7d4156","toolCallId":"tc_000011","at":"2026-09-08T06:50:09.177777Z"}
+data:{"runId":"run_9662f8781e734668","toolCallId":"tc_000011","at":"2026-09-08T07:53:02.041235Z"}
 
 event:tool.completed
-data:{"runId":"run_1e3807287f7d4156","toolCallId":"tc_000011","status":"succeeded","durationMs":0}
+data:{"runId":"run_9662f8781e734668","toolCallId":"tc_000011","status":"succeeded","durationMs":0}
 
 event:run.completed
-data:{"runId":"run_1e3807287f7d4156","at":"2026-09-08T06:50:09.178792Z"}
+data:{"runId":"run_9662f8781e734668","at":"2026-09-08T07:53:02.042184Z"}
 

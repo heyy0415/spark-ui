@@ -6,7 +6,7 @@
  *     恰 1 个则用之；0 或 >1 个 → 退出码 2 并列出候选（并行多个 change 时必须显式指定，这是预期用法）。
  * 作为模块：import { changeDir, deploymentDir }；作为 CLI：打印 deployment 目录绝对路径。
  */
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -48,6 +48,14 @@ export function deploymentDir() {
   return join(changeDir(), 'deployment');
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  console.log(deploymentDir());
+// CLI 入口判定：用 realpath 比较，避免软链路径下判定失败而静默输出空串（change-dir.sh 的 `|| exit` 会因此失效）
+const invokedAsCli =
+  process.argv[1] !== undefined &&
+  realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
+if (invokedAsCli) {
+  const dir = deploymentDir();
+  if (!dir) {
+    process.exit(2);
+  }
+  console.log(dir);
 }

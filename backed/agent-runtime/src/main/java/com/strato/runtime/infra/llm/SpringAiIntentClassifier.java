@@ -54,9 +54,8 @@ public final class SpringAiIntentClassifier implements IntentClassifier {
         return Optional.of(d);
       }
       if (!NONE.equals(d)) {
-        // 模型发明了领域：只记录领域名（非用户原文），按 none 处理
-        log.warn(
-            "classifier returned unknown domain={} (treated as none)", PromptBuilder.sanitize(d));
+        // 模型发明了领域：按 none 处理。不打印返回串本身（模型可能回显用户原文），只记录长度
+        log.warn("classifier returned unknown domain (len={}), treated as none", d.length());
       }
       return Optional.empty();
     } catch (RuntimeException e) {

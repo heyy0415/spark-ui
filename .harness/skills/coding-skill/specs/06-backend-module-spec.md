@@ -39,7 +39,7 @@ public class ToolRegistryController {
 - 日志带 MDC `runId` / `toolCallId`。
 
 ## Agent Runtime 专项
-- 领域路由先走 `DomainRouter`（规则）；LLM 只在候选集合内选工具，输出经 Schema 校验，`toolId` 不在候选内即拒绝。
+- 领域路由三层：`DomainRouter`（关键词规则）→ `IntentClassifier`（规则未命中且配置了 LLM 时，只输出该 principal 可见领域的枚举或 none，越界视为 none）→ 无能力路径；`EntityRequirementCheck` 在规划前拦截「候选全需页面实体而上下文缺失」。LLM 只在候选集合内选工具，输出经 Schema 校验，`toolId` 不在候选内即拒绝。
 - LLM 客户端为 `LlmClient` 端口，`infra` 提供 OpenAI 兼容实现；base URL / key 来自环境变量。
 - Run 状态机：`CREATED → PLANNING → EXECUTING → WAITING_CONFIRMATION → EXECUTING → COMPLETED | FAILED`，迁移幂等。
 - SSE 用 `SseEmitter`，事件结构按 `sse-events.schema.json`。

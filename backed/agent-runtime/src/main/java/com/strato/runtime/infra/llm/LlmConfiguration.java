@@ -3,6 +3,7 @@ package com.strato.runtime.infra.llm;
 import com.strato.runtime.application.ToolDisplayNames;
 import com.strato.runtime.application.port.IntentClassifier;
 import com.strato.runtime.application.port.LlmClient;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -21,39 +22,28 @@ public class LlmConfiguration {
 
   private static final Logger log = LoggerFactory.getLogger(LlmConfiguration.class);
 
+  /** 是否配置齐三个环境变量；分类器与规划器共用同一判定。 */
+  private static boolean configured(String baseUrl, String apiKey, String model) {
+    return !baseUrl.isBlank() && !apiKey.isBlank() && !model.isBlank();
+  }
+
+  /**
+   * 共用 ChatClient 的持有者：只在三个变量齐全时创建 ChatClient；缺失时为 empty，两个消费方各自回退（规划器 → 规则模板，分类器 → noop）。不能直接把
+   * Optional&lt;ChatClient&gt; 注册为 Bean —— Spring 会把注入点的 Optional 解释为「可选依赖一个 ChatClient
+   * Bean」而绕过它（实测：LLM enabled 已打日志，规划器却仍是 rule-based）。
+   */
+  public record SharedChat(Optional<ChatClient> client) {}
+
   @Bean
-  public LlmClient llmClient(
+  public SharedChat stratoChatClient(
       @Value("${STRATO_LLM_BASE_URL:}") String baseUrl,
       @Value("${STRATO_LLM_API_KEY:}") String apiKey,
       @Value("${STRATO_LLM_MODEL:}") String model) {
-    if (baseUrl.isBlank() || apiKey.isBlank() || model.isBlank()) {
+    if (!configured(baseUrl, apiKey, model)) {
       log.warn(
-          "STRATO_LLM_BASE_URL / STRATO_LLM_API_KEY / STRATO_LLM_MODEL not fully set; using rule-based planner");
-      return new RuleBasedLlmClient(ToolDisplayNames.all());
+          "STRATO_LLM_BASE_URL / STRATO_LLM_API_KEY / STRATO_LLM_MODEL not fully set; using rule-based planner and noop classifier");
+      return new SharedChat(Optional.empty());
     }
-    ChatClient chat = chatClient(baseUrl, apiKey);
-    log.info(
-        "LLM planner enabled: spring-ai openai-compatible model={} baseUrl={} completionsPath={}",
-        model,
-        baseUrl,
-        completionsPath(baseUrl));
-    return new SpringAiLlmClient(chat, model, ToolDisplayNames.all());
-  }
-
-  /** 意图分类器与规划器共用同一组环境变量与 ChatClient 装配（backend-standard §7）。 */
-  @Bean
-  public IntentClassifier intentClassifier(
-      @Value("${STRATO_LLM_BASE_URL:}") String baseUrl,
-      @Value("${STRATO_LLM_API_KEY:}") String apiKey,
-      @Value("${STRATO_LLM_MODEL:}") String model) {
-    if (baseUrl.isBlank() || apiKey.isBlank() || model.isBlank()) {
-      return new NoopIntentClassifier();
-    }
-    log.info("LLM intent classifier enabled: model={}", model);
-    return new SpringAiIntentClassifier(chatClient(baseUrl, apiKey), model);
-  }
-
-  private static ChatClient chatClient(String baseUrl, String apiKey) {
     OpenAiApi api =
         OpenAiApi.builder()
             .baseUrl(baseUrl)
@@ -61,7 +51,27 @@ public class LlmConfiguration {
             .completionsPath(completionsPath(baseUrl))
             .build();
     OpenAiChatModel chatModel = OpenAiChatModel.builder().openAiApi(api).build();
-    return ChatClient.builder(chatModel).build();
+    // 只记录模型名与路径形态，不记录 baseUrl（内部网关地址不进日志 / 冻结产物）
+    log.info(
+        "LLM enabled: spring-ai openai-compatible model={} completionsPath={}",
+        model,
+        completionsPath(baseUrl));
+    return new SharedChat(Optional.of(ChatClient.builder(chatModel).build()));
+  }
+
+  @Bean
+  public LlmClient llmClient(SharedChat chat, @Value("${STRATO_LLM_MODEL:}") String model) {
+    return chat.client()
+        .<LlmClient>map(c -> new SpringAiLlmClient(c, model, ToolDisplayNames.all()))
+        .orElseGet(() -> new RuleBasedLlmClient(ToolDisplayNames.all()));
+  }
+
+  @Bean
+  public IntentClassifier intentClassifier(
+      SharedChat chat, @Value("${STRATO_LLM_MODEL:}") String model) {
+    return chat.client()
+        .<IntentClassifier>map(c -> new SpringAiIntentClassifier(c, model))
+        .orElseGet(NoopIntentClassifier::new);
   }
 
   /**

@@ -14,4 +14,4 @@
 1027 /Users/fangtao/strato_ui/fronted/packages/core/dist/chunks/Form-1nCkFUUu.js
 10043 /Users/fangtao/strato_ui/fronted/packages/core/dist/index.js
 ## backed
-36049912 /Users/fangtao/strato_ui/backed/app/target/app.jar
+36052588 /Users/fangtao/strato_ui/backed/app/target/app.jar

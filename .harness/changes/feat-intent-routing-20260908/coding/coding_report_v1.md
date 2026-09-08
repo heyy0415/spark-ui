@@ -22,7 +22,7 @@
 ```
 node .harness/scripts/mvn.mjs -q -B verify                      exit 0
 bash .harness/scripts/e2e-backend.sh（规则模式）                 62 passed / 0 failed；③ skipped (rule mode)
-bash .harness/scripts/e2e-backend.sh（LIVE：gpt-5.6-sol）         62 passed / 0 failed；③a route by model 1；③b 事件序列 == 主链路；⑥ skipped (live mode)
+bash .harness/scripts/e2e-backend.sh（LIVE：用户提供的 OpenAI 兼容端点，模型名与地址不落盘）         62 passed / 0 failed；③a route by model 1；③b 事件序列 == 主链路；⑥ skipped (live mode)
   route 统计（LIVE 一次运行）：source=rule 4 / source=model 1 / source=none 2
 bash .harness/scripts/deploy-verify.sh                           12 passed / 0 failed；selfcheck all OK 5
 node .harness/scripts/e2e-frontend.mjs                           21 passed / 0 failed
@@ -60,3 +60,20 @@ grep 密钥 / 端点 / 模型名                                          全树
 ## 与 spec 的偏差
 - `SelfCheck` 接口 Javadoc 未写「实现必须自己打 `selfcheck: <name> OK`」，e2e 依赖这一约定；建议下一 change 写进 `platform-spi` Javadoc 或改 e2e 只认 Runner 行。
 - `EntityRequirementCheck.check` 的 `domain` 参数只用于选文案；spec 描述一致。
+
+---
+
+# 阶段 4 回修记录（响应 `coding/review/code_review_v2.md`：APPROVED，0 MUST FIX / 5 SHOULD）
+
+| # | 意见 | 处理 | 证据 |
+|---|---|---|---|
+| S1 | Owner 路径只 catch RuntimeException，`Error` 逃逸让占位永久悬挂 | 改 `finally` + `completed` 标志：未 complete 就离开一律 release | `mvn verify` 0；rule / LIVE e2e 各 62/62 |
+| S2 | WARN 打印模型返回串，可能回显用户原文 | 只记录长度 `len={}` | grep `log.warn` 无插值字符串 |
+| S3 | 分类器与规划器各建一套 ChatClient | 共用 `SharedChat` 持有者 Bean。**中间踩坑**：先写成 `Optional<ChatClient>` Bean，Spring 把注入点 `Optional<ChatClient>` 解释为「可选依赖一个 ChatClient Bean」而绕过，LIVE e2e 出现 `LLM enabled` 已打日志但 `planner=rule-based`、③a 红；改为 record 持有者后 LIVE 62/62、`planner=spring-ai` 4 次 | 已写进代码注释 |
+| S4 | `06-backend-module-spec.md` 仍写「先走 DomainRouter（规则）」 | 同步三层路由与实体检查 | — |
+| S5 | `ThreadLocal replayed` + `null` 哨兵可读性 | `pipeline` 返回 `Outcome(response, replayed)` record；`claimOrAwait` 返回 `Optional` | grep `ThreadLocal|return null` 0 |
+| L7 | `change-dir.mjs` CLI 判定在软链下失效、空串退出 0 | `realpathSync` 比较；空结果 exit 2；`change-dir.sh` 加非空守卫 | — |
+| L8 | summary 写 9 task | 改 11 | — |
+| 附带 | `LLM enabled` 日志含 baseUrl（内部网关地址进冻结产物） | 日志只记模型名与 completionsPath | 全树 grep 端点 / key / 模型名 0 命中 |
+
+复验：rule e2e 62/62；LIVE e2e 62/62（`source=model` 1、`planner=spring-ai` 4）；再跑 rule 冻结干净产物；deploy-verify 12/12；e2e-frontend 21/21；`rm -rf */dist && pnpm -C .harness run ci` 四段 0；doctor 0。
