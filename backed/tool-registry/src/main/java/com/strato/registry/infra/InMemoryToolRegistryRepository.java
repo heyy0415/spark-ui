@@ -33,6 +33,11 @@ public class InMemoryToolRegistryRepository implements ToolRegistryRepository {
   }
 
   @Override
+  public List<ToolManifest> findAll() {
+    return store.values().stream().sorted((a, b) -> a.key().compareTo(b.key())).toList();
+  }
+
+  @Override
   public List<ToolManifest> findVersions(String toolId) {
     return store.values().stream()
         .filter(m -> m.toolId().equals(toolId))

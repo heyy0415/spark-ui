@@ -16,8 +16,8 @@
 | # | 阶段 | 状态 | 评审轮次 | 产出 | 时间 |
 |---|---|---|---|---|---|
 | 1 | 需求分析 | DONE（v2.1） | — | spec.md（8 章）, tasks.md（9 task）；用户决策：规则优先 + 模型补位、规划前拦截缺实体、并入前后端评审遗留 8 项 | 2026-09-08 |
-| 2 | 需求评审 | DONE | 2/3 | v1 RR（5 MUST：order 领域拦截规则失效、domains() 无 principal、幂等自检不可注入、e2e ④ 不可通过、freeze 破坏 check-registry；8 SHOULD）→ v2 → v2 **APPROVED**（0 MUST，6 SHOULD 已吸收为 v2.1）。**等待 HITL ②** | 2026-09-08 |
-| 3 | 编码实现 | TODO | — | — | — |
+| 2 | 需求评审 | DONE | 2/3 | v1 RR（5 MUST：order 领域拦截规则失效、domains() 无 principal、幂等自检不可注入、e2e ④ 不可通过、freeze 破坏 check-registry；8 SHOULD）→ v2 → v2 **APPROVED**（0 MUST，6 SHOULD 已吸收为 v2.1）。HITL ② 用户「继续」 | 2026-09-08 |
+| 3 | 编码实现 | IN PROGRESS | — | T01 起 | 2026-09-08 |
 | 4 | 编码评审 | TODO | 0/2 | — | — |
 | 5 | 代码推送 | TODO | — | — | — |
 | 6 | CI 验证 | TODO | — | — | — |

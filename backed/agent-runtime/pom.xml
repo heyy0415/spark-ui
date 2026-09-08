@@ -9,7 +9,7 @@
   </parent>
   <artifactId>agent-runtime</artifactId>
   <name>agent-runtime</name>
-  <!-- 决策面：依赖 spi / contracts；对 registry、gateway 只用其 application 包的用例类（进程内适配，见 infra/inprocess；抽接口 + HTTP 适配为后续 change）；不依赖 domains/* -->
+  <!-- 决策面：依赖 spi / contracts；对 registry、gateway 只用其 api 包公开接口 ToolSearchPort / ToolInvokePort（进程内适配，见 infra/inprocess；HTTP 适配为后续 change）；不依赖 domains/* -->
   <dependencies>
     <dependency><groupId>com.strato</groupId><artifactId>platform-spi</artifactId></dependency>
     <dependency><groupId>com.strato</groupId><artifactId>contracts-java</artifactId></dependency>

@@ -97,8 +97,9 @@ for (const [mod, others] of Object.entries(peers)) {
   for await (const file of walk(src)) {
     const text = await readFile(file, 'utf-8');
     for (const o of others) {
-      const re = new RegExp(`\\bcom\\.strato\\.${o}\\.(infra|domain)\\.`);
-      if (re.test(text)) fail(`${relative(root, file)}: ${mod} must not depend on ${o}'s infra/domain package`);
+      // 三模块之间只允许依赖对方 api 包（project-structure §2）；infra / domain / application 都不行
+      const re = new RegExp(`\\bcom\\.strato\\.${o}\\.(infra|domain|application)\\.`);
+      if (re.test(text)) fail(`${relative(root, file)}: ${mod} must not depend on ${o}'s infra/domain/application package (only api)`);
     }
   }
 }

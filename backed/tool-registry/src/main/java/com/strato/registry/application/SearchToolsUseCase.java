@@ -2,19 +2,21 @@ package com.strato.registry.application;
 
 import com.strato.contracts.model.ToolManifest;
 import com.strato.contracts.model.ToolSearch;
+import com.strato.registry.api.ToolSearchPort;
 import com.strato.registry.domain.DiscoveryPolicy;
 import com.strato.registry.domain.ToolRegistryRepository;
 import com.strato.spi.Principal;
 import com.strato.spi.PrincipalPermissionResolver;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /** 发现用例：按 domain 取候选 → 按 principal 权限与 status 过滤 → 投影为六字段候选。 */
 @Service
-public class SearchToolsUseCase {
+public class SearchToolsUseCase implements ToolSearchPort {
 
   private static final Logger log = LoggerFactory.getLogger(SearchToolsUseCase.class);
 
@@ -24,6 +26,20 @@ public class SearchToolsUseCase {
   public SearchToolsUseCase(ToolRegistryRepository repo, PrincipalPermissionResolver permissions) {
     this.repo = repo;
     this.permissions = permissions;
+  }
+
+  @Override
+  public ToolSearch.Response search(ToolSearch.Request req) {
+    return execute(req);
+  }
+
+  @Override
+  public Set<String> domains(ToolSearch.Principal principal) {
+    Principal p = new Principal(principal.userId(), principal.tenantId());
+    Set<String> perms = permissions.permissionsOf(p);
+    return DiscoveryPolicy.filter(repo.findAll(), perms).stream()
+        .map(ToolManifest::domain)
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   public ToolSearch.Response execute(ToolSearch.Request req) {

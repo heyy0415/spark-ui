@@ -6,6 +6,7 @@ import com.networknt.schema.ValidationMessage;
 import com.strato.contracts.SchemaValidator;
 import com.strato.contracts.model.ToolInvoke;
 import com.strato.contracts.model.ToolManifest;
+import com.strato.gateway.api.ToolInvokePort;
 import com.strato.gateway.domain.ArgsDigest;
 import com.strato.gateway.domain.AuditSink;
 import com.strato.gateway.domain.GatewayException;
@@ -38,7 +39,7 @@ import org.springframework.stereotype.Service;
  * <p>Gateway 不做规划、不选工具；ToolHandler 由 Spring 注入，pom 不依赖任何领域模块。
  */
 @Service
-public class InvokeToolUseCase {
+public class InvokeToolUseCase implements ToolInvokePort {
 
   private static final Logger log = LoggerFactory.getLogger(InvokeToolUseCase.class);
   private static final Set<String> SENSITIVE_KEYS = Set.of("password", "token", "secret", "apiKey");
@@ -77,6 +78,11 @@ public class InvokeToolUseCase {
    * 与 {@link #execute} 相同的管线，但失败不抛异常而是返回契约 tool-invoke.response{status=failed, error.code}。
    * 供进程内调用方（Runtime 端口适配）使用，调用方无需依赖本模块 domain 包的异常类型。
    */
+  @Override
+  public ToolInvoke.Response invoke(ToolInvoke.Request req) {
+    return executeToResponse(req);
+  }
+
   public ToolInvoke.Response executeToResponse(ToolInvoke.Request req) {
     long t0 = System.nanoTime();
     try {

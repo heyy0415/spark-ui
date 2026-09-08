@@ -31,7 +31,7 @@
 
 - 包结构 `api / application / domain / infra`。`domain` 不依赖 Spring、不依赖 Jackson。
 - Controller 只做：参数绑定、校验、调用 application、映射响应。**禁止**在 Controller 写业务逻辑。
-- 跨模块只依赖对方的 `api` 包公开接口或 `application` 包用例类（首期进程内适配的过渡形态，见 spec v3.2）；**禁止**依赖对方 `infra` 与 `domain`。
+- 跨模块只依赖对方的 `api` 包公开接口（`ToolSearchPort` / `ToolInvokePort`）；**禁止**依赖对方 `infra`、`domain`、`application`。`check-module-deps` 机械校验。
 - Agent Runtime 只能通过 `ToolGatewayClient` 接口执行工具，通过 `ToolRegistryClient` 接口发现工具。
 
 ## 5. 错误处理
