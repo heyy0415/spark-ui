@@ -67,8 +67,10 @@ backed/
 ├── agent-runtime/               # 领域路由（规则 → 模型分类）、实体检查、规划、Policy、Run 状态机、SSE 输出
 ├── tool-registry/               # 控制面：Manifest 注册、查询、版本、状态；实现 ToolResolver
 ├── tool-gateway/                # 执行面：鉴权、Schema 校验、路由、超时、审计；注入 List<ToolHandler>
-├── domains/
-│   ├── order-service/           # 模拟领域服务：实现 ToolHandler，携带 tool-manifest 资源
+├── domains/                     # 领域服务：实现 ToolHandler，携带 tool-manifest 与 data/ 种子；
+│   ├── order-service/           #   infra/screen/ 提供 ScreenBuilder（屏）与 ConfirmationRecheck（重校验）
+│   ├── product-service/         #   领域之间互不 import；跨领域读订单只经 platform-spi OrderSnapshotProvider
+│   ├── aftersale-service/
 │   └── refund-service/
 └── app/                         # 可运行装配（首期单进程装配全部模块）
 ```
@@ -82,7 +84,8 @@ tool-gateway  → tool-registry(ToolResolver 接口经 platform-spi) , contracts
 tool-registry → contracts-java , platform-spi
 domains/*     → contracts-java , platform-spi            （实现 ToolHandler；不依赖 gateway / registry / runtime）
 agent-runtime ↛ domains/*     tool-registry ↛ domains/*     tool-gateway ↛ domains/*
-platform-spi、contracts-java ↛ 任何其他模块
+domains/<a>   ↛ domains/<b>                              （源码不得引用 com.strato.domain.<b>，pom 不得依赖兄弟 artifact）
+platform-spi ↛ 任何 com.strato artifact；contracts-java → 仅 platform-spi
 ```
 
 模块内包结构：`api/`（controller / DTO）、`application/`（用例）、`domain/`（实体、规则）、`infra/`（持久化、外部调用）。`domain/` 不依赖 Spring。
@@ -110,3 +113,5 @@ platform-spi、contracts-java ↛ 任何其他模块
 6. `tool-registry` 的 pom 依赖任何 `domains/*` 模块，或暴露转发调用的端点。
 7. 后端 `domain/` 包 import `org.springframework.*`。
 8. 跨端数据结构在 `.harness/contracts/` 中无对应 Schema。
+9. `domains/<a>` 引用 `com.strato.domain.<b>` 或依赖兄弟领域 artifact；领域屏（`infra/screen/`）直读领域数据而不是用 Gateway 输出。
+10. `fronted/packages/core/src/components/**` 出现业务命名组件或 import antd / antd-mobile / react / 本包类型之外的模块（core 组件只能是官方组件映射）。

@@ -25,6 +25,8 @@
 - 执行计划保存在后端 Run 中，**不完整下发**前端；前端只拿到 `actionId` 与不透明 `confirmationToken`。
 - `confirmationToken`：后端签发（HMAC 或随机 + 存储），绑定 `runId`、`actionId`、工具参数摘要、过期时间（默认 10 分钟）、一次性。
 - 用户确认时，后端用 Token 找回原始计划，**重新校验**：权限、金额、订单状态、Token 有效期与未使用。任何一项失败 → 拒绝并结束 Run。
+- 重校验契约化：每个需确认工具必须有领域提供的 `ConfirmationRecheck`（spi）——runtime 经 Gateway 重调其 `recheckToolId`（版本取计划中前置只读步骤），领域 `reject(recheckOutput, shownUi)` 判定（策略留在领域，runtime 只编排），`trustedArgs` 覆盖 formData（键与确认屏 Form 字段互斥）。缺 recheck 或确认屏 → fail-closed `INTERNAL_ERROR`；`ConfirmationCoverageSelfCheck` 在启动时断言 Registry 中全部 `confirmation=required` 工具都被覆盖。
+- 策略拒绝与令牌拒绝同 code（`CONFIRMATION_REJECTED`）但用户文案区分（`RunFailure.userText`）；内部原因只进日志。
 - `risk.level = high` 或 `confirmation = required` 的工具，未经确认**不得**执行。
 - `risk.level = low` 且无副作用的工具可自动执行。
 

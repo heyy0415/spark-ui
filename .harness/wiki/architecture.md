@@ -53,7 +53,7 @@
 app → 全部模块（唯一可依赖 domains/* 的非领域模块）
 agent-runtime → { tool-registry(api), tool-gateway(api) }
 tool-gateway → tool-registry(ToolResolver) ；通过 platform-spi 的 ToolHandler SPI 调用领域实现，pom 不依赖 domains/*
-domains/* → platform-spi , contracts-java（实现 ToolHandler）
+domains/* → platform-spi , contracts-java（实现 ToolHandler、ToolManifestSource、ScreenBuilder、ConfirmationRecheck；互不 import，跨领域读订单经 spi OrderSnapshotProvider）
 所有模块 → contracts-java , platform-spi
 ```
 

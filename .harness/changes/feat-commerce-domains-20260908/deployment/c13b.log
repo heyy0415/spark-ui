@@ -1,0 +1,12 @@
+event:tool.selected
+data:{"runId":"run_5cecd78c60294f96","toolCallId":"tc_000022","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
+
+event:tool.started
+data:{"runId":"run_5cecd78c60294f96","toolCallId":"tc_000022","at":"2026-09-08T12:47:37.819452Z"}
+
+event:tool.completed
+data:{"runId":"run_5cecd78c60294f96","toolCallId":"tc_000022","status":"succeeded","durationMs":0,"summary":"订单 10001 PAID"}
+
+event:run.failed
+data:{"runId":"run_5cecd78c60294f96","code":"CONFIRMATION_REJECTED","message":"订单状态已变化，本次操作未执行","at":"2026-09-08T12:47:37.820298Z"}
+

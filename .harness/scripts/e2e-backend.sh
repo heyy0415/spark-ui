@@ -6,7 +6,9 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$ROOT/.harness/scripts/lib/change-dir.sh"
 P="$ROOT/.harness/scripts/sse-parse.mjs"
 JAVA="$HOME/.jenv/versions/21/bin/java"
-BASE="http://localhost:8080"
+# 端口可用 STRATO_PORT 覆盖（默认 8080；本机另有实例时用 8091 等，脚本会自己起一个）
+PORT="${STRATO_PORT:-8080}"
+BASE="http://localhost:$PORT"
 HDR=(-H 'Content-Type: application/json' -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' -H 'X-Trace-Id: trace_e2e')
 pass=0; fail=0
 # 规则规划器毫秒级；接真实模型时规划 5–15s，SSE 读取超时随之放大
@@ -19,20 +21,20 @@ events() { node "$P" "$1" --events; }
 data() { node "$P" "$1" --data "$2"; }
 
 pkill -f "app/target/app.jar" 2>/dev/null; sleep 1
-owner=$(lsof -tnP -iTCP:8080 -sTCP:LISTEN 2>/dev/null | head -1)
+owner=$(lsof -tnP -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | head -1)
 if [ -n "${owner}" ]; then
-  echo "port 8080 is held by PID ${owner}: $(ps -o command= -p "${owner}" | cut -c1-80)"
-  echo "e2e-backend needs exclusive port 8080; stop that process and rerun."
+  echo "port $PORT is held by PID ${owner}: $(ps -o command= -p "${owner}" | cut -c1-80)"
+  echo "e2e-backend needs exclusive port $PORT; stop that process or set STRATO_PORT, and rerun."
   exit 2
 fi
-(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/backed/app/target/app.jar" > "$DEPLOY/backend.log" 2>&1 &)
+(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/backed/app/target/app.jar" --server.port="$PORT" > "$DEPLOY/backend.log" 2>&1 &)
 for i in $(seq 1 40); do sleep 1; grep -q "selfcheck: running" "$DEPLOY/backend.log" 2>/dev/null && break; grep -q "Application run failed" "$DEPLOY/backend.log" 2>/dev/null && break; done; sleep 2
 if grep -q "Application run failed" "$DEPLOY/backend.log"; then echo "BOOT FAILED"; grep -m1 -A2 "Application run failed" "$DEPLOY/backend.log"; exit 1; fi
 echo "boot: ready after ${i}s"
 
 echo "--- selfchecks"
-PLAN_CHECK="plan 3 steps, step3 requiresConfirmation OK"; [ "$LIVE_LLM" = 1 ] && PLAN_CHECK="plan skipped (live LLM"
-for s in "contracts 9 schemas, 20 examples OK" "refund.create idempotent OK" "$PLAN_CHECK" "invalid toolId rejected OK" "token expired/replayed/digest-mismatch/extra-key rejected OK" "gateway idempotency claim OK"; do
+PLAN_CHECK="plan 5 messages OK"; [ "$LIVE_LLM" = 1 ] && PLAN_CHECK="plan skipped (live LLM"
+for s in "contracts 9 schemas, 26 examples OK" "refund.create idempotent OK" "$PLAN_CHECK" "invalid toolId rejected OK" "missing prerequisite rejected OK" "intent verbs reference registered tools OK" "token expired/replayed/digest-mismatch/extra-key rejected OK" "gateway idempotency claim OK" "confirmation coverage OK" "inline actions OK"; do
   check "selfcheck: $s" 1 "$(grep -v SelfCheckRunner "$DEPLOY/backend.log" | grep -c "selfcheck: $s")"
 done
 
@@ -79,7 +81,7 @@ curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" --data @"$
 check "event sequence" "run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required" "$(events "$DEPLOY/run_events.log")"
 RUNID=$(data "$DEPLOY/run_events.log" run.started | json "d['runId']")
 TOKEN=$(data "$DEPLOY/run_events.log" ui.replace | json "[a for a in d['ui']['actions'] if a['id']=='confirm-refund'][0]['confirmationToken']")
-check "ui.replace components" "['OrderCard', 'RefundConfirmCard', 'Form']" "$(data "$DEPLOY/run_events.log" ui.replace | json "[c['type'] for c in d['ui']['components']]")"
+check "ui.replace components" "['Card', 'Card', 'Form']" "$(data "$DEPLOY/run_events.log" ui.replace | json "[c['type'] for c in d['ui']['components']]")"
 echo "  runId=$RUNID token=${TOKEN:0:14}…"
 
 echo "--- §6.2.10a GET run-summary（等待确认中）"
@@ -89,7 +91,7 @@ check "state" WAITING_CONFIRMATION "$(json "d['state']" < "$DEPLOY/run_summary_w
 echo "--- §6.2.9 confirm"
 curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$RUNID/actions/confirm-refund" "${HDR[@]}" -d "{\"confirmationToken\":\"$TOKEN\",\"formData\":{\"reason\":\"DAMAGED\"}}" > "$DEPLOY/confirm_events.log"
 check "event sequence" "tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace run.completed" "$(events "$DEPLOY/confirm_events.log")"
-check "result components" "['ResultCard']" "$(data "$DEPLOY/confirm_events.log" ui.replace | json "[c['type'] for c in d['ui']['components']]")"
+check "result components" "['Result']" "$(data "$DEPLOY/confirm_events.log" ui.replace | json "[c['type'] for c in d['ui']['components']]")"
 
 echo "--- §6.2.10b GET run-summary（完成后）"
 curl -s "$BASE/agent/runs/$RUNID" -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' > "$DEPLOY/run_summary_done.json"
@@ -102,7 +104,7 @@ check "code" CONFIRMATION_REJECTED "$(data "$DEPLOY/replay_events.log" run.faile
 check "refund.create succeeded audit lines" 1 "$(grep -c 'toolId=refund.create .*status=succeeded' "$DEPLOY/backend.log")"
 
 echo "--- §6.2.12b formData 注入白名单外键（amount）"
-curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_002","message":"这个订单退款","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10002"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","ResultCard","ConfirmationCard","OrderCard","RefundConfirmCard"]}}' > "$DEPLOY/run2_events.log"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_002","message":"这个订单退款","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10002"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","Result","Timeline"]}}' > "$DEPLOY/run2_events.log"
 R2=$(data "$DEPLOY/run2_events.log" run.started | json "d['runId']"); T2=$(data "$DEPLOY/run2_events.log" ui.replace | json "[a for a in d['ui']['actions'] if a['id']=='confirm-refund'][0]['confirmationToken']")
 curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$R2/actions/confirm-refund" "${HDR[@]}" -d "{\"confirmationToken\":\"$T2\",\"formData\":{\"reason\":\"DAMAGED\",\"amount\":\"0.01\"}}" > "$DEPLOY/inject_events.log"
 check "code" CONFIRMATION_REJECTED "$(data "$DEPLOY/inject_events.log" run.failed | json "d['code']")"
@@ -113,7 +115,7 @@ echo "--- §6.2.13 refunds for 10001"
 check "refunds.length" 1 "$(gw 10001)"
 
 echo "--- 评审 M2：并发两次确认，Run 仍 COMPLETED 且只有 1 笔退款（订单 10002）"
-curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_m2","message":"这个订单退款","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10002"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","ResultCard","ConfirmationCard","OrderCard","RefundConfirmCard"]}}' > "$DEPLOY/run3_events.log"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_m2","message":"这个订单退款","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10002"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","Result","Timeline"]}}' > "$DEPLOY/run3_events.log"
 R3=$(data "$DEPLOY/run3_events.log" run.started | json "d['runId']"); T3=$(data "$DEPLOY/run3_events.log" ui.replace | json "[a for a in d['ui']['actions'] if a['id']=='confirm-refund'][0]['confirmationToken']")
 BODY3="{\"confirmationToken\":\"$T3\",\"formData\":{\"reason\":\"DAMAGED\"}}"
 curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$R3/actions/confirm-refund" "${HDR[@]}" -d "$BODY3" > "$DEPLOY/m2_a.log" &
@@ -126,7 +128,7 @@ check "run-summary state" COMPLETED "$(curl -s "$BASE/agent/runs/$R3" -H 'X-Tena
 check "refunds for 10002" 1 "$(gw 10002)"
 
 echo "--- 评审 M3：执行金额 == 确认屏展示金额"
-SHOWN=$(data "$DEPLOY/run_events.log" ui.replace | json "[c for c in d['ui']['components'] if c['type']=='RefundConfirmCard'][0]['props']['amount']")
+SHOWN=$(data "$DEPLOY/run_events.log" ui.replace | json "[i for i in [c for c in d['ui']['components'] if c['id']=='refund-summary'][0]['props']['items'] if i['label']=='退款金额'][0]['value']")
 EXECUTED=$(data "$DEPLOY/confirm_events.log" ui.replace | json "[x for x in d['ui']['components'][0]['props']['details'] if x['label']=='退款金额'][0]['value']")
 check "shown amount" 128.00 "$SHOWN"; check "executed amount non-empty" 1 "$([ -n "$EXECUTED" ] && echo 1 || echo 0)"; check "executed amount equals shown" "$SHOWN" "$EXECUTED"
 
@@ -147,7 +149,7 @@ check "② events" "run.started message.delta run.completed" "$(events "$DEPLOY/
 
 echo "--- 意图路由 ③：模型补位（仅 LIVE）"
 if [ "$LIVE_LLM" = 1 ]; then
-  curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_r3","message":"我想把钱要回来","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10002"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","ResultCard","ConfirmationCard","OrderCard","RefundConfirmCard"]}}' > "$DEPLOY/route3_events.log"
+  curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_r3","message":"我想把钱要回来","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10002"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","Result","Timeline"]}}' > "$DEPLOY/route3_events.log"
   R3=$(data "$DEPLOY/route3_events.log" run.started | json "d['runId']")
   check "③a route by model" 1 "$(grep -c "route runId=$R3 domain=refund source=model" "$DEPLOY/backend.log")"
   check "③b event sequence" "run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required" "$(events "$DEPLOY/route3_events.log")"
@@ -164,12 +166,100 @@ check "④ succeeded audit exactly once" 1 "$(grep -c 'runId=run_e2eidem .*statu
 check "④ replayed audit exactly once" 1 "$(grep -c 'runId=run_e2eidem .*status=replayed' "$DEPLOY/backend.log")"
 check "④ refunds for 10004" 1 "$(gw 10004)"
 
+CAP='"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","Result","Timeline"]}'
+run_msg() { curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d "{\"conversationId\":\"$1\",\"message\":\"$2\",$CAP}" > "$DEPLOY/$1.log"; }
+types() { data "$DEPLOY/$1.log" ui.replace | json "[c['type'] for c in d['ui']['components']]"; }
+comp() { data "$DEPLOY/$1.log" ui.replace | json "[c for c in d['ui']['components'] if c['id']=='$2'][0]['props']$3"; }
+submit_id() { data "$DEPLOY/$1.log" ui.replace | json "[a for a in d['ui']['actions'] if a['type']=='submit'][0]['id']"; }
+token_of() { data "$DEPLOY/$1.log" ui.replace | json "[a for a in d['ui']['actions'] if a['type']=='submit'][0]['confirmationToken']"; }
+runid_of() { data "$DEPLOY/$1.log" run.started | json "d['runId']"; }
+confirm_run() { # $1 case  $2 formData json  $3 out-name
+  curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$(runid_of "$1")/actions/$(submit_id "$1")" "${HDR[@]}" -d "{\"confirmationToken\":\"$(token_of "$1")\",\"formData\":$2}" > "$DEPLOY/$3.log"; }
+gwc() { # $1 toolId $2 version $3 args $4 userId
+  curl -s -o /tmp/gwc.json -w '%{http_code}' -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -d "{\"toolId\":\"$1\",\"toolVersion\":\"$2\",\"arguments\":$3,\"executionContext\":{\"runId\":\"run_e2e_gw\",\"toolCallId\":\"tc_$RANDOM\",\"userId\":\"${4:-user_001}\",\"tenantId\":\"tenant_001\",\"idempotencyKey\":\"e2e-$RANDOM$RANDOM\"}}"; }
+
+echo "--- ⑦ 看看我的订单 → Table 20 / 30"
+run_msg c7 "看看我的订单"
+check "⑦ events" "run.started tool.selected tool.started tool.completed ui.replace run.completed" "$(events "$DEPLOY/c7.log")"
+check "⑦ types" "['Table']" "$(types c7)"
+T7() { data "$DEPLOY/c7.log" ui.replace | json "$1"; }
+check "⑦ rows/total/first" "20/30/10030" "$(T7 "(lambda p: f\"{len(p['rows'])}/{p['total']}/{p['rows'][0]['id']}\")([c for c in d['ui']['components'] if c['id']=='orders'][0]['props'])")"
+check "⑦ row 10029 has 删除订单 intent" 1 "$(T7 "sum(1 for x in [c for c in d['ui']['components'] if c['id']=='orders'][0]['props']['rows'][1]['actions'] if x['label']=='删除订单' and '10029' in x['intent'])")"
+
+echo "--- ⑧ 查看订单 10002 的物流 → Card + Timeline"
+run_msg c8 "查看订单 10002 的物流"
+check "⑧ tool" order.logistics.get "$(data "$DEPLOY/c8.log" tool.selected | json "d['toolId']")"
+check "⑧ types" "['Card', 'Timeline']" "$(types c8)"
+check "⑧ timeline ≥ 3" 1 "$(data "$DEPLOY/c8.log" ui.replace | json "1 if len([c for c in d['ui']['components'] if c['id']=='logistics-events'][0]['props']['items'])>=3 else 0")"
+check "⑧ card has 运单号" 1 "$(data "$DEPLOY/c8.log" ui.replace | json "sum(1 for i in [c for c in d['ui']['components'] if c['id']=='logistics'][0]['props']['items'] if i['label']=='运单号')")"
+
+echo "--- ⑨ 有什么商品 → Table 20 / 20"
+run_msg c9 "有什么商品"
+check "⑨ tool" product.list.search "$(data "$DEPLOY/c9.log" tool.selected | json "d['toolId']")"
+check "⑨ rows/total" "20/20" "$(data "$DEPLOY/c9.log" ui.replace | json "(lambda p: f\"{len(p['rows'])}/{p['total']}\")([c for c in d['ui']['components'] if c['id']=='products'][0]['props'])")"
+
+echo "--- ⑩ 查看商品 P-1003 的详情 → Card"
+run_msg c10 "查看商品 P-1003 的详情"
+check "⑩ types" "['Card']" "$(types c10)"
+check "⑩ title" "无线耳机 Pro" "$(comp c10 product "['title']")"
+
+echo "--- ⑪ 订单 10002 申请售后 → [Card, Form] → 确认 → Result"
+run_msg c11 "订单 10002 申请售后"
+check "⑪ events" "run.started tool.selected tool.started tool.completed ui.replace confirmation.required" "$(events "$DEPLOY/c11.log")"
+check "⑪ tool" aftersale.list.get "$(data "$DEPLOY/c11.log" tool.selected | json "d['toolId']")"
+check "⑪ types" "['Card', 'Form']" "$(types c11)"
+check "⑪ submit id" confirm-aftersale "$(submit_id c11)"
+confirm_run c11 '{"type":"RETURN","reason":"包装破损"}' c11b
+check "⑪ confirm events" "tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace run.completed" "$(events "$DEPLOY/c11b.log")"
+check "⑪ result types" "['Result']" "$(types c11b)"
+gwc aftersale.list.get 1.0.0 '{"orderId":"10002"}' >/dev/null; check "⑪ aftersale.list.get 10002" 1 "$(json "len(d['output']['items'])" < /tmp/gwc.json)"
+
+echo "--- ⑫ 删除订单 10005 → [Card] danger 无 Form → 确认 {} → Result → total 29"
+run_msg c12 "删除订单 10005"
+check "⑫ types" "['Card']" "$(types c12)"
+check "⑫ last item tone" danger "$(comp c12 order "['items'][-1]['tone']")"
+check "⑫ submit id" confirm-delete "$(submit_id c12)"
+confirm_run c12 '{}' c12b
+check "⑫ result types" "['Result']" "$(types c12b)"
+gwc order.list.search 1.1.0 '{}' >/dev/null; check "⑫ total after delete" 29 "$(json "d['output']['total']" < /tmp/gwc.json)"
+
+echo "--- ⑬ 删除订单 10001（PAID）→ 确认 → CONFIRMATION_REJECTED，order.delete 审计 0"
+run_msg c13 "删除订单 10001"
+check "⑬ confirmation shown" 1 "$(events "$DEPLOY/c13.log" | grep -c 'confirmation.required$')"
+confirm_run c13 '{}' c13b
+check "⑬ code" CONFIRMATION_REJECTED "$(data "$DEPLOY/c13b.log" run.failed | json "d['code']")"
+check "⑬ message" "订单状态已变化，本次操作未执行" "$(data "$DEPLOY/c13b.log" run.failed | json "d['message']")"
+check "⑬ order.delete audit in run" 0 "$(grep -c "audit runId=$(runid_of c13) .*toolId=order.delete" "$DEPLOY/backend.log")"
+echo "--- ⑬' Gateway 直调 order.delete 10001 → 502 HANDLER_ERROR"
+code=$(gwc order.delete 1.0.0 '{"orderId":"10001"}'); check "⑬' http" 502 "$code"; check "⑬' code" INTERNAL_ERROR "$(json "d['code']" < /tmp/gwc.json)"
+check "⑬' audit failed:HANDLER_ERROR" 1 "$([ "$(grep -c 'runId=run_e2e_gw .*toolId=order.delete .*status=failed' "$DEPLOY/backend.log")" -ge 1 ] && echo 1 || echo 0)"
+gwc order.list.search 1.1.0 '{"status":"PAID"}' >/dev/null; check "⑬ 10001 still listed" 1 "$(json "sum(1 for i in d['output']['items'] if i['orderId']=='10001')" < /tmp/gwc.json)"
+
+echo "--- ⑭ user_002 删除订单 10005 → TOOL_SELECTION_INVALID"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" -H 'Content-Type: application/json' -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_002' -d "{\"conversationId\":\"c14\",\"message\":\"删除订单 10005\",$CAP}" > "$DEPLOY/c14.log"
+check "⑭ events" "run.started run.failed" "$(events "$DEPLOY/c14.log")"
+check "⑭ code" TOOL_SELECTION_INVALID "$(data "$DEPLOY/c14.log" run.failed | json "d['code']")"
+
+echo "--- ⑮ 订单 10006 退款（无 pageContext）→ 三步 + 确认 → Result"
+run_msg c15 "订单 10006 退款"
+check "⑮ events" "run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required" "$(events "$DEPLOY/c15.log")"
+check "⑮ types" "['Card', 'Card', 'Form']" "$(types c15)"
+confirm_run c15 '{"reason":"CHANGED_MIND"}' c15b
+check "⑮ confirm events" "tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace run.completed" "$(events "$DEPLOY/c15b.log")"
+check "⑮ result types" "['Result']" "$(types c15b)"
+check "⑮ refunds for 10006" 1 "$(gw 10006)"
+
+echo "--- ⑯ 删除订单（无号码）→ message.delta 友好提示"
+run_msg c16 "删除订单"
+check "⑯ events" "run.started message.delta run.completed" "$(events "$DEPLOY/c16.log")"
+check "⑯ text" 1 "$(data "$DEPLOY/c16.log" message.delta | json "1 if '选择一个订单' in d['text'] else 0")"
+
 echo "--- 意图路由 ⑥：order 领域缺实体 → order.list.search 回退（仅规则模式）"
 if [ "$LIVE_LLM" = 1 ]; then
   echo "  - ⑥ skipped (live mode)"
 else
   curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_r6","message":"订单","clientCapabilities":{"uiSchemaVersion":"1.0","components":["Card","Table"]}}' > "$DEPLOY/route6_events.log"
-  check "⑥ events" "run.started tool.selected tool.started tool.completed run.completed" "$(events "$DEPLOY/route6_events.log")"
+  check "⑥ events" "run.started tool.selected tool.started tool.completed ui.replace run.completed" "$(events "$DEPLOY/route6_events.log")"
   check "⑥ tool" order.list.search "$(data "$DEPLOY/route6_events.log" tool.selected | json "d['toolId']")"
 fi
 

@@ -1,0 +1,27 @@
+event:run.started
+data:{"runId":"run_e4b0c58a05e04f11","conversationId":"conv_m2","at":"2026-09-08T12:47:36.488005Z"}
+
+event:tool.selected
+data:{"runId":"run_e4b0c58a05e04f11","toolCallId":"tc_000007","toolId":"refund.eligibility.check","version":"1.2.0","displayName":"检查退款资格"}
+
+event:tool.started
+data:{"runId":"run_e4b0c58a05e04f11","toolCallId":"tc_000007","at":"2026-09-08T12:47:36.488823Z"}
+
+event:tool.completed
+data:{"runId":"run_e4b0c58a05e04f11","toolCallId":"tc_000007","status":"succeeded","durationMs":0,"summary":"订单满足退款条件"}
+
+event:tool.selected
+data:{"runId":"run_e4b0c58a05e04f11","toolCallId":"tc_000008","toolId":"refund.preview","version":"1.3.0","displayName":"退款试算"}
+
+event:tool.started
+data:{"runId":"run_e4b0c58a05e04f11","toolCallId":"tc_000008","at":"2026-09-08T12:47:36.489841Z"}
+
+event:tool.completed
+data:{"runId":"run_e4b0c58a05e04f11","toolCallId":"tc_000008","status":"succeeded","durationMs":0,"summary":"可退 299.00 元，预计 3 天到账"}
+
+event:ui.replace
+data:{"runId":"run_e4b0c58a05e04f11","ui":{"schemaVersion":"1.0","screenId":"refund-confirmation","title":"确认退款","components":[{"id":"order","type":"Card","props":{"title":"订单 10002","items":[{"label":"商品","value":"订单 10002"},{"label":"金额","value":"299.00 CNY"},{"label":"状态","value":"PAID"}]}},{"id":"refund-summary","type":"Card","props":{"title":"退款信息","items":[{"label":"退款金额","value":"299.00"},{"label":"币种","value":"CNY"},{"label":"退款资格","value":"满足","tone":"success"},{"label":"预计到账","value":"3 天"}]}},{"id":"refund-form","type":"Form","props":{"fields":[{"name":"reason","type":"select","label":"退款原因","required":true,"options":[{"label":"商品破损","value":"DAMAGED"},{"label":"未收到货","value":"NOT_RECEIVED"},{"label":"买错了","value":"CHANGED_MIND"}]}]}}],"actions":[{"id":"confirm-refund","type":"submit","label":"确认退款","style":"danger","confirmationToken":"ct_Uv0J0b8JqZ7vznLi6Rp_ZMfnZpTD6L2M"},{"id":"cancel","type":"cancel","label":"取消","style":"default"}]}}
+
+event:confirmation.required
+data:{"runId":"run_e4b0c58a05e04f11","actionId":"confirm-refund","expiresAt":"2026-09-08T12:57:36.490923Z"}
+

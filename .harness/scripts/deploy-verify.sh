@@ -26,7 +26,7 @@ echo "--- 1. 后端启动与健康"
 (JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/backed/app/target/app.jar" > "$DEPLOY/backend.log" 2>&1 &)
 for i in $(seq 1 40); do sleep 1; curl -sf localhost:8080/actuator/health >/dev/null 2>&1 && break; done
 check "health" '{"status":"UP"}' "$(curl -s localhost:8080/actuator/health)"
-check "selfcheck all OK" 5 "$(grep -c 'SelfCheckRunner.*selfcheck: .* OK' "$DEPLOY/backend.log")"
+check "selfcheck all OK" 7 "$(grep -c 'SelfCheckRunner.*selfcheck: .* OK' "$DEPLOY/backend.log")"
 
 echo "--- 2. 前端预览（vite preview :4173，代理到 8080）"
 (cd "$ROOT/fronted/apps/chat" && pnpm exec vite preview > "$DEPLOY/preview.log" 2>&1 &)

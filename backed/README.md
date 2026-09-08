@@ -8,13 +8,17 @@ Java 21 / Spring Boot 3.5 / Spring AI 1.1 / Maven 多模块，首期单进程装
 
 | 模块 | 职责 | README |
 |---|---|---|
-| `platform-spi` | 接口层：`ToolHandler`、`ToolManifestSource`、`ToolResolver`、`PrincipalPermissionResolver`、`SelfCheck`；零 Spring 依赖 | — |
+| `platform-spi` | 接口层：`ToolHandler`、`ToolManifestSource`、`ToolResolver`、`PrincipalPermissionResolver`、`SelfCheck`、`ScreenBuilder`、`ConfirmationRecheck`、`OrderSnapshotProvider`、`ToolNameSink`、`SeedLoader`、`UiNodes`；零 Spring 依赖 | — |
 | `contracts-java` | 9 个契约的 record DTO + `SchemaValidator`（networknt，契约从 `.harness/contracts/` 构建期复制） | — |
 | `tool-registry` | 注册 / 发现 / 版本；无转发端点 | [README](tool-registry/README.md) |
 | `tool-gateway` | 校验 → 鉴权 → 幂等 → 调用 → 输出校验 → 脱敏 → 审计 | [README](tool-gateway/README.md) |
 | `agent-runtime` | 路由 → 规划 → 编排 → 确认令牌 → SSE | [README](agent-runtime/README.md) |
-| `domains/order-service` | 2 个只读工具，内存数据 | [README](domains/order-service/README.md) |
-| `domains/refund-service` | 4 个工具，`refund.create` 高风险需确认 | [README](domains/refund-service/README.md) |
+| `domains/order-service` | 4 个工具（`order.delete` 高风险需确认），种子数据，`OrderSnapshotProvider` 实现 | [README](domains/order-service/README.md) |
+| `domains/product-service` | 2 个只读工具，种子数据 | [README](domains/product-service/README.md) |
+| `domains/aftersale-service` | 2 个工具（`aftersale.create` 高风险需确认），订单经 spi 快照 | [README](domains/aftersale-service/README.md) |
+| `domains/refund-service` | 4 个工具，`refund.create` 高风险需确认，订单经 spi 快照 | [README](domains/refund-service/README.md) |
+
+每个领域模块还提供 `infra/screen/` 下的 `ScreenBuilder`（结果屏 / 确认屏，只用工具输出）与 `ConfirmationRecheck`（确认后重校验，领域策略）；runtime 只做编排与契约校验。
 | `app` | 唯一装配点：主类、权限表、`SelfCheckRunner` | — |
 
 依赖方向以 `.harness/rules/project-structure.md` §2 为准，`pnpm -C .harness run check-module-deps` 机械校验。

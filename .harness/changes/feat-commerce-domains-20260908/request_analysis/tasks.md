@@ -22,7 +22,7 @@
 - **所属端**：contracts
 - **输入**：spec v3.2 §2.3 / §2.4.1 屏映射表
 - **输出**：schema + 8 示例 + `contracts.md`
-- **验收**：`check-contracts` 9 schema / 23 example ✓；植入 `type:"OrderCard"`、`Table.rows[0]` 缺 `id`、`Card.items[0].tone:"red"`、`intent:"http://x"` 各 → 红；`ContractsSelfCheck` 日志「9 schemas, 23 examples」
+- **验收**：`check-contracts` 9 schema / 26 example ✓；植入 `type:"OrderCard"`、`Table.rows[0]` 缺 `id`、`Card.items[0].tone:"red"`、`intent:"http://x"` 各 → 红；`ContractsSelfCheck` 日志「9 schemas, 26 examples」
 - **依赖**：T01
 
 ### T02a 种子生成器、json、DDL、README
@@ -130,7 +130,7 @@
 ## Phase E — Harness、文档、验收
 
 ### T10a e2e 脚本与既有断言同步
-- **目标**：`e2e-backend.sh` 新增 ⑦–⑯ + ⑬'（spec v3.2 §2.6 断言：组件按 `[Card, Timeline]` / `[Table]` 等 type 列表与 component id；⑫ 确认屏 `[Card]` 末项 `tone==danger` 提交 `{}`；⑬ 审计按 runId 作用域）；既有断言同步清单（spec §2.6）：自检「20 examples」→ 23、§6.2.8 `['Card','Card','Form']`、§6.2.9 / M2 `['Result']`、`SHOWN` 取 `refund-summary.items[label=退款金额]`、plan 自检文案、新增两条自检名、selfcheck 数 → 7（`deploy-verify.sh` 同）、check-registry 5；`e2e-frontend.mjs` 新增 ≥ 8 项（`data-component-id="orders"`、`data-intent="查看订单 10030 的物流"` 等精确定位）+ 3 张截图。
+- **目标**：`e2e-backend.sh` 新增 ⑦–⑯ + ⑬'（spec v3.2 §2.6 断言：组件按 `[Card, Timeline]` / `[Table]` 等 type 列表与 component id；⑫ 确认屏 `[Card]` 末项 `tone==danger` 提交 `{}`；⑬ 审计按 runId 作用域）；既有断言同步清单（spec §2.6）：自检「20 examples」→ 26、§6.2.8 `['Card','Card','Form']`、§6.2.9 / M2 `['Result']`、`SHOWN` 取 `refund-summary.items[label=退款金额]`、plan 自检文案、新增两条自检名、selfcheck 数 → 7（`deploy-verify.sh` 同）、check-registry 5；`e2e-frontend.mjs` 新增 ≥ 8 项（`data-component-id="orders"`、`data-intent="查看订单 10030 的物流"` 等精确定位）+ 3 张截图。
 - **所属端**：harness
 - **输入**：T07b、T09、现两脚本
 - **输出**：两脚本

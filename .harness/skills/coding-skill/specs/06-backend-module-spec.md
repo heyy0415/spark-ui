@@ -39,7 +39,8 @@ public class ToolRegistryController {
 - 日志带 MDC `runId` / `toolCallId`。
 
 ## Agent Runtime 专项
-- 领域路由三层：`DomainRouter`（关键词规则）→ `IntentClassifier`（规则未命中且配置了 LLM 时，只输出该 principal 可见领域的枚举或 none，越界视为 none）→ 无能力路径；`EntityRequirementCheck` 在规划前拦截「候选全需页面实体而上下文缺失」。LLM 只在候选集合内选工具，输出经 Schema 校验，`toolId` 不在候选内即拒绝。
+- 领域路由三层：`DomainRouter`（关键词规则，顺序 refund → aftersale → order → product）→ `IntentClassifier`（规则未命中且配置了 LLM 时，只输出该 principal 可见领域的枚举或 none，越界视为 none）→ 无能力路径。路由后 `EntityExtractor`（消息正则优先、页面实体补位，多类型 map）→ `EntityRequirementCheck` 在规划前拦截「候选全需实体而缺失」。规则规划器 `IntentVerbs`：动词 → 目标工具、目标 → 前置只读步骤；动词命中但目标缺实体 → `MissingEntity` 友好提示。LLM 只在候选集合内选工具，输出经 `ToolSelectionValidator`（候选内、args 在 inputSchema、需确认步骤前置齐全、不填可信参数），`toolId` 不在候选内即拒绝。
+- 屏与重校验不在 runtime：`ScreenRegistry` / `RecheckRegistry` 按 toolId 查领域模块提供的 spi `ScreenBuilder` / `ConfirmationRecheck` Bean；runtime 是 ui-schema 契约校验的唯一点。`displayName` 由 Registry 注册时经 spi `ToolNameSink` 回填。
 - LLM 客户端为 `LlmClient` 端口，`infra` 提供 OpenAI 兼容实现；base URL / key 来自环境变量。
 - Run 状态机：`CREATED → PLANNING → EXECUTING → WAITING_CONFIRMATION → EXECUTING → COMPLETED | FAILED`，迁移幂等。
 - SSE 用 `SseEmitter`，事件结构按 `sse-events.schema.json`。
@@ -57,6 +58,8 @@ public class ToolRegistryController {
 ## 反模式
 - ❌ Controller 内写 if/else 业务分支。
 - ❌ Runtime 模块 pom 依赖 `domains/*`。
+- ❌ runtime 内出现领域词汇的屏 / 策略（`refundConfirmation`、`DeletionPolicy` 之类）；领域模块 `infra/screen/` 调 `OrderSnapshotProvider`（屏只用 Gateway 输出）。
+- ❌ `domains/<a>` import `com.strato.domain.<b>`。
 - ❌ `catch (Exception e) { log.warn(...) }` 然后继续。
 - ❌ 用 `Map<String,Object>` 承载对外 DTO。
 

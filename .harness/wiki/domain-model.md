@@ -56,16 +56,34 @@
 
 组件白名单（5，均为 antd / antd-mobile 官方组件映射）：`Form`、`Card`、`Table`、`Result`、`Timeline`。每个 type 有桌面（antd）与移动（antd-mobile）两套实现，props 相同。
 
-## 首期领域与工具
+## 领域与工具（四领域 12 工具）
 
-| 领域 | 工具 | 风险 | 确认 |
-|---|---|---|---|
-| order | `order.detail.get` | low | never |
-| order | `order.list.search` | low | never |
-| refund | `refund.eligibility.check` | low | never |
-| refund | `refund.preview` | low | never |
-| refund | `refund.create` | high | required |
-| refund | `refund.status.get` | low | never |
+| 领域 | 工具 | 版本 | 风险 | 确认 | 说明 |
+|---|---|---|---|---|---|
+| order | `order.list.search` | 1.1.0 | low | never | createdAt 倒序，默认 20（≤ 50），排除 DELETED |
+| order | `order.detail.get` | 1.1.0 | low | never | 商品行 + 脱敏地址 + 物流概要；DELETED → HANDLER_ERROR |
+| order | `order.logistics.get` | 1.0.0 | low | never | 无物流 → `NOT_SHIPPED, events []` |
+| order | `order.delete` | 1.0.0 | high | required | 软删；`DeletionPolicy`：仅 COMPLETED / CANCELLED / REFUNDED |
+| product | `product.list.search` | 1.0.0 | low | never | keyword（标题 / 描述包含）+ category |
+| product | `product.detail.get` | 1.0.0 | low | never | 含 specs / salesCount |
+| aftersale | `aftersale.list.get` | 1.0.0 | low | never | 带 orderId 时附 `order` 摘要（确认屏用） |
+| aftersale | `aftersale.create` | 1.0.0 | high | required | `AftersalePolicy`：订单 SHIPPED / COMPLETED 且无进行中售后 |
+| refund | `refund.eligibility.check` | 1.2.0 | low | never | |
+| refund | `refund.preview` | 1.3.0 | low | never | |
+| refund | `refund.create` | 2.1.0 | high | required | `EligibilityPolicy`；金额来自重校验 |
+| refund | `refund.status.get` | 1.0.0 | low | never | 不进退款计划 |
+
+### 实体与状态机
+
+- **Order**：`PAID → SHIPPED → COMPLETED`；`PAID → CANCELLED`；`PAID | SHIPPED → REFUNDED`（经退款）；终态 `COMPLETED | CANCELLED | REFUNDED → DELETED`（软删，列表不含、详情报错）。含 `items[]`（Σ 行金额 == 订单金额，加载时校验）、`address{receiver, phoneMasked, region}`、`logistics[]`（seq 连续）。`LogisticsStatus` 派生：无事件 NOT_SHIPPED；COMPLETED 或末条含「签收 / 确认」DELIVERED；末条含「派送」OUT_FOR_DELIVERY；否则 IN_TRANSIT。
+- **Product**：全局目录，无状态机；`stock 0` 为缺货。
+- **Aftersale**：`SUBMITTED → APPROVED → COMPLETED`；`SUBMITTED → REJECTED`；`SUBMITTED | APPROVED → CANCELLED`。进行中 = {SUBMITTED, APPROVED}，每单 ≤ 1。类型 RETURN / EXCHANGE / REPAIR。
+- **Refund**：`SUBMITTED → PROCESSING → COMPLETED | REJECTED`；一单一退。
+- 三条写操作策略都是领域 `domain/` 纯函数，被 handler（第二道保险）与 runtime 确认后的 `ConfirmationRecheck`（第一道）共用；跨领域读订单只经 spi `OrderSnapshotProvider`。
+
+### 种子数据
+
+每领域 `src/main/resources/data/{*.json, schema.sql, README.md}`，由 `.harness/scripts/gen-seed.mjs` 生成、`check-seed.mjs` 校验（键 == DDL 列、外键、金额和、状态-物流、夹具表）。商品 20 / 订单 30（10001–10030，10030 最新）/ 售后 4 / 退款 3。
 
 ## 隐性约束
 

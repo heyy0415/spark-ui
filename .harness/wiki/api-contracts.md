@@ -30,12 +30,18 @@
 
 ## 领域服务（模拟，进程内 ToolHandler，首期不暴露 HTTP）
 
-| 服务 | 实现的工具 |
-|---|---|
-| order-service | `order.detail.get`、`order.list.search` |
-| refund-service | `refund.eligibility.check`、`refund.preview`、`refund.create`、`refund.status.get` |
+| 服务 | 实现的工具 | 屏 / 重校验（spi `ScreenBuilder` / `ConfirmationRecheck`） |
+|---|---|---|
+| order-service | `order.list.search`、`order.detail.get`、`order.logistics.get`、`order.delete` | `OrderScreens`（Table / Card / Timeline / Result）、`OrderDeleteRecheck` |
+| product-service | `product.list.search`、`product.detail.get` | `ProductScreens`（Table / Card） |
+| aftersale-service | `aftersale.list.get`、`aftersale.create` | `AftersaleScreens`（Card + Form / Result）、`AftersaleRecheck` |
+| refund-service | `refund.eligibility.check`、`refund.preview`、`refund.create`、`refund.status.get` | `RefundScreens`（Card + Card + Form / Result）、`RefundRecheck` |
 
-领域服务通过 `platform-spi` 的 `ToolHandler` 被 Gateway 调用；独立部署与 HTTP / MCP 适配为后续 change。
+领域服务通过 `platform-spi` 的 `ToolHandler` 被 Gateway 调用；`ToolManifestSource` 被 Registry 发现（注册时经 `ToolNameSink` 回填 displayName）；屏与重校验由 runtime 的 `ScreenRegistry` / `RecheckRegistry` 按 toolId 查表。领域之间不 import（`check-module-deps`），跨领域读订单只经 spi `OrderSnapshotProvider`。独立部署与 HTTP / MCP 适配为后续 change。
+
+### UI Schema 组件白名单（5，官方组件映射）
+
+`Form` / `Card` / `Table`（`rows[].actions[].intent` 为自然语言行内指令）/ `Result` / `Timeline`；props 全部契约级（`ui-schema.schema.json` if/then）。
 
 ## 错误
 
