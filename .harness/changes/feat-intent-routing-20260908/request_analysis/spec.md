@@ -1,5 +1,6 @@
 # Spec: feat-intent-routing-20260908
 
+> v2.1 — 吸收 `review/spec_review_v2.md`（APPROVED）6 条 SHOULD：S-1 Awaiting 重 claim 改 deadline 循环；S-2 release 只在未 complete 时调用且对已 complete 的 key 为 no-op；S-3 Registry `findAll()` + `domains(principal)` 前移到 T01；S-4/S-5 用例 ⑥ 期望改精确序列且仅规则模式；非目标补「不新增 order 屏」；S-6 e2e selfcheck 按名字追加条目、④ 放在 §6.2.12 之后。
 > v2 — 响应 `review/spec_review_v1.md`（REVISION REQUIRED，M1–M5 / S1–S8）：M1 规则规划器 order 模板增 `order.list.search` 回退；M2 `domains(principal)` 经 DiscoveryPolicy 过滤；M3 幂等自检只测 store + latch；M4 新增种子订单 10004、审计 `replayed` 口径、结果断言；M5 check-registry 正则兼容 freeze；S1 release → completeExceptionally + 重新 claim；S2 entityType 白名单；S3 领域说明表硬编码 + 闲聊判 none；S4 用例 ③ 拆断言；S5 ActionBarProps 放 registry/types；S6 非目标补三项；S7 T04/T07 拆分；S8 IdempotencyStore 删 putIfAbsent 保留 find（自检用）。
 > v1 — 阶段 1 产出。用户已确认三项决策：领域路由采用「规则优先 + 模型补位 + 代码兜底」；用户未选中实体就发起需要实体的操作时「规划前拦截并提示」；并入前端与后端两组评审遗留项。
 
@@ -30,7 +31,7 @@
 - 新端口 `application/port/IntentClassifier`：`Optional<String> classify(String message, Optional<String> entityType)`；返回 `Optional.empty()` 表示 none。
 - 实现：`infra/llm/SpringAiIntentClassifier`（结构化输出 record `{domain}`，`temperature 0`，`internalToolExecutionEnabled(false)`，Prompt 只给领域名与一句话说明（说明表硬编码在 runtime `application/DomainDescriptions`，Registry 返回的领域若无说明则只给名字），明示「与任何领域无关的请求（闲聊、天气、问候等）输出 none」，不给工具列表）；`infra/llm/NoopIntentClassifier`（无 key 时的回退，恒返回 empty，日志不重复 WARN）。
 - `DomainRouter` 保持纯函数不变；新增 `application/DomainResolver` 组合两层并产出 `RouteDecision(domain, source)`，`RunOrchestrator.start` 改为调用它。`RouteDecision.source` 只进日志（`route runId=… domain=… source=rule|model|none`），**不进 SSE**（契约不变）。
-- **安全边界（agent-safety §2 更新）**：分类结果只决定「去 Registry 查哪个领域的候选」；Registry 仍按 tenant / permission 过滤，Gateway 仍逐次鉴权。模型不能发明领域（枚举校验），不能跳过 Registry。`KNOWN_DOMAINS` 来自 Registry：`ToolRegistryClient.domains(principal)` → Registry 侧 `repo` 全部 manifest 经 `DiscoveryPolicy.filter(…, perms)` 后取 `domain` 去重。**带 principal**（agent-safety §2 红线），即「该用户可见的领域集合」；无权领域对该用户直接判 none，不再多一跳 search。
+- **安全边界（agent-safety §2 更新）**：分类结果只决定「去 Registry 查哪个领域的候选」；Registry 仍按 tenant / permission 过滤，Gateway 仍逐次鉴权。模型不能发明领域（枚举校验），不能跳过 Registry。`KNOWN_DOMAINS` 来自 Registry：`ToolRegistryClient.domains(principal)` → Registry 侧新增 `ToolRegistryRepository.findAll()`，全部 manifest 经 `DiscoveryPolicy.filter(…, perms)` 后取 `domain` 去重。**带 principal**（agent-safety §2 红线），即「该用户可见的领域集合」；无权领域对该用户直接判 none，不再多一跳 search。
 - 页面上下文只作为**分类提示**：`selectedEntity.type` 落在实体白名单（首期 `{order}`）时，分类 Prompt 附带「用户正在查看一个订单」；不在白名单则忽略；规则层**不**使用 entityType（避免把"今天天气怎么样"路由进 order）。pageContext 仍不参与任何鉴权决策（agent-safety §4）。
 
 ### 2.2 后端：缺实体上下文的规划前拦截（`agent-runtime`）
@@ -43,7 +44,7 @@
 
 ### 2.3 后端评审遗留项（首期 change N4 / N6）
 
-- **N6 Gateway 幂等改「先占位后填充」**：`IdempotencyStore` 接口重定义为 `Claim claim(tenantId, key)`（`Claim` 为 sealed：`Owner`（本次拿到执行权）/ `Replay(response)`（已有最终结果）/ `Awaiting(future)`（他人执行中））、`complete(tenantId, key, resp)`、`release(tenantId, key)`、保留 `find(tenantId, key)` 供自检断言终态；**删除** `putIfAbsent`（无外部实现者）。`InMemoryIdempotencyStore` 用 `ConcurrentHashMap<String, CompletableFuture<Response>>`。`InvokeToolUseCase` 第 4 步：`Owner` → 执行，成功 `complete`，任何异常 `finally release`；`Replay` → 直接返回，审计 `status=replayed`（仅日志口径，非契约）；`Awaiting` → 等待至多 `execution.timeoutMs`：正常完成 → 返回并审计 `replayed`；`release` 触发的 `completeExceptionally` → **重新 claim 一次**（此时能拿到 `Owner` 自己执行）；超时 → `TIMEOUT`。自检 `GatewayIdempotencySelfCheck` **只测 `IdempotencyStore`**（不经 `InvokeToolUseCase`，避免 handler 表注入问题）：线程 A claim → Owner，`CountDownLatch` 保证线程 B 在 A `complete` 前 claim → Awaiting；A complete 后 B 拿到同一 Response；另一 key：A claim 后 `release`，B 的 Awaiting 收到异常后重新 claim → Owner。日志 `selfcheck: gateway idempotency claim OK`；`SelfCheckRunner` 计数 4 → 5，`deploy-verify.sh` 的期望 4 同步改 5。
+- **N6 Gateway 幂等改「先占位后填充」**：`IdempotencyStore` 接口重定义为 `Claim claim(tenantId, key)`（`Claim` 为 sealed：`Owner`（本次拿到执行权）/ `Replay(response)`（已有最终结果）/ `Awaiting(future)`（他人执行中））、`complete(tenantId, key, resp)`、`release(tenantId, key)`、保留 `find(tenantId, key)` 供自检断言终态；**删除** `putIfAbsent`（无外部实现者）。`InMemoryIdempotencyStore` 用 `ConcurrentHashMap<String, CompletableFuture<Response>>`。`InvokeToolUseCase` 第 4 步：`Owner` → 执行，成功 `complete`，任何异常 `finally release`；`Replay` → 直接返回，审计 `status=replayed`（仅日志口径，非契约）；`Awaiting` → 等待至多 `execution.timeoutMs`：正常完成 → 返回并审计 `replayed`；`release` 触发的 `completeExceptionally` → **在同一 deadline 内循环重新 claim**（拿到 `Owner` 则执行，再次 `Awaiting` 则继续等，deadline 到 → `TIMEOUT`）。`release` **只在未 `complete` 的异常路径**调用，且对已 `complete` 的 key 为 no-op（不会把已完成结果删掉导致重放失效）。自检 `GatewayIdempotencySelfCheck` **只测 `IdempotencyStore`**（不经 `InvokeToolUseCase`，避免 handler 表注入问题）：线程 A claim → Owner，`CountDownLatch` 保证线程 B 在 A `complete` 前 claim → Awaiting；A complete 后 B 拿到同一 Response；另一 key：A claim 后 `release`，B 的 Awaiting 收到异常后重新 claim → Owner；第三条：A complete 后再 `release` 为 no-op，`find` 仍返回结果。日志 `selfcheck: gateway idempotency claim OK`；`SelfCheckRunner` 计数 4 → 5，`deploy-verify.sh` 的期望 4 同步改 5。
 - **N4 Registry / Gateway 抽接口层**：`tool-registry` 新增 `api/ToolSearchPort`（`ToolSearch.Response search(ToolSearch.Request)`），`tool-gateway` 新增 `api/ToolInvokePort`（`ToolInvoke.Response invoke(ToolInvoke.Request)`，失败以 `Response.failed` 返回）；两个 `application` 用例分别实现；`agent-runtime` 的 `InProcess*Client` 改为只依赖这两个接口。`check-module-deps.mjs` 增加规则：runtime 不得 import `com.strato.(registry|gateway).application.`。`project-structure.md` §2「api 包公开接口」措辞恢复为字面成立，`backend-standard.md` §4 去掉「或 application 用例类（过渡）」。
 
 ### 2.3b 种子数据
@@ -65,7 +66,8 @@
   ③（LIVE 才跑，否则打印 `skipped (rule mode)`）「我想把钱要回来」+ `order/10001` → ③a `grep "route runId=<runId> domain=refund source=model"` 恰 1；③b 事件序列 == 首期主链路发起段。
   ④ 订单 10004：两次 `POST /internal/tool-gateway/invoke refund.create`，同 `idempotencyKey=e2e-idem-10004`、`runId=run_e2eidem`、不同 `toolCallId`（`tc_idem1` / `tc_idem2`），第二次紧随第一次（顺序即可，不要求并发）→ 两响应 `output.refundId` 相等；`grep -c 'runId=run_e2eidem .*status=succeeded'` 恰 1；`grep -c 'runId=run_e2eidem .*status=replayed'` 恰 1；`refund.status.get 10004` `refunds.length == 1`。
   ⑤ `grep -c "route runId=.* source=" backend.log` ≥ 3（每条 Run 一行）。
-  ⑥ 「订单」+ 无 `pageContext`（规则模式）→ 事件含 `tool.selected`（`order.list.search`）且到 `run.completed`，不出现 `run.failed`（M1 的 order 回退）。
+  ⑥（仅规则模式；LIVE 下打印 `skipped (live mode)`，因模型可能选其它工具）「订单」+ 无 `pageContext` → 事件恰为 `run.started tool.selected tool.started tool.completed run.completed`，`tool.selected.toolId == order.list.search`。
+  用例顺序：④ 必须放在现有 §6.2.12（令牌重放）之后，避免全文件 `refund.create succeeded` 计数变 2；selfcheck 断言按**名字**追加 `gateway idempotency claim OK` 一条（现脚本是逐名 check，不存在数字 4）。
 - `harness-doctor.mjs` 新检查如 §2.4。
 - `check-module-deps.mjs` 新规则如 §2.3。
 - 文档：`agent-safety.md` §2 第 1 条改为「规则优先、模型补位（只输出领域枚举、经代码校验、不参与鉴权）、代码兜底」；`wiki/architecture.md` 运行链路第 2 步与框图「领域路由（规则）」改「领域路由（规则 → 模型分类）」；`backend-standard.md` §7 增加「分类器与规划器共用同一组 LLM 环境变量」；`backed/README.md` 端点速查下补「意图分类」一节；`06-backend-module-spec.md`（若存在 agent-runtime 段）同步。
@@ -78,6 +80,7 @@
 - **不**做真实 IdP、外置存储、HTTP 适配（Registry / Gateway 仍进程内，本 change 只抽接口）。
 - **不**改 7 个白名单组件视觉；**不**发包；**不**改 catalog 版本。
 - **不**引入分类结果缓存 / 向量检索。
+- **不**为 order 领域新增 UI 屏（`UiSchemaBuilder` 仍只有 refund 确认屏与结果屏）；order 链路 `run.completed` 无 `ui.replace`，前端显示「已完成」，是首期既有行为。
 - **不**新增 `RunFailureCode` / `RunState` 枚举值；**不**改 `NO_CAPABILITY_TEXT` 与现有 `userMessage` 文案；**不**改任何路径的 SSE 事件顺序。
 
 ## 4. 核心场景
@@ -110,7 +113,7 @@
 - [ ] 有 LLM 变量：同脚本全部通过，含 ③；`grep -c "source=model" $DEPLOY/backend.log` ≥ 1。
 - [ ] 用例 ①：`grep -c "audit runId=<该 runId>" backend.log` 为 0；`message.delta.text` 含「选择一个订单」且不含「退钱」；summary `COMPLETED` 无 `failureCode`。
 - [ ] 用例 ④：按 `runId=run_e2eidem` 过滤，`status=succeeded` 恰 1、`status=replayed` 恰 1；两响应 `output.refundId` 相等；`refund.status.get 10004` 恰 1 条。
-- [ ] 用例 ⑥：「订单」无上下文 → `tool.selected` 的 `toolId == order.list.search`，终态 `run.completed`。
+- [ ] 用例 ⑥（规则模式）：事件恰为 `run.started tool.selected tool.started tool.completed run.completed`，`toolId == order.list.search`；LIVE 模式跳过。
 - [ ] 新增 `GatewayIdempotencySelfCheck`（只测 store，latch 控时序）：Owner / Awaiting → 同 Response；release → 重新 claim 为 Owner；启动日志 `selfcheck: gateway idempotency claim OK`；`SelfCheckRunner` `running 5 checks`；`deploy-verify.sh` 与 `e2e-backend.sh` 的 selfcheck 期望改 5。
 - [ ] `grep -rn "System.out\|printStackTrace" backed --include=*.java` 0（沿用）。
 
@@ -141,5 +144,5 @@
 
 ## 8. 假设（非阻塞）
 - `KNOWN_DOMAINS` 取自 Registry 已注册 manifest 的 `domain` 去重集合（首期 = {order, refund}）。
-- 分类器与规划器共用同一 `ChatClient` Bean 与三个环境变量。
+- 分类器与规划器共用同一 `ChatClient` Bean 与三个环境变量。`domains(principal)` 只在模型分类路径调用，规则命中时零额外 Registry 查询。
 - 需实体字段首期只识别 `orderId`；`EntityRequirementCheck` 用 `selectedEntity.type == "order"` 作为满足条件，映射表可扩展但本 change 只有一条。

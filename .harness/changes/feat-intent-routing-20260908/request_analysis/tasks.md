@@ -1,20 +1,21 @@
 # Tasks: feat-intent-routing-20260908
 
+> v2.1 — 吸收评审 v2 SHOULD：T01 增 `ToolRegistryRepository.findAll()` 与 `ToolSearchPort.domains(principal)`（Registry 侧一次成形）；T02 release 语义 + 第三条自检；T07b 用例 ⑥ 仅规则模式、④ 顺序、selfcheck 按名追加；T08 依赖与图一致。
 > v2 — 响应 `review/spec_review_v1.md`：T02 自检只测 store + latch、删 putIfAbsent、deploy-verify 期望 5；T03 `domains(principal)` + 领域说明表 + entityType 白名单；T04 拆 T04a（Resolver / Check）与 T04b（规则规划器模板 + 种子 10004）；T05 含 check-registry 正则 + ActionBarProps 放 registry/types；T07 拆 T07a（doctor）/ T07b（e2e ①–⑥）。11 task。
 > v1。所属端 backed / fronted / harness；contracts 无改动。每个 task ≤ 0.5 天。编码顺序：Phase A（后端接口与幂等，独立可验证）→ Phase B（路由与拦截）→ Phase C（前端遗留）→ Phase D（Harness / 文档）→ T09 全链路。
 
 ## Phase A — 后端评审遗留
 
 ### T01 Registry / Gateway 抽接口层（N4）
-- **目标**：`tool-registry/api/ToolSearchPort`、`tool-gateway/api/ToolInvokePort`（后者失败返回 `Response.failed`，即现 `executeToResponse` 语义）；`SearchToolsUseCase implements ToolSearchPort`、`InvokeToolUseCase implements ToolInvokePort`；`agent-runtime/infra/inprocess/*` 只依赖接口；`check-module-deps.mjs` 增规则「runtime 不得 import `com.strato.(registry|gateway).application.`」；`project-structure.md` §2 / `backend-standard.md` §4 / `agent-runtime/pom.xml` 注释恢复「api 包接口」措辞。
+- **目标**：`tool-registry/api/ToolSearchPort`、`tool-gateway/api/ToolInvokePort`（后者失败返回 `Response.failed`，即现 `executeToResponse` 语义）；`ToolSearchPort` 同时声明 `Set<String> domains(ToolSearch.Principal)`（Javadoc：发现面两个只读查询均按 principal 过滤）；`ToolRegistryRepository` 增 `List<ToolManifest> findAll()`；`SearchToolsUseCase implements ToolSearchPort`（`domains` = `findAll()` 经 `DiscoveryPolicy.filter` 取 domain 去重）、`InvokeToolUseCase implements ToolInvokePort`；`agent-runtime/infra/inprocess/*` 只依赖接口；`check-module-deps.mjs` 增规则「runtime 不得 import `com.strato.(registry|gateway).application.`」；`project-structure.md` §2 / `backend-standard.md` §4 / `agent-runtime/pom.xml` 注释恢复「api 包接口」措辞。
 - **所属端**：backed / harness
 - **输入**：`backed/agent-runtime/src/main/java/com/strato/runtime/infra/inprocess/*.java`、`tool-registry/…/application/SearchToolsUseCase.java`、`tool-gateway/…/application/InvokeToolUseCase.java`、`.harness/scripts/check-module-deps.mjs`
-- **输出**：2 个新接口、3 个改动类、脚本与 3 份文档
+- **输出**：2 个新接口、`ToolRegistryRepository` + 内存实现、3 个改动类、脚本与 3 份文档
 - **验收**：`mvn verify` 0；`grep -rn "\.application\." backed/agent-runtime/src --include=*.java | grep "registry\|gateway"` 0 行；植入 `import com.strato.registry.application.SearchToolsUseCase;` 到 `InProcessToolRegistryClient` → check-module-deps 红，还原绿
 - **依赖**：—
 
 ### T02 Gateway 幂等先占位后填充（N6）
-- **目标**：`IdempotencyStore` 重定义为 `claim → Claim{Owner|Replay|Awaiting}` / `complete` / `release` / `find`，删 `putIfAbsent`；`InMemoryIdempotencyStore` 用 `ConcurrentHashMap<String, CompletableFuture<Response>>`，`release` = `completeExceptionally` + remove；`InvokeToolUseCase.pipeline` 第 4 步按 spec §2.3（Owner 执行 / Replay 与 Awaiting 完成审计 `status=replayed` / Awaiting 异常重新 claim 一次 / 超时 TIMEOUT）。新增 `gateway/infra/selfcheck/GatewayIdempotencySelfCheck`：只测 store，`CountDownLatch` 保证 B 在 A complete 前 claim；覆盖 Owner→Awaiting→同结果 与 release→重新 claim 两条路径。`deploy-verify.sh:29` 与 `e2e-backend.sh` selfcheck 期望 4 → 5。
+- **目标**：`IdempotencyStore` 重定义为 `claim → Claim{Owner|Replay|Awaiting}` / `complete` / `release` / `find`，删 `putIfAbsent`；`InMemoryIdempotencyStore` 用 `ConcurrentHashMap<String, CompletableFuture<Response>>`，`release` = 仅当 future 未完成时 `completeExceptionally` + remove（已 complete 为 no-op）；`InvokeToolUseCase.pipeline` 第 4 步按 spec §2.3（Owner 执行成功 complete、异常路径 release / Replay 与 Awaiting 完成审计 `status=replayed` / Awaiting 异常在 deadline 内循环重 claim / deadline 到 TIMEOUT）。新增 `gateway/infra/selfcheck/GatewayIdempotencySelfCheck`：只测 store，`CountDownLatch` 控时序；三条断言：Owner→Awaiting→同结果；release→重 claim 为 Owner；complete 后 release no-op 且 `find` 仍有结果。`deploy-verify.sh:29` 与 `e2e-backend.sh` selfcheck 期望 4 → 5。
 - **所属端**：backed
 - **输入**：`tool-gateway/…/domain/IdempotencyStore.java`、`infra/InMemoryIdempotencyStore.java`、`application/InvokeToolUseCase.java`、spec §2.3 / §4.5
 - **输出**：上述 3 文件 + 新自检类
@@ -24,10 +25,10 @@
 ## Phase B — 路由与拦截
 
 ### T03 IntentClassifier 端口与两个实现
-- **目标**：`application/port/IntentClassifier`；`infra/llm/SpringAiIntentClassifier`（record `IntentDraft(String domain)`，Prompt：领域枚举 + 一句话说明 + 用户消息（sanitize）+ 可选「用户正在查看一个 {entityType}」；`temperature 0`；`internalToolExecutionEnabled(false)`；解析失败 / 非枚举 → `Optional.empty()` + WARN 不含原文）；`infra/llm/NoopIntentClassifier`；`LlmConfiguration` 按同三个环境变量装配二选一。`ToolRegistryClient` 增 `Set<String> domains(ToolSearch.Principal)`（Registry 侧 = 全部 manifest 经 `DiscoveryPolicy.filter(…, perms)` 后取 `domain` 去重，经 T01 的 `ToolSearchPort` 暴露；接口 Javadoc 写明「发现面两个只读查询均按 principal 过滤」）；`application/DomainDescriptions`（领域 → 一句话说明，硬编码）；分类 Prompt 明示闲聊输出 none；`entityType` 只在白名单 `{order}` 内才附提示。
+- **目标**：`application/port/IntentClassifier`；`infra/llm/SpringAiIntentClassifier`（record `IntentDraft(String domain)`，Prompt：领域枚举 + 一句话说明 + 用户消息（sanitize）+ 可选「用户正在查看一个 {entityType}」；`temperature 0`；`internalToolExecutionEnabled(false)`；解析失败 / 非枚举 → `Optional.empty()` + WARN 不含原文）；`infra/llm/NoopIntentClassifier`；`LlmConfiguration` 按同三个环境变量装配二选一。`ToolRegistryClient` 增 `Set<String> domains(ToolSearch.Principal)`（直接转发 T01 已实现的 `ToolSearchPort.domains`）；`application/DomainDescriptions`（领域 → 一句话说明，硬编码）；分类 Prompt 明示闲聊输出 none；`entityType` 只在白名单 `{order}` 内才附提示。
 - **所属端**：backed
 - **输入**：T01、`infra/llm/{SpringAiLlmClient,PromptBuilder,LlmConfiguration}.java`、spec §2.1 / §4.4
-- **输出**：4 个新类 + `LlmConfiguration`、`ToolRegistryClient`、`ToolSearchPort`、`InProcessToolRegistryClient` 改动
+- **输出**：4 个新类 + `LlmConfiguration`、`ToolRegistryClient`、`InProcessToolRegistryClient` 改动
 - **验收**：`mvn verify` 0；`grep -n "internalToolExecutionEnabled(false)" …/SpringAiIntentClassifier.java` 1；`grep -n "log\.\(info\|warn\)" …/SpringAiIntentClassifier.java | grep -i "message"` 0 行（不落原文）
 - **依赖**：T01
 
@@ -76,7 +77,7 @@
 - **依赖**：—
 
 ### T07b e2e 新用例
-- **目标**：`e2e-backend.sh` 新增 ①②④⑤⑥（两模式）与 ③a/③b（LIVE 才跑，否则 `skipped (rule mode)`）；selfcheck 期望 4 → 5。
+- **目标**：`e2e-backend.sh` 新增 ①②④⑤（两模式）、⑥（仅规则模式，LIVE 打印 `skipped (live mode)`）、③a/③b（仅 LIVE，否则 `skipped (rule mode)`）；④ 放在现有 §6.2.12 之后；selfcheck 循环按名字追加 `gateway idempotency claim OK`。
 - **所属端**：harness
 - **输入**：T02、T04b、`.harness/scripts/e2e-backend.sh`、spec §2.5 / §6.1
 - **输出**：同文件
@@ -86,10 +87,10 @@
 ### T08 文档同步
 - **目标**：`agent-safety.md` §2、`wiki/architecture.md`（框图 + 运行链路第 2 步）、`backend-standard.md` §4 / §7、`project-structure.md` §2、`backed/README.md`（意图分类一节 + 幂等说明）、`backed/agent-runtime/README.md`（若存在）、`06-backend-module-spec.md`（若含 agent-runtime 段）。
 - **所属端**：harness
-- **输入**：T01–T04b 实际产出
+- **输入**：T01–T07b 实际产出
 - **输出**：上述文档
 - **验收**：`grep -n "领域路由（规则）" .harness/wiki/architecture.md` 0；`grep -n "模型补位" .harness/rules/agent-safety.md` ≥ 1；doctor 0
-- **依赖**：T07a、T07b
+- **依赖**：T05、T06、T07a、T07b
 
 ### T09 全链路验收
 - **目标**：规则模式 e2e-backend；有 LLM 变量时再跑一次（用例 ③ 生效，`source=model` ≥ 1）；e2e-frontend；deploy-verify；`rm -rf fronted/*/dist && pnpm -C .harness run ci`。产物写入本 change `deployment/`。
