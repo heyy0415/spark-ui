@@ -28,6 +28,7 @@ public final class RuleBasedLlmClient implements LlmClient {
     Map<String, ToolSearch.ToolCandidate> available = new LinkedHashMap<>();
     req.candidates().forEach(c -> available.put(c.toolId(), c));
 
+    ToolSelectionValidator.preflight(req.message(), req.domain(), req.candidates(), req.entities());
     // 目标工具：动词命中优先；否则按「有该领域实体 → detail，无 → list」
     String target =
         IntentVerbs.target(req.message(), req.domain())

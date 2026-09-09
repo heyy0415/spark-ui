@@ -1,0 +1,145 @@
+boot: ready after 2s
+--- selfchecks
+  ✓ selfcheck: contracts 9 schemas, 26 examples OK: 1
+  ✓ selfcheck: refund.create idempotent OK: 1
+  ✓ selfcheck: plan 5 messages OK: 1
+  ✓ selfcheck: invalid toolId rejected OK: 1
+  ✓ selfcheck: missing prerequisite rejected OK: 1
+  ✓ selfcheck: intent verbs reference registered tools OK: 1
+  ✓ selfcheck: token expired/replayed/digest-mismatch/extra-key rejected OK: 1
+  ✓ selfcheck: gateway idempotency claim OK: 1
+  ✓ selfcheck: confirmation coverage OK: 1
+  ✓ selfcheck: inline actions OK: 1
+--- §6.2.5 Registry search 按权限过滤
+  ✓ user_001 tools: 4
+  ✓ user_002 tools: 3
+  ✓ candidate has exactly 6 fields: 6
+  ✓ search response passes tool-search contract: OK
+--- §6.2.6 重复注册 → 409
+  ✓ http: 409
+  ✓ code: TOOL_VERSION_CONFLICT
+--- §6.2.7 Gateway 缺参 → 400；无权限 → 403
+  ✓ missing orderId http: 400
+  ✓ code: REQUEST_INVALID
+  ✓ user_002 refund.create http: 403
+  ✓ code: FORBIDDEN
+--- 评审 M1：入站请求体按契约校验
+  ✓ intent additionalProperties → 400: 400
+  ✓ code: REQUEST_INVALID
+  ✓ uiSchemaVersion const → 400: 400
+  ✓ formData nested object → 400 (before 404): 400
+  ✓ tool-invoke runId pattern → 400: 400
+  ✓ malformed JSON → 400: 400
+--- §6.2.11 缺身份头 → 401
+  ✓ http: 401
+  ✓ code: UNAUTHENTICATED
+--- §6.2.8 POST /agent/runs
+  ✓ event sequence: run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required
+  ✓ ui.replace components: ['Card', 'Card', 'Form']
+  runId=run_654073acecc641d7 token=ct_DRALQ31NM3M…
+--- §6.2.10a GET run-summary（等待确认中）
+  ✓ state: WAITING_CONFIRMATION
+--- §6.2.9 confirm
+  ✓ event sequence: tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace run.completed
+  ✓ result components: ['Result']
+--- §6.2.10b GET run-summary（完成后）
+  ✓ state: COMPLETED
+--- §6.2.12 令牌重放
+  ✓ events: run.failed
+  ✓ code: CONFIRMATION_REJECTED
+  ✓ refund.create succeeded audit lines: 1
+--- §6.2.12b formData 注入白名单外键（amount）
+  ✓ code: CONFIRMATION_REJECTED
+  ✓ refunds for 10002 (injection must not create): 0
+--- §6.2.13 refunds for 10001
+  ✓ refunds.length: 1
+--- 评审 M2：并发两次确认，Run 仍 COMPLETED 且只有 1 笔退款（订单 10002）
+  ✓ exactly one stream completed: 1
+  ✓ the other stream rejected: 1
+  ✓ run-summary state: COMPLETED
+  ✓ refunds for 10002: 1
+--- 评审 M3：执行金额 == 确认屏展示金额
+  ✓ shown amount: 128.00
+  ✓ executed amount non-empty: 1
+  ✓ executed amount equals shown: 128.00
+--- 意图路由 ①：缺实体拦截（无 pageContext 说「退钱」）
+  ✓ ① events: run.started message.delta run.completed
+  ✓ ① text mentions selecting an order: 1
+  ✓ ① text does not echo user message: 0
+  ✓ ① no gateway audit for this run: 0
+  ✓ ① state COMPLETED without failureCode: COMPLETED-none
+--- 意图路由 ②：entityType=order 但闲聊 → 无能力路径（规则不误路由）
+  ✓ ② events: run.started message.delta run.completed
+--- 意图路由 ③：模型补位（仅 LIVE）
+  - ③ skipped (rule mode)
+--- 幂等 ④：同 idempotencyKey 两次 refund.create（订单 10004）
+  ✓ ④ same refundId: rf_b9c891ad330f
+  ✓ ④ refundId non-empty: 1
+  ✓ ④ succeeded audit exactly once: 1
+  ✓ ④ replayed audit exactly once: 1
+  ✓ ④ refunds for 10004: 1
+--- ⑦ 看看我的订单 → Table 20 / 30
+  ✓ ⑦ events: run.started tool.selected tool.started tool.completed ui.replace run.completed
+  ✓ ⑦ types: ['Table']
+  ✓ ⑦ rows/total/first: 20/30/10030
+  ✓ ⑦ row 10029 has 删除订单 intent: 1
+--- ⑧ 查看订单 10002 的物流 → Card + Timeline
+  ✓ ⑧ tool: order.logistics.get
+  ✓ ⑧ types: ['Card', 'Timeline']
+  ✓ ⑧ timeline ≥ 3: 1
+  ✓ ⑧ card has 运单号: 1
+--- ⑨ 有什么商品 → Table 20 / 20
+  ✓ ⑨ tool: product.list.search
+  ✓ ⑨ rows/total: 20/20
+--- ⑩ 查看商品 P-1003 的详情 → Card
+  ✓ ⑩ types: ['Card']
+  ✓ ⑩ title: 无线耳机 Pro
+--- ⑪ 订单 10002 申请售后 → [Card, Form] → 确认 → Result
+  ✓ ⑪ events: run.started tool.selected tool.started tool.completed ui.replace confirmation.required
+  ✓ ⑪ tool: aftersale.list.get
+  ✓ ⑪ types: ['Card', 'Form']
+  ✓ ⑪ submit id: confirm-aftersale
+  ✓ ⑪ confirm events: tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace run.completed
+  ✓ ⑪ result types: ['Result']
+  ✓ ⑪ aftersale.list.get 10002: 1
+--- ⑫ 删除订单 10005 → [Card] danger 无 Form → 确认 {} → Result → total 29
+  ✓ ⑫ types: ['Card']
+  ✓ ⑫ last item tone: danger
+  ✓ ⑫ submit id: confirm-delete
+  ✓ ⑫ result types: ['Result']
+  ✓ ⑫ total after delete: 29
+--- ⑬ 删除订单 10001（PAID）→ 确认 → CONFIRMATION_REJECTED，order.delete 审计 0
+  ✓ ⑬ confirmation shown: 1
+  ✓ ⑬ code: CONFIRMATION_REJECTED
+  ✓ ⑬ message: 订单状态已变化，本次操作未执行
+  ✓ ⑬ order.delete audit in run: 0
+--- ⑬' Gateway 直调 order.delete 10001 → 502 HANDLER_ERROR
+  ✓ ⑬' http: 502
+  ✓ ⑬' code: INTERNAL_ERROR
+  ✓ ⑬' audit failed:HANDLER_ERROR: 1
+  ✓ ⑬ 10001 still listed: 1
+--- ⑭ user_002 删除订单 10005 → TOOL_SELECTION_INVALID
+  ✓ ⑭ events: run.started run.failed
+  ✓ ⑭ code: TOOL_SELECTION_INVALID
+--- ⑮ 订单 10006 退款（无 pageContext）→ 三步 + 确认 → Result
+  ✓ ⑮ events: run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required
+  ✓ ⑮ types: ['Card', 'Card', 'Form']
+  ✓ ⑮ confirm events: tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace run.completed
+  ✓ ⑮ result types: ['Result']
+  ✓ ⑮ refunds for 10006: 1
+--- ⑯ 删除订单（无号码）→ message.delta 友好提示
+  ✓ ⑯ events: run.started message.delta run.completed
+  ✓ ⑯ text: 1
+--- 意图路由 ⑥：order 领域缺实体 → order.list.search 回退（仅规则模式）
+  ✓ ⑥ events: run.started tool.selected tool.started tool.completed ui.replace run.completed
+  ✓ ⑥ tool: order.list.search
+--- 无能力路径
+  ✓ events: run.started message.delta run.completed
+--- 其他
+  ✓ unknown runId → 404: 404
+  ✓ §6.2.14 audit fields: 9
+  ✓ §6.2.15 user text in log: 0
+  ✓ ERROR lines: 0
+  ✓ ⑤ route decisions logged: 1
+
+e2e-backend: 107 passed, 0 failed

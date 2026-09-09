@@ -1,24 +1,24 @@
 event:tool.selected
-data:{"runId":"run_e6df28f0c9a04ce5","toolCallId":"tc_000016","toolId":"aftersale.list.get","version":"1.0.0","displayName":"查询售后单"}
+data:{"runId":"run_2111d7c98d9741ed","toolCallId":"tc_000016","toolId":"aftersale.list.get","version":"1.0.0","displayName":"查询售后单"}
 
 event:tool.started
-data:{"runId":"run_e6df28f0c9a04ce5","toolCallId":"tc_000016","at":"2026-09-08T12:47:37.408983Z"}
+data:{"runId":"run_2111d7c98d9741ed","toolCallId":"tc_000016","at":"2026-09-09T03:19:09.218404Z"}
 
 event:tool.completed
-data:{"runId":"run_e6df28f0c9a04ce5","toolCallId":"tc_000016","status":"succeeded","durationMs":0,"summary":"该订单有 0 条售后记录"}
+data:{"runId":"run_2111d7c98d9741ed","toolCallId":"tc_000016","status":"succeeded","durationMs":0,"summary":"该订单有 0 条售后记录"}
 
 event:tool.selected
-data:{"runId":"run_e6df28f0c9a04ce5","toolCallId":"tc_000017","toolId":"aftersale.create","version":"1.0.0","displayName":"申请售后"}
+data:{"runId":"run_2111d7c98d9741ed","toolCallId":"tc_000017","toolId":"aftersale.create","version":"1.0.0","displayName":"申请售后"}
 
 event:tool.started
-data:{"runId":"run_e6df28f0c9a04ce5","toolCallId":"tc_000017","at":"2026-09-08T12:47:37.410279Z"}
+data:{"runId":"run_2111d7c98d9741ed","toolCallId":"tc_000017","at":"2026-09-09T03:19:09.219687Z"}
 
 event:tool.completed
-data:{"runId":"run_e6df28f0c9a04ce5","toolCallId":"tc_000017","status":"succeeded","durationMs":0,"summary":"售后单 AS-34b7f2777f 已提交"}
+data:{"runId":"run_2111d7c98d9741ed","toolCallId":"tc_000017","status":"succeeded","durationMs":0,"summary":"售后单 AS-331ce3cf10 已提交"}
 
 event:ui.replace
-data:{"runId":"run_e6df28f0c9a04ce5","ui":{"schemaVersion":"1.0","screenId":"aftersale-result","title":"售后申请已提交","components":[{"id":"result","type":"Result","props":{"status":"success","title":"售后申请已提交","description":"我们会在 1-2 个工作日内审核，请留意通知。","details":[{"label":"售后单号","value":"AS-34b7f2777f"},{"label":"订单号","value":"10002"},{"label":"类型","value":"RETURN"},{"label":"状态","value":"SUBMITTED"}]}}],"actions":[]}}
+data:{"runId":"run_2111d7c98d9741ed","ui":{"schemaVersion":"1.0","screenId":"aftersale-result","title":"售后申请已提交","components":[{"id":"result","type":"Result","props":{"status":"success","title":"售后申请已提交","description":"我们会在 1-2 个工作日内审核，请留意通知。","details":[{"label":"售后单号","value":"AS-331ce3cf10"},{"label":"订单号","value":"10002"},{"label":"类型","value":"RETURN"},{"label":"状态","value":"SUBMITTED"}]}}],"actions":[]}}
 
 event:run.completed
-data:{"runId":"run_e6df28f0c9a04ce5","at":"2026-09-08T12:47:37.411322Z"}
+data:{"runId":"run_2111d7c98d9741ed","at":"2026-09-09T03:19:09.220875Z"}
 

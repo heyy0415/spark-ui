@@ -11,24 +11,27 @@ check() { if [ "$2" = "$3" ]; then echo "  ✓ $1: $3"; pass=$((pass+1)); else e
 cleanup() { pkill -f "app/target/app.jar" 2>/dev/null; pkill -f "vite preview" 2>/dev/null; }
 trap cleanup EXIT
 cleanup; sleep 1
-# 前置：8080 / 4173 不得被本脚本之外的进程占用（如 IDEA 里手动启动的后端）。否则会误对着别人的实例、别人的内存状态验收。
-for port in 8080 4173; do
+# 后端端口可用 STRATO_PORT 覆盖（默认 8080）；vite preview 经 STRATO_BACKEND 代理到它
+PORT="${STRATO_PORT:-8080}"
+export STRATO_BACKEND="http://localhost:$PORT"
+# 前置：后端端口 / 4173 不得被本脚本之外的进程占用（如 IDEA 里手动启动的后端）。否则会误对着别人的实例、别人的内存状态验收。
+for port in "$PORT" 4173; do
   owner=$(lsof -tnP -iTCP:$port -sTCP:LISTEN 2>/dev/null | head -1)
   if [ -n "$owner" ]; then
     cmd=$(ps -o command= -p "${owner}" | cut -c1-80)
     echo "port ${port} is held by PID ${owner}: ${cmd}"
-    echo "deploy-verify needs exclusive ports; stop that process (IDEA stop button, or kill ${owner}) and rerun."
+    echo "deploy-verify needs exclusive ports; stop that process (IDEA stop button, or kill ${owner}) or set STRATO_PORT, and rerun."
     exit 2
   fi
 done
 
 echo "--- 1. 后端启动与健康"
-(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/backed/app/target/app.jar" > "$DEPLOY/backend.log" 2>&1 &)
-for i in $(seq 1 40); do sleep 1; curl -sf localhost:8080/actuator/health >/dev/null 2>&1 && break; done
-check "health" '{"status":"UP"}' "$(curl -s localhost:8080/actuator/health)"
+(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/backed/app/target/app.jar" --server.port="$PORT" > "$DEPLOY/backend.log" 2>&1 &)
+for i in $(seq 1 40); do sleep 1; curl -sf "localhost:$PORT/actuator/health" >/dev/null 2>&1 && break; done
+check "health" '{"status":"UP"}' "$(curl -s "localhost:$PORT/actuator/health")"
 check "selfcheck all OK" 7 "$(grep -c 'SelfCheckRunner.*selfcheck: .* OK' "$DEPLOY/backend.log")"
 
-echo "--- 2. 前端预览（vite preview :4173，代理到 8080）"
+echo "--- 2. 前端预览（vite preview :4173，代理到 ${PORT}）"
 (cd "$ROOT/fronted/apps/chat" && pnpm exec vite preview > "$DEPLOY/preview.log" 2>&1 &)
 for i in $(seq 1 20); do sleep 1; curl -sf localhost:4173/ >/dev/null 2>&1 && break; done
 check "preview /" 200 "$(curl -s -o /dev/null -w '%{http_code}' localhost:4173/)"

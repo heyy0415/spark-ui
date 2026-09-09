@@ -4,10 +4,12 @@ import { defineConfig } from 'vite';
 
 const abs = (p: string): string => fileURLToPath(new URL(p, import.meta.url));
 
+// 后端地址可用 STRATO_BACKEND 覆盖（默认 8080；验收脚本在 8080 被占用时用 8091 等自起实例）
+const backend = process.env['STRATO_BACKEND'] ?? 'http://localhost:8080';
 const proxy = {
   // 只代理 API 前缀；SPA 路由本身留给前端
-  '/agent/runs': { target: 'http://localhost:8080', changeOrigin: true },
-  '/actuator': { target: 'http://localhost:8080', changeOrigin: true },
+  '/agent/runs': { target: backend, changeOrigin: true },
+  '/actuator': { target: backend, changeOrigin: true },
 };
 
 /**

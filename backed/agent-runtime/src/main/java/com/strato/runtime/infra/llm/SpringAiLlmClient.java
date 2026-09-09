@@ -30,6 +30,8 @@ public final class SpringAiLlmClient implements LlmClient {
 
   @Override
   public Plan plan(PlanRequest req) {
+    // 与规则模式一致的确定性前置：动词命中的目标工具不在候选（如无权用户说「删除」）→ 不调模型，直接 TOOL_SELECTION_INVALID
+    ToolSelectionValidator.preflight(req.message(), req.domain(), req.candidates(), req.entities());
     RunFailure last = null;
     for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
@@ -48,6 +50,9 @@ public final class SpringAiLlmClient implements LlmClient {
                 .call()
                 .entity(LlmPlanDraft.class);
         return ToolSelectionValidator.validate(draft, req.domain(), req.candidates(), displayNames);
+      } catch (MissingEntity e) {
+        // 目标工具缺必填实体：编排器走友好提示，不重试、不当传输错误
+        throw e;
       } catch (RunFailure e) {
         last = e;
         log.warn(
@@ -55,6 +60,10 @@ public final class SpringAiLlmClient implements LlmClient {
             attempt,
             MAX_ATTEMPTS,
             e.getMessage());
+      } catch (RuntimeException e) {
+        // 传输 / 上游错误：异常消息含网关地址，不得进日志与 SSE；只保留类名，不带 cause
+        throw new RunFailure(
+            "INTERNAL_ERROR", "llm transport failure: " + e.getClass().getSimpleName());
       }
     }
     throw last;

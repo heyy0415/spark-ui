@@ -1,9 +1,9 @@
 event:run.started
-data:{"runId":"run_0af6125c16dd423c","conversationId":"c16","at":"2026-09-08T12:47:38.228608Z"}
+data:{"runId":"run_d9e97a175d194e6e","conversationId":"c16","at":"2026-09-09T03:19:10.127697Z"}
 
 event:message.delta
-data:{"runId":"run_0af6125c16dd423c","text":"请先选择一个订单"}
+data:{"runId":"run_d9e97a175d194e6e","text":"请先选择一个订单"}
 
 event:run.completed
-data:{"runId":"run_0af6125c16dd423c","at":"2026-09-08T12:47:38.229246Z"}
+data:{"runId":"run_d9e97a175d194e6e","at":"2026-09-09T03:19:10.128323Z"}
 

@@ -12,7 +12,8 @@ BASE="http://localhost:$PORT"
 HDR=(-H 'Content-Type: application/json' -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' -H 'X-Trace-Id: trace_e2e')
 pass=0; fail=0
 # 规则规划器毫秒级；接真实模型时规划 5–15s，SSE 读取超时随之放大
-if [ -n "${STRATO_LLM_API_KEY:-}" ]; then SSE_T=60; LIVE_LLM=1; else SSE_T=8; LIVE_LLM=0; fi
+# 真模型单次规划实测 5–70s（含网关抖动重试），SSE 读取超时给到 90s
+if [ -n "${STRATO_LLM_API_KEY:-}" ]; then SSE_T=90; LIVE_LLM=1; else SSE_T=8; LIVE_LLM=0; fi
 check() { # $1 name  $2 expected  $3 actual
   if [ "$2" = "$3" ]; then echo "  ✓ $1: $3"; pass=$((pass+1)); else echo "  ✗ $1: expected [$2] got [$3]"; fail=$((fail+1)); fi
 }
@@ -272,6 +273,12 @@ check "unknown runId → 404" 404 "$(curl -s -o /dev/null -w '%{http_code}' -X P
 check "§6.2.14 audit fields" 9 "$(grep -m1 'audit runId=' "$DEPLOY/backend.log" | grep -o '[a-zA-Z]*=' | wc -l | tr -d ' ')"
 check "§6.2.15 user text in log" 0 "$(grep -c '帮我把这个订单退款' "$DEPLOY/backend.log")"
 check "ERROR lines" 0 "$(grep -c ' ERROR ' "$DEPLOY/backend.log")"
+if [ "$LIVE_LLM" = 1 ]; then
+  # 冻结产物红线：LLM 网关地址与密钥不得出现在日志（Spring 异常消息会带完整 URL，靠 RetryTemplate 监听器与规划器包装拦住）
+  LLM_HOST=$(printf '%s' "${STRATO_LLM_BASE_URL:-}" | sed -E 's#^[a-z]+://##; s#[/:].*$##')
+  check "LIVE: LLM host not in log" 0 "$(grep -c -- "$LLM_HOST" "$DEPLOY/backend.log")"
+  check "LIVE: LLM key not in log" 0 "$(grep -c -- "$STRATO_LLM_API_KEY" "$DEPLOY/backend.log")"
+fi
 check "⑤ route decisions logged" 1 "$([ "$(grep -c 'route runId=.* source=' "$DEPLOY/backend.log")" -ge 3 ] && echo 1 || echo 0)"
 
 pkill -f "app/target/app.jar"

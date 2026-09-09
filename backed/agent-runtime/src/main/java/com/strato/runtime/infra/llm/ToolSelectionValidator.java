@@ -30,6 +30,37 @@ public final class ToolSelectionValidator {
 
   private ToolSelectionValidator() {}
 
+  /**
+   * 规划前的确定性检查（两种模式共用，spec §2.4.3）：消息动词命中目标工具时——① 目标不在候选内（权限过滤掉了）→
+   * TOOL_SELECTION_INVALID，不让模型退化成「只做只读步骤」；② 目标必填实体缺失（如无号码的「删除订单」）→ MissingEntity，
+   * 编排器走友好提示。模型只在这两条都通过后才被调用。
+   */
+  public static void preflight(
+      String message,
+      String domain,
+      List<ToolSearch.ToolCandidate> candidates,
+      Map<String, String> entities) {
+    IntentVerbs.target(message, domain)
+        .ifPresent(
+            target -> {
+              ToolSearch.ToolCandidate c =
+                  candidates.stream()
+                      .filter(x -> x.toolId().equals(target))
+                      .findFirst()
+                      .orElseThrow(
+                          () ->
+                              new RunFailure(
+                                  "TOOL_SELECTION_INVALID",
+                                  "target tool not in candidates: " + target));
+              for (var n : c.inputSchema().path("required")) {
+                String type = EntityRequirementCheck.ENTITY_ARGS.get(n.asText());
+                if (type != null && !entities.containsKey(type)) {
+                  throw new LlmClient.MissingEntity(type);
+                }
+              }
+            });
+  }
+
   public static Plan validate(
       LlmPlanDraft draft,
       String domain,

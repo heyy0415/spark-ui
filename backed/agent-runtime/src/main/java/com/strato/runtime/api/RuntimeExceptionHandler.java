@@ -14,6 +14,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 
 /** Runtime 端点错误映射（spec §4.2 HTTP 表）。 */
 @RestControllerAdvice(basePackageClasses = AgentRunController.class)
@@ -68,6 +69,12 @@ public class RuntimeExceptionHandler {
         .body(
             ErrorResponse.of(
                 ErrorResponse.Code.REQUEST_INVALID, "request body unreadable", traceId()));
+  }
+
+  /** SSE 客户端已断开后容器再写响应：不是服务端错误，响应也已不可用，只记 debug。 */
+  @ExceptionHandler(AsyncRequestNotUsableException.class)
+  public void clientGone(AsyncRequestNotUsableException e) {
+    log.debug("sse client gone: {}", e.getMessage());
   }
 
   @ExceptionHandler(Exception.class)

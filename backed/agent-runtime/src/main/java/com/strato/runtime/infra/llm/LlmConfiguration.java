@@ -3,6 +3,7 @@ package com.strato.runtime.infra.llm;
 import com.strato.runtime.application.ToolDisplayNames;
 import com.strato.runtime.application.port.IntentClassifier;
 import com.strato.runtime.application.port.LlmClient;
+import java.time.Duration;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +13,10 @@ import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.retry.RetryCallback;
+import org.springframework.retry.RetryContext;
+import org.springframework.retry.RetryListener;
+import org.springframework.retry.support.RetryTemplate;
 
 /**
  * LLM 装配。三个环境变量任一缺失 → RuleBasedLlmClient 并 WARN（backend-standard §7）。 不使用 Spring AI 的自动配置 starter
@@ -50,7 +55,8 @@ public class LlmConfiguration {
             .apiKey(apiKey)
             .completionsPath(completionsPath(baseUrl))
             .build();
-    OpenAiChatModel chatModel = OpenAiChatModel.builder().openAiApi(api).build();
+    OpenAiChatModel chatModel =
+        OpenAiChatModel.builder().openAiApi(api).retryTemplate(fastFailRetry()).build();
     // 只记录模型名与路径形态，不记录 baseUrl（内部网关地址不进日志 / 冻结产物）
     log.info(
         "LLM enabled: spring-ai openai-compatible model={} completionsPath={}",
@@ -74,6 +80,29 @@ public class LlmConfiguration {
     return chat.client()
         .<IntentClassifier>map(c -> new SpringAiIntentClassifier(c, model))
         .orElseGet(NoopIntentClassifier::new);
+  }
+
+  /**
+   * 替换 Spring AI 默认 RetryTemplate（10 次、指数退避到 3 分钟，且监听器把含 baseUrl 的异常全文打进日志）： 上游抖动时最多重试 1 次、退避
+   * 500ms，让一次规划在秒级内失败而不是拖到 SSE 客户端超时；监听器只记异常类名，不记消息（消息含网关地址）。
+   */
+  static RetryTemplate fastFailRetry() {
+    return RetryTemplate.builder()
+        .maxAttempts(2)
+        .fixedBackoff(Duration.ofMillis(500))
+        .retryOn(RuntimeException.class)
+        .withListener(
+            new RetryListener() {
+              @Override
+              public <T, E extends Throwable> void onError(
+                  RetryContext ctx, RetryCallback<T, E> cb, Throwable t) {
+                log.warn(
+                    "LLM call failed attempt={} cause={}",
+                    ctx.getRetryCount(),
+                    t.getClass().getSimpleName());
+              }
+            })
+        .build();
   }
 
   /**
