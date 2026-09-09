@@ -14,4 +14,4 @@
 1252 /Users/fangtao/strato_ui/fronted/packages/core/dist/chunks/Table-Ctk43Pn-.js
 9504 /Users/fangtao/strato_ui/fronted/packages/core/dist/index.js
 ## backed
-36198446 /Users/fangtao/strato_ui/backed/app/target/app.jar
+36198749 /Users/fangtao/strato_ui/backed/app/target/app.jar

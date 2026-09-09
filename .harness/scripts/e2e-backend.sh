@@ -35,8 +35,8 @@ if grep -q "Application run failed" "$DEPLOY/backend.log"; then echo "BOOT FAILE
 echo "boot: ready after ${i}s"
 
 echo "--- selfchecks"
-PLAN_CHECK="plan 5 messages OK"; [ "$LIVE_LLM" = 1 ] && PLAN_CHECK="plan skipped (live LLM"
-for s in "contracts 9 schemas, 26 examples OK" "refund.create idempotent OK" "$PLAN_CHECK" "invalid toolId rejected OK" "missing prerequisite rejected OK" "intent verbs reference registered tools OK" "token expired/replayed/digest-mismatch/extra-key rejected OK" "gateway idempotency claim OK" "confirmation coverage OK" "inline actions OK"; do
+PLAN_CHECK="plan 6 messages OK"; [ "$LIVE_LLM" = 1 ] && PLAN_CHECK="plan skipped (live LLM"
+for s in "contracts 9 schemas, 26 examples OK" "refund.create idempotent OK" "$PLAN_CHECK" "invalid toolId rejected OK" "missing prerequisite rejected OK" "foreign entity arg rejected OK" "intent verbs reference registered tools OK" "token expired/replayed/digest-mismatch/extra-key rejected OK" "gateway idempotency claim OK" "confirmation coverage OK" "inline actions OK"; do
   check "selfcheck: $s" 1 "$(grep -v SelfCheckRunner "$DEPLOY/backend.log" | grep -c "selfcheck: $s")"
 done
 

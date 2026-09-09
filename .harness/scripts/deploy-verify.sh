@@ -11,7 +11,7 @@ check() { if [ "$2" = "$3" ]; then echo "  ✓ $1: $3"; pass=$((pass+1)); else e
 # 后端端口可用 STRATO_PORT 覆盖（默认 8080）；vite preview 经 STRATO_BACKEND 代理到它
 PORT="${STRATO_PORT:-8080}"
 # 只清理本脚本自己起的实例（带 --server.port=$PORT）与 4173 预览，不碰 IDE 里手动启动的
-cleanup() { pkill -f "app/target/app.jar --server.port=$PORT" 2>/dev/null; pkill -f "vite preview" 2>/dev/null; }
+cleanup() { pkill -f "app/target/app.jar --server.port=$PORT" 2>/dev/null; pkill -f "vite preview --port 4173 --strictPort" 2>/dev/null; }
 trap cleanup EXIT
 cleanup; sleep 1
 export STRATO_BACKEND="http://localhost:$PORT"
@@ -33,7 +33,7 @@ check "health" '{"status":"UP"}' "$(curl -s "localhost:$PORT/actuator/health")"
 check "selfcheck all OK" 7 "$(grep -c 'SelfCheckRunner.*selfcheck: .* OK' "$DEPLOY/backend.log")"
 
 echo "--- 2. 前端预览（vite preview :4173，代理到 ${PORT}）"
-(cd "$ROOT/fronted/apps/chat" && pnpm exec vite preview > "$DEPLOY/preview.log" 2>&1 &)
+(cd "$ROOT/fronted/apps/chat" && pnpm exec vite preview --port 4173 --strictPort > "$DEPLOY/preview.log" 2>&1 &)
 for i in $(seq 1 20); do sleep 1; curl -sf localhost:4173/ >/dev/null 2>&1 && break; done
 check "preview /" 200 "$(curl -s -o /dev/null -w '%{http_code}' localhost:4173/)"
 check "preview proxies /actuator/health" 200 "$(curl -s -o /dev/null -w '%{http_code}' localhost:4173/actuator/health)"

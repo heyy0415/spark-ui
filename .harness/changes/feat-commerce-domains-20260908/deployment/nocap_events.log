@@ -1,9 +1,9 @@
 event:run.started
-data:{"runId":"run_07a95f642f0249ae","conversationId":"conv_003","at":"2026-09-09T08:35:36.963359Z"}
+data:{"runId":"run_2d3adbcc72d1405a","conversationId":"conv_003","at":"2026-09-09T10:43:18.059119Z"}
 
 event:message.delta
-data:{"runId":"run_07a95f642f0249ae","text":"当前没有可用能力处理该请求"}
+data:{"runId":"run_2d3adbcc72d1405a","text":"当前没有可用能力处理该请求"}
 
 event:run.completed
-data:{"runId":"run_07a95f642f0249ae","at":"2026-09-09T08:35:36.963853Z"}
+data:{"runId":"run_2d3adbcc72d1405a","at":"2026-09-09T10:43:18.059600Z"}
 

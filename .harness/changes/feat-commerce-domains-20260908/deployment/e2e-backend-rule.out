@@ -2,9 +2,10 @@ boot: ready after 2s
 --- selfchecks
   ✓ selfcheck: contracts 9 schemas, 26 examples OK: 1
   ✓ selfcheck: refund.create idempotent OK: 1
-  ✓ selfcheck: plan 5 messages OK: 1
+  ✓ selfcheck: plan 6 messages OK: 1
   ✓ selfcheck: invalid toolId rejected OK: 1
   ✓ selfcheck: missing prerequisite rejected OK: 1
+  ✓ selfcheck: foreign entity arg rejected OK: 1
   ✓ selfcheck: intent verbs reference registered tools OK: 1
   ✓ selfcheck: token expired/replayed/digest-mismatch/extra-key rejected OK: 1
   ✓ selfcheck: gateway idempotency claim OK: 1
@@ -36,7 +37,7 @@ boot: ready after 2s
 --- §6.2.8 POST /agent/runs
   ✓ event sequence: run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required
   ✓ ui.replace components: ['Card', 'Card', 'Form']
-  runId=run_7555275d3c814fe2 token=ct_BqMF79PiJYR…
+  runId=run_451459fd23fc465c token=ct_SvxAWMU9BY0…
 --- §6.2.10a GET run-summary（等待确认中）
   ✓ state: WAITING_CONFIRMATION
 --- §6.2.9 confirm
@@ -74,7 +75,7 @@ boot: ready after 2s
 --- 意图路由 ③：模型补位（仅 LIVE）
   - ③ skipped (rule mode)
 --- 幂等 ④：同 idempotencyKey 两次 refund.create（订单 10004）
-  ✓ ④ same refundId: rf_611bd7d61b1b
+  ✓ ④ same refundId: rf_4d10839d3853
   ✓ ④ refundId non-empty: 1
   ✓ ④ succeeded audit exactly once: 1
   ✓ ④ replayed audit exactly once: 1
@@ -143,4 +144,4 @@ boot: ready after 2s
   ✓ ERROR lines: 0
   ✓ ⑤ route decisions logged: 1
 
-e2e-backend: 108 passed, 0 failed
+e2e-backend: 109 passed, 0 failed

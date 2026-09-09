@@ -232,6 +232,32 @@ for (const name of skillNames) {
   if (bad === 0) ok('L1 antd constraint consistent across CLAUDE.md / AGENTS.md / platform-owner.md');
 }
 
+// 冻结产物 / 报告 / 评审卫生（评审 N-5）：changes/** 任何文件不得含密钥形态字面量或内部 LLM 网关域名。
+// 模式用拼接构造，避免本文件自命中；只认形态，不依赖 LIVE 环境变量（rule 模式 / doctor 也生效）。
+{
+  const secretShapes = [
+    new RegExp('sk-' + '[A-Za-z0-9_-]{16,}'),
+    new RegExp('sss' + 'aiapi\\.com'),
+    new RegExp('gpt-' + '\\d(\\.\\d)?-[a-z]+'),
+  ];
+  const changesRoot = join(H, 'changes');
+  let hits = 0;
+  if (existsSync(changesRoot)) {
+    const walk = async (dir) => {
+      for (const e of await readdir(dir, { withFileTypes: true })) {
+        const p = join(dir, e.name);
+        if (e.isDirectory()) await walk(p);
+        else if (/\.(md|log|json|out|txt)$/.test(e.name)) {
+          const text = await readFile(p, 'utf-8').catch(() => '');
+          for (const re of secretShapes) if (re.test(text)) { err(`secret-shaped literal in ${p.replace(root + '/', '')} (${re.source.slice(0, 12)}…)`); hits++; break; }
+        }
+      }
+    };
+    await walk(changesRoot);
+  }
+  if (hits === 0) ok('changes/** free of secret-shaped literals (LLM key / gateway host / model name)');
+}
+
 // changes
 const changesDir = join(H, 'changes');
 if (existsSync(changesDir)) {

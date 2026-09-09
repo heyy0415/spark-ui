@@ -10,7 +10,7 @@ import com.strato.spi.ToolHandler;
 import java.math.RoundingMode;
 import org.springframework.stereotype.Component;
 
-/** refund.eligibility.check@1.2.0 */
+/** refund.eligibility.check@1.3.0：资格判定 + 订单摘要（确认屏渲染订单 Card 用）。 */
 @Component
 public class RefundEligibilityCheckHandler implements ToolHandler {
 

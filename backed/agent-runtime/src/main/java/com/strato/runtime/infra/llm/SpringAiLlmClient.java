@@ -61,8 +61,11 @@ public final class SpringAiLlmClient implements LlmClient {
             attempt,
             MAX_ATTEMPTS,
             e.getMessage());
-      } catch (org.springframework.web.client.RestClientException e) {
-        // 传输 / 上游错误：异常消息含网关地址，不得进日志与 SSE；只保留类名，不带 cause
+      } catch (org.springframework.web.client.RestClientException
+          | org.springframework.ai.retry.TransientAiException
+          | org.springframework.ai.retry.NonTransientAiException e) {
+        // 传输 / 上游 HTTP 错误（含 Spring AI 对 4xx / 5xx 的包装，它们不继承 RestClientException）：
+        // 异常消息含网关地址与响应体，不得进日志与 SSE；只保留类名，不带 cause
         throw new RunFailure(
             "INTERNAL_ERROR", "llm transport failure: " + e.getClass().getSimpleName());
       } catch (RuntimeException e) {

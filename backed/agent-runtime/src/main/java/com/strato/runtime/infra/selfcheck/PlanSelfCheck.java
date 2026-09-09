@@ -51,7 +51,13 @@ public class PlanSelfCheck implements com.strato.spi.SelfCheck {
               "删除订单 10005",
               Map.of("order", "10005"),
               List.of("order.detail.get", "order.delete")),
-          new Case("product", "有什么商品", Map.of(), List.of("product.list.search")));
+          new Case("product", "有什么商品", Map.of(), List.of("product.list.search")),
+          // 评审 S-3：路由领域内的动词优先（「退货」在售后表更靠前，但路由到 refund 就该选 refund.create）
+          new Case(
+              "refund",
+              "订单 10002 退货退款",
+              Map.of("order", "10002"),
+              List.of("refund.eligibility.check", "refund.preview", "refund.create")));
 
   private final LlmClient llm;
   private final ToolRegistryClient registry;
@@ -98,7 +104,7 @@ public class PlanSelfCheck implements com.strato.spi.SelfCheck {
           throw new IllegalStateException("confirmation flag wrong for " + last.toolId());
         }
       }
-      log.info("selfcheck: plan 5 messages OK");
+      log.info("selfcheck: plan 6 messages OK");
     } else {
       log.info("selfcheck: plan skipped (live LLM {}), validator check only", llm.name());
     }
@@ -110,7 +116,8 @@ public class PlanSelfCheck implements com.strato.spi.SelfCheck {
               List.of(new LlmPlanDraft.DraftStep("refund.delete.everything", Map.of()))),
           "refund",
           refund,
-          names);
+          names,
+          Map.of());
       throw new IllegalStateException("validator accepted a toolId outside candidates");
     } catch (RunFailure expected) {
       log.info("selfcheck: invalid toolId rejected OK");
@@ -126,6 +133,20 @@ public class PlanSelfCheck implements com.strato.spi.SelfCheck {
       throw new IllegalStateException("validator accepted confirmation step without prerequisites");
     } catch (RunFailure expected) {
       log.info("selfcheck: missing prerequisite rejected OK");
+    }
+    try {
+      // 评审 S-5：模型把实体参数换成别的订单号必须被拒
+      ToolSelectionValidator.validate(
+          new LlmPlanDraft(
+              List.of(new LlmPlanDraft.DraftStep("refund.status.get", Map.of("orderId", "10009")))),
+          "refund",
+          refund,
+          names,
+          Map.of("order", "10001"));
+      throw new IllegalStateException(
+          "validator accepted an entity arg that differs from recognized entity");
+    } catch (RunFailure expected) {
+      log.info("selfcheck: foreign entity arg rejected OK");
     }
   }
 

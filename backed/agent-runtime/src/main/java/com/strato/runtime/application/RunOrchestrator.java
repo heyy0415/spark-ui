@@ -345,7 +345,14 @@ public class RunOrchestrator {
     // 合并 formData（键已在 consume 中校验为白名单内），值转字符串；可信参数由重校验结果覆盖
     Map<String, String> args = new LinkedHashMap<>(step.fixedArgs());
     formData.forEach((k, v) -> args.put(k, String.valueOf(v)));
-    args.putAll(rc.trustedArgs(recheck));
+    Map<String, String> trusted = rc.trustedArgs(recheck);
+    if (!rc.trustedArgKeys().containsAll(trusted.keySet())) {
+      // 领域实现声明与产出不一致：声明用于自检互斥，产出用于覆盖，两者必须一致
+      throw new RunFailure(
+          RunFailureCode.INTERNAL_ERROR.name(),
+          "trustedArgs keys not declared by trustedArgKeys for " + step.toolId());
+    }
+    args.putAll(trusted);
     JsonNode created;
     try {
       created = invoke(run, step.toolId(), step.version(), args, traceId, sink, "step");

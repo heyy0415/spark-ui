@@ -1,18 +1,18 @@
 event:run.started
-data:{"runId":"run_608a912f1db44199","conversationId":"c13","at":"2026-09-09T08:35:36.364099Z"}
+data:{"runId":"run_3324b9634a094ccb","conversationId":"c13","at":"2026-09-09T10:43:17.462852Z"}
 
 event:tool.selected
-data:{"runId":"run_608a912f1db44199","toolCallId":"tc_000021","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
+data:{"runId":"run_3324b9634a094ccb","toolCallId":"tc_000021","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
 
 event:tool.started
-data:{"runId":"run_608a912f1db44199","toolCallId":"tc_000021","at":"2026-09-09T08:35:36.364770Z"}
+data:{"runId":"run_3324b9634a094ccb","toolCallId":"tc_000021","at":"2026-09-09T10:43:17.463551Z"}
 
 event:tool.completed
-data:{"runId":"run_608a912f1db44199","toolCallId":"tc_000021","status":"succeeded","durationMs":0,"summary":"订单 10001 PAID"}
+data:{"runId":"run_3324b9634a094ccb","toolCallId":"tc_000021","status":"succeeded","durationMs":0,"summary":"订单 10001 PAID"}
 
 event:ui.replace
-data:{"runId":"run_608a912f1db44199","ui":{"schemaVersion":"1.0","screenId":"delete-confirmation","title":"确认删除订单","components":[{"id":"order","type":"Card","props":{"title":"订单 10001","items":[{"label":"商品","value":"精品咖啡豆 500g"},{"label":"件数","value":"1"},{"label":"金额","value":"128.00 CNY"},{"label":"状态","value":"PAID"},{"label":"提示","value":"删除后订单将从列表消失，不可恢复","tone":"danger"}]}}],"actions":[{"id":"confirm-delete","type":"submit","label":"确认删除","style":"danger","confirmationToken":"ct_c0OMFn9K_zhTQqEhzPvvoEVYQLzc6GW_"},{"id":"cancel","type":"cancel","label":"取消","style":"default"}]}}
+data:{"runId":"run_3324b9634a094ccb","ui":{"schemaVersion":"1.0","screenId":"delete-confirmation","title":"确认删除订单","components":[{"id":"order","type":"Card","props":{"title":"订单 10001","items":[{"label":"商品","value":"精品咖啡豆 500g"},{"label":"件数","value":"1"},{"label":"金额","value":"128.00 CNY"},{"label":"状态","value":"PAID"},{"label":"提示","value":"删除后订单将从列表消失，不可恢复","tone":"danger"}]}}],"actions":[{"id":"confirm-delete","type":"submit","label":"确认删除","style":"danger","confirmationToken":"ct_wBkFtq57r95rLgU4ePWCp45rSFz7FnKk"},{"id":"cancel","type":"cancel","label":"取消","style":"default"}]}}
 
 event:confirmation.required
-data:{"runId":"run_608a912f1db44199","actionId":"confirm-delete","expiresAt":"2026-09-09T08:45:36.365639Z"}
+data:{"runId":"run_3324b9634a094ccb","actionId":"confirm-delete","expiresAt":"2026-09-09T10:53:17.464401Z"}
 

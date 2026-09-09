@@ -1,24 +1,24 @@
 event:tool.selected
-data:{"runId":"run_ea018d294e444950","toolCallId":"tc_000025","toolId":"refund.eligibility.check","version":"1.3.0","displayName":"检查退款资格"}
+data:{"runId":"run_882aa147c59e4d59","toolCallId":"tc_000025","toolId":"refund.eligibility.check","version":"1.3.0","displayName":"检查退款资格"}
 
 event:tool.started
-data:{"runId":"run_ea018d294e444950","toolCallId":"tc_000025","at":"2026-09-09T08:35:36.779014Z"}
+data:{"runId":"run_882aa147c59e4d59","toolCallId":"tc_000025","at":"2026-09-09T10:43:17.876852Z"}
 
 event:tool.completed
-data:{"runId":"run_ea018d294e444950","toolCallId":"tc_000025","status":"succeeded","durationMs":0,"summary":"订单满足退款条件"}
+data:{"runId":"run_882aa147c59e4d59","toolCallId":"tc_000025","status":"succeeded","durationMs":0,"summary":"订单满足退款条件"}
 
 event:tool.selected
-data:{"runId":"run_ea018d294e444950","toolCallId":"tc_000026","toolId":"refund.create","version":"2.1.0","displayName":"创建退款"}
+data:{"runId":"run_882aa147c59e4d59","toolCallId":"tc_000026","toolId":"refund.create","version":"2.1.0","displayName":"创建退款"}
 
 event:tool.started
-data:{"runId":"run_ea018d294e444950","toolCallId":"tc_000026","at":"2026-09-09T08:35:36.779813Z"}
+data:{"runId":"run_882aa147c59e4d59","toolCallId":"tc_000026","at":"2026-09-09T10:43:17.877673Z"}
 
 event:tool.completed
-data:{"runId":"run_ea018d294e444950","toolCallId":"tc_000026","status":"succeeded","durationMs":0,"summary":"退款单 rf_8d7dbfd677be 已提交"}
+data:{"runId":"run_882aa147c59e4d59","toolCallId":"tc_000026","status":"succeeded","durationMs":0,"summary":"退款单 rf_b6193e0056f9 已提交"}
 
 event:ui.replace
-data:{"runId":"run_ea018d294e444950","ui":{"schemaVersion":"1.0","screenId":"refund-result","title":"退款已提交","components":[{"id":"result","type":"Result","props":{"status":"success","title":"退款已提交","description":"退款 88.00 元将在 1-3 个工作日内原路退回。","details":[{"label":"订单号","value":"10006"},{"label":"退款单号","value":"rf_8d7dbfd677be"},{"label":"退款金额","value":"88.00"}]}}],"actions":[]}}
+data:{"runId":"run_882aa147c59e4d59","ui":{"schemaVersion":"1.0","screenId":"refund-result","title":"退款已提交","components":[{"id":"result","type":"Result","props":{"status":"success","title":"退款已提交","description":"退款 88.00 元将在 1-3 个工作日内原路退回。","details":[{"label":"订单号","value":"10006"},{"label":"退款单号","value":"rf_b6193e0056f9"},{"label":"退款金额","value":"88.00"}]}}],"actions":[]}}
 
 event:run.completed
-data:{"runId":"run_ea018d294e444950","at":"2026-09-09T08:35:36.780569Z"}
+data:{"runId":"run_882aa147c59e4d59","at":"2026-09-09T10:43:17.878517Z"}
 

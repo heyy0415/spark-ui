@@ -61,15 +61,7 @@ public final class ToolSelectionValidator {
             });
   }
 
-  public static Plan validate(
-      LlmPlanDraft draft,
-      String domain,
-      List<ToolSearch.ToolCandidate> candidates,
-      ToolDisplayNames displayNames) {
-    return validate(draft, domain, candidates, displayNames, Map.of());
-  }
-
-  /** entities 非空时：实体类参数（orderId / productId）的值必须等于已识别实体，模型不得换成别的 ID。 */
+  /** 实体类参数（orderId / productId）的值必须等于已识别实体，模型不得换成别的 ID；未识别的实体一律不得出现在参数里。 */
   public static Plan validate(
       LlmPlanDraft draft,
       String domain,

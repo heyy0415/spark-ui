@@ -5,6 +5,7 @@ boot: ready after 2s
   ✓ selfcheck: plan skipped (live LLM: 1
   ✓ selfcheck: invalid toolId rejected OK: 1
   ✓ selfcheck: missing prerequisite rejected OK: 1
+  ✓ selfcheck: foreign entity arg rejected OK: 1
   ✓ selfcheck: intent verbs reference registered tools OK: 1
   ✓ selfcheck: token expired/replayed/digest-mismatch/extra-key rejected OK: 1
   ✓ selfcheck: gateway idempotency claim OK: 1
@@ -36,7 +37,7 @@ boot: ready after 2s
 --- §6.2.8 POST /agent/runs
   ✓ event sequence: run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required
   ✓ ui.replace components: ['Card', 'Card', 'Form']
-  runId=run_4e7979d0b45742d9 token=ct_D8CIz6HB1sI…
+  runId=run_52baf7adf8a34460 token=ct_znMI-NDcGPM…
 --- §6.2.10a GET run-summary（等待确认中）
   ✓ state: WAITING_CONFIRMATION
 --- §6.2.9 confirm
@@ -75,7 +76,7 @@ boot: ready after 2s
   ✓ ③a route by model: 1
   ✓ ③b event sequence: run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required
 --- 幂等 ④：同 idempotencyKey 两次 refund.create（订单 10004）
-  ✓ ④ same refundId: rf_dfb3dce390e6
+  ✓ ④ same refundId: rf_64a5aa693d26
   ✓ ④ refundId non-empty: 1
   ✓ ④ succeeded audit exactly once: 1
   ✓ ④ replayed audit exactly once: 1
@@ -148,4 +149,4 @@ boot: ready after 2s
   ✓ LIVE: LLM key not in log: 0
   ✓ ⑤ route decisions logged: 1
 
-e2e-backend: 113 passed, 0 failed
+e2e-backend: 114 passed, 0 failed

@@ -139,3 +139,33 @@ pnpm -C fronted run ci（clean dist）              exit 0；PEERS 5
 pnpm -C .harness run ci                          exit 0；doctor 0
 grep 全树 + .harness/changes（主机名 / 密钥 / 模型名）  0
 ```
+
+---
+
+# 阶段 4 回修记录 v2（响应 `code_review_backend_v2.md`：APPROVED，1 SHOULD + 7 LOW/INFO；`code_review_frontend_v2.md`：APPROVED，4 LOW）
+
+| # | 意见 | 处理 |
+|---|---|---|
+| 后端 N-1 (SHOULD) | Spring AI 的 `TransientAiException` / `NonTransientAiException` 不继承 `RestClientException`，网关 4xx/5xx 落进「输出不可解析」分支 | 传输分支同时捕获这两个类型 → `INTERNAL_ERROR`，不再二次重试 |
+| N-2 | Javadoc 仍写 1.2.0 | 改 1.3.0 |
+| N-3 | S-3 / S-5 无自检覆盖 | `PlanSelfCheck` 增「订单 10002 退货退款 → refund 三步」（6 条消息）与「实体参数换号 → 拒绝」（`foreign entity arg rejected OK`）；e2e 断言同步 |
+| N-4 | 四参 `validate` 重载语义等于「禁止一切实体参数」 | 删除重载，调用点显式传 entities |
+| N-5 | change 目录密钥卫生门禁只在 LIVE 生效 | `harness-doctor` 新增形态扫描（`sk-…` / 内部网关域名 / 模型名形态，模式拼接构造），rule 模式与 doctor 都生效；植入模型名字面量 → doctor 红 |
+| N-6 | `pkill vite preview` 无条件 | 只 kill 带 `--port 4173 --strictPort` 的自起预览 |
+| N-7 | 运行期未断言 `trustedArgs` 键 ⊆ `trustedArgKeys` | `executeConfirmed` 增断言，违反 INTERNAL_ERROR |
+| N-9 | `<domain>.detail.get` 占位对 refund / aftersale 解析到不存在的工具 | 占位经 `DETAIL_TOOL` 解析 |
+| 前端 N-01 | `useCallback` 依赖整个 `useMutation` 返回对象 | 依赖 `mutate` |
+| 前端 N-02 | 取消 / 确认后失败的旧确认屏残留 | 新一轮开始时凡含 submit 动作的旧屏一律撤掉 |
+| 前端 N-03 / N-04 | README、verify-pack 注释陈旧 | 修正 |
+
+## 回修后复验
+
+```
+mvnw -q verify                                  exit 0
+e2e-backend 规则（8091）                          109 passed / 0 failed（+1 foreign entity 自检断言）
+e2e-backend LIVE                                 114 passed / 0 failed
+deploy-verify（8091）                             12 passed / 0 failed
+e2e-frontend（5199）                              35 passed / 0 failed
+pnpm -C .harness run ci（clean dist）             exit 0；doctor 0（含新 changes/** 密钥形态扫描）
+grep 全树 + .harness/changes（主机名 / 密钥 / 模型名）  0
+```

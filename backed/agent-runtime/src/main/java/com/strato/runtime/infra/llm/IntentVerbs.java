@@ -56,7 +56,7 @@ public final class IntentVerbs {
       return Optional.empty();
     }
     for (Verb v : VERBS) {
-      String t = v.target().replace("<domain>", domain);
+      String t = resolve(v.target(), domain);
       if (!t.startsWith(domain + ".")) {
         continue;
       }
@@ -69,11 +69,19 @@ public final class IntentVerbs {
     for (Verb v : VERBS) {
       for (String k : v.keywords()) {
         if (message.contains(k)) {
-          return Optional.of(v.target().replace("<domain>", domain));
+          return Optional.of(resolve(v.target(), domain));
         }
       }
     }
     return Optional.empty();
+  }
+
+  /** `<domain>.detail.get` 占位按 DETAIL_TOOL 解析（refund / aftersale 没有 detail 工具，落到其查询工具）。 */
+  private static String resolve(String target, String domain) {
+    if (target.contains("<domain>")) {
+      return DETAIL_TOOL.getOrDefault(domain, target.replace("<domain>", domain));
+    }
+    return target;
   }
 
   /** 无动词时的默认目标。 */
