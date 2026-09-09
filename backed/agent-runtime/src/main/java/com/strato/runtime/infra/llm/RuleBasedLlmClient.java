@@ -51,7 +51,7 @@ public final class RuleBasedLlmClient implements LlmClient {
       steps.add(new LlmPlanDraft.DraftStep(toolId, argsFor(c, req.entities())));
     }
     return ToolSelectionValidator.validate(
-        new LlmPlanDraft(steps), req.domain(), req.candidates(), displayNames);
+        new LlmPlanDraft(steps), req.domain(), req.candidates(), displayNames, req.entities());
   }
 
   /**

@@ -66,6 +66,16 @@ public final class ToolSelectionValidator {
       String domain,
       List<ToolSearch.ToolCandidate> candidates,
       ToolDisplayNames displayNames) {
+    return validate(draft, domain, candidates, displayNames, Map.of());
+  }
+
+  /** entities 非空时：实体类参数（orderId / productId）的值必须等于已识别实体，模型不得换成别的 ID。 */
+  public static Plan validate(
+      LlmPlanDraft draft,
+      String domain,
+      List<ToolSearch.ToolCandidate> candidates,
+      ToolDisplayNames displayNames,
+      Map<String, String> entities) {
     if (draft == null || draft.steps() == null || draft.steps().isEmpty()) {
       throw new RunFailure("TOOL_SELECTION_INVALID", "planner returned no steps");
     }
@@ -85,6 +95,12 @@ public final class ToolSelectionValidator {
         if (!props.has(k)) {
           throw new RunFailure(
               "TOOL_SELECTION_INVALID", "arg not in inputSchema of " + d.toolId() + ": " + k);
+        }
+        String type = EntityRequirementCheck.ENTITY_ARGS.get(k);
+        if (type != null && !args.get(k).equals(entities.get(type))) {
+          throw new RunFailure(
+              "TOOL_SELECTION_INVALID",
+              "entity arg " + k + " of " + d.toolId() + " does not match recognized entity");
         }
       }
       boolean confirm =

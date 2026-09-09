@@ -121,7 +121,8 @@ public class PlanSelfCheck implements com.strato.spi.SelfCheck {
               List.of(new LlmPlanDraft.DraftStep("refund.create", Map.of("orderId", "10003")))),
           "refund",
           refund,
-          names);
+          names,
+          Map.of("order", "10003"));
       throw new IllegalStateException("validator accepted confirmation step without prerequisites");
     } catch (RunFailure expected) {
       log.info("selfcheck: missing prerequisite rejected OK");

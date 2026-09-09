@@ -86,12 +86,12 @@ public class ConfirmationCoverageSelfCheck implements com.strato.spi.SelfCheck {
         screens.confirmation(
             toolId,
             PROBE_ARGS,
-            Map.of(),
+            screens.probeOutputs(toolId),
             ScreenRegistry.PLACEHOLDER_TOKEN,
             new ScreenContext("run_selfcheck", PRINCIPAL.userId(), PRINCIPAL.tenantId()));
     ScreenRegistry.submitActionId(ui);
     Set<String> overlap = new HashSet<>(ScreenRegistry.formKeys(ui));
-    overlap.retainAll(rc.trustedArgs(mapper.createObjectNode()).keySet());
+    overlap.retainAll(rc.trustedArgKeys());
     if (!overlap.isEmpty()) {
       throw new IllegalStateException(
           "trustedArgs of " + toolId + " overlap confirmation Form fields: " + overlap);

@@ -49,7 +49,8 @@ public final class SpringAiLlmClient implements LlmClient {
                         req.message(), req.domain(), req.candidates(), req.entities()))
                 .call()
                 .entity(LlmPlanDraft.class);
-        return ToolSelectionValidator.validate(draft, req.domain(), req.candidates(), displayNames);
+        return ToolSelectionValidator.validate(
+            draft, req.domain(), req.candidates(), displayNames, req.entities());
       } catch (MissingEntity e) {
         // 目标工具缺必填实体：编排器走友好提示，不重试、不当传输错误
         throw e;
@@ -60,10 +61,18 @@ public final class SpringAiLlmClient implements LlmClient {
             attempt,
             MAX_ATTEMPTS,
             e.getMessage());
-      } catch (RuntimeException e) {
+      } catch (org.springframework.web.client.RestClientException e) {
         // 传输 / 上游错误：异常消息含网关地址，不得进日志与 SSE；只保留类名，不带 cause
         throw new RunFailure(
             "INTERNAL_ERROR", "llm transport failure: " + e.getClass().getSimpleName());
+      } catch (RuntimeException e) {
+        // 模型输出解析失败（非 JSON / 结构不符）：与校验失败同等对待，再给一次机会
+        last = new RunFailure("TOOL_SELECTION_INVALID", "planner output unparseable");
+        log.warn(
+            "planner output unparseable attempt={}/{} cause={}",
+            attempt,
+            MAX_ATTEMPTS,
+            e.getClass().getSimpleName());
       }
     }
     throw last;
@@ -71,6 +80,7 @@ public final class SpringAiLlmClient implements LlmClient {
 
   @Override
   public String name() {
-    return "spring-ai:" + model;
+    // 模型名与网关地址 / 密钥同属部署配置，不进日志与冻结产物
+    return "spring-ai";
   }
 }

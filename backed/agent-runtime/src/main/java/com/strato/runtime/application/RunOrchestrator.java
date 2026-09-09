@@ -566,6 +566,7 @@ public class RunOrchestrator {
   private void complete(Run run, RunEventSink sink) {
     run.transition(RunState.COMPLETED, now());
     runs.save(run);
+    stepOutputs.remove(run.runId());
     emit(sink, SseEvent.RUN_COMPLETED, new SseEvent.RunCompletedData(run.runId(), now()));
     sink.close();
   }
@@ -576,6 +577,7 @@ public class RunOrchestrator {
       run.fail(e.code(), now());
     }
     runs.save(run);
+    stepOutputs.remove(run.runId());
     try {
       emit(
           sink,

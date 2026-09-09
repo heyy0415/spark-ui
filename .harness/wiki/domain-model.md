@@ -68,7 +68,7 @@
 | product | `product.detail.get` | 1.0.0 | low | never | 含 specs / salesCount |
 | aftersale | `aftersale.list.get` | 1.0.0 | low | never | 带 orderId 时附 `order` 摘要（确认屏用） |
 | aftersale | `aftersale.create` | 1.0.0 | high | required | `AftersalePolicy`：订单 SHIPPED / COMPLETED 且无进行中售后 |
-| refund | `refund.eligibility.check` | 1.2.0 | low | never | |
+| refund | `refund.eligibility.check` | 1.3.0 | low | never | 输出含订单摘要（状态 / 商品 / 件数 / 金额）供确认屏 |
 | refund | `refund.preview` | 1.3.0 | low | never | |
 | refund | `refund.create` | 2.1.0 | high | required | `EligibilityPolicy`；金额来自重校验 |
 | refund | `refund.status.get` | 1.0.0 | low | never | 不进退款计划 |

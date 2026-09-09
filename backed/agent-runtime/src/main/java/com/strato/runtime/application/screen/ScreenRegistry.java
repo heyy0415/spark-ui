@@ -56,6 +56,12 @@ public class ScreenRegistry {
     }
   }
 
+  /** 自检用：该需确认工具的领域屏声明的代表性前置输出。 */
+  public Map<String, JsonNode> probeOutputs(String toolId) {
+    ScreenBuilder b = byConfirm.get(toolId);
+    return b == null ? Map.of() : b.probeOutputs(toolId);
+  }
+
   /** 该需确认工具是否有领域提供的确认屏（没有则 runtime fail-closed，不用 fallback 放行）。 */
   public boolean coversConfirmation(String toolId) {
     return byConfirm.containsKey(toolId);
@@ -93,10 +99,33 @@ public class ScreenRegistry {
 
   private UiSchema toUi(JsonNode node) {
     validator.assertValid("ui-schema", node);
+    assertTableCells(node);
     try {
       return mapper.treeToValue(node, UiSchema.class);
     } catch (JsonProcessingException e) {
       throw new IllegalStateException("screen builder produced a tree that is not a UiSchema", e);
+    }
+  }
+
+  /** 契约做不到的跨字段约束：Table.rows[].cells 的键必须 ⊆ columns[].key（spec §2.3）。 */
+  static void assertTableCells(JsonNode screen) {
+    for (JsonNode c : screen.path("components")) {
+      if (!"Table".equals(c.path("type").asText())) {
+        continue;
+      }
+      Set<String> keys = new java.util.HashSet<>();
+      c.path("props").path("columns").forEach(col -> keys.add(col.path("key").asText()));
+      for (JsonNode row : c.path("props").path("rows")) {
+        row.path("cells")
+            .fieldNames()
+            .forEachRemaining(
+                k -> {
+                  if (!keys.contains(k)) {
+                    throw new IllegalStateException(
+                        "Table " + c.path("id").asText() + " cell key not in columns: " + k);
+                  }
+                });
+      }
     }
   }
 

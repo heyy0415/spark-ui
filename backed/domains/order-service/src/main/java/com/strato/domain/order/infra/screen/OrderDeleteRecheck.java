@@ -43,6 +43,11 @@ public class OrderDeleteRecheck implements ConfirmationRecheck {
   }
 
   @Override
+  public java.util.Set<String> trustedArgKeys() {
+    return java.util.Set.of();
+  }
+
+  @Override
   public Map<String, String> trustedArgs(JsonNode recheckOutput) {
     return Map.of();
   }

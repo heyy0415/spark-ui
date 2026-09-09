@@ -36,7 +36,7 @@ boot: ready after 2s
 --- §6.2.8 POST /agent/runs
   ✓ event sequence: run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required
   ✓ ui.replace components: ['Card', 'Card', 'Form']
-  runId=run_654073acecc641d7 token=ct_DRALQ31NM3M…
+  runId=run_7555275d3c814fe2 token=ct_BqMF79PiJYR…
 --- §6.2.10a GET run-summary（等待确认中）
   ✓ state: WAITING_CONFIRMATION
 --- §6.2.9 confirm
@@ -50,6 +50,7 @@ boot: ready after 2s
   ✓ refund.create succeeded audit lines: 1
 --- §6.2.12b formData 注入白名单外键（amount）
   ✓ code: CONFIRMATION_REJECTED
+  ✓ confirm screen shows real order status: SHIPPED
   ✓ refunds for 10002 (injection must not create): 0
 --- §6.2.13 refunds for 10001
   ✓ refunds.length: 1
@@ -73,7 +74,7 @@ boot: ready after 2s
 --- 意图路由 ③：模型补位（仅 LIVE）
   - ③ skipped (rule mode)
 --- 幂等 ④：同 idempotencyKey 两次 refund.create（订单 10004）
-  ✓ ④ same refundId: rf_b9c891ad330f
+  ✓ ④ same refundId: rf_611bd7d61b1b
   ✓ ④ refundId non-empty: 1
   ✓ ④ succeeded audit exactly once: 1
   ✓ ④ replayed audit exactly once: 1
@@ -142,4 +143,4 @@ boot: ready after 2s
   ✓ ERROR lines: 0
   ✓ ⑤ route decisions logged: 1
 
-e2e-backend: 107 passed, 0 failed
+e2e-backend: 108 passed, 0 failed

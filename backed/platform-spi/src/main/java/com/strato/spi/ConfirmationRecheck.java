@@ -23,4 +23,7 @@ public interface ConfirmationRecheck {
 
   /** 用可信来源覆盖 / 补齐的参数（如退款金额）；键不得与确认屏 Form 字段重叠。 */
   Map<String, String> trustedArgs(JsonNode recheckOutput);
+
+  /** trustedArgs 可能产出的全部键（静态声明，供启动自检与 Form 字段互斥校验；不依赖某次输出）。 */
+  java.util.Set<String> trustedArgKeys();
 }

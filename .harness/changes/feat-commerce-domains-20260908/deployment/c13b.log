@@ -1,12 +1,12 @@
 event:tool.selected
-data:{"runId":"run_2af6426b53894263","toolCallId":"tc_000022","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
+data:{"runId":"run_608a912f1db44199","toolCallId":"tc_000022","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
 
 event:tool.started
-data:{"runId":"run_2af6426b53894263","toolCallId":"tc_000022","at":"2026-09-09T03:19:09.680361Z"}
+data:{"runId":"run_608a912f1db44199","toolCallId":"tc_000022","at":"2026-09-09T08:35:36.463850Z"}
 
 event:tool.completed
-data:{"runId":"run_2af6426b53894263","toolCallId":"tc_000022","status":"succeeded","durationMs":0,"summary":"订单 10001 PAID"}
+data:{"runId":"run_608a912f1db44199","toolCallId":"tc_000022","status":"succeeded","durationMs":0,"summary":"订单 10001 PAID"}
 
 event:run.failed
-data:{"runId":"run_2af6426b53894263","code":"CONFIRMATION_REJECTED","message":"订单状态已变化，本次操作未执行","at":"2026-09-09T03:19:09.681427Z"}
+data:{"runId":"run_608a912f1db44199","code":"CONFIRMATION_REJECTED","message":"订单状态已变化，本次操作未执行","at":"2026-09-09T08:35:36.464660Z"}
 

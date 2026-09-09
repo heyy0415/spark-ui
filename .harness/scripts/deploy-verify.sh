@@ -8,11 +8,12 @@ P="$ROOT/.harness/scripts/sse-parse.mjs"
 JAVA="$HOME/.jenv/versions/21/bin/java"
 pass=0; fail=0
 check() { if [ "$2" = "$3" ]; then echo "  ✓ $1: $3"; pass=$((pass+1)); else echo "  ✗ $1: expected [$2] got [$3]"; fail=$((fail+1)); fi; }
-cleanup() { pkill -f "app/target/app.jar" 2>/dev/null; pkill -f "vite preview" 2>/dev/null; }
-trap cleanup EXIT
-cleanup; sleep 1
 # 后端端口可用 STRATO_PORT 覆盖（默认 8080）；vite preview 经 STRATO_BACKEND 代理到它
 PORT="${STRATO_PORT:-8080}"
+# 只清理本脚本自己起的实例（带 --server.port=$PORT）与 4173 预览，不碰 IDE 里手动启动的
+cleanup() { pkill -f "app/target/app.jar --server.port=$PORT" 2>/dev/null; pkill -f "vite preview" 2>/dev/null; }
+trap cleanup EXIT
+cleanup; sleep 1
 export STRATO_BACKEND="http://localhost:$PORT"
 # 前置：后端端口 / 4173 不得被本脚本之外的进程占用（如 IDEA 里手动启动的后端）。否则会误对着别人的实例、别人的内存状态验收。
 for port in "$PORT" 4173; do

@@ -1,6 +1,6 @@
 event:run.started
-data:{"runId":"run_b7181b1bb1494867","conversationId":"c14","at":"2026-09-09T03:19:09.860026Z"}
+data:{"runId":"run_c78ded5c640d49ca","conversationId":"c14","at":"2026-09-09T08:35:36.601325Z"}
 
 event:run.failed
-data:{"runId":"run_b7181b1bb1494867","code":"TOOL_SELECTION_INVALID","message":"暂时无法为该请求制定可执行的方案","at":"2026-09-09T03:19:09.860583Z"}
+data:{"runId":"run_c78ded5c640d49ca","code":"TOOL_SELECTION_INVALID","message":"暂时无法为该请求制定可执行的方案","at":"2026-09-09T08:35:36.601886Z"}
 

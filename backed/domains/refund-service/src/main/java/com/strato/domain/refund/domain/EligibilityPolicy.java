@@ -11,7 +11,8 @@ public final class EligibilityPolicy {
 
   private EligibilityPolicy() {}
 
-  public record Snapshot(String orderId, String status, BigDecimal amount) {}
+  public record Snapshot(
+      String orderId, String status, BigDecimal amount, String productName, int quantity) {}
 
   public record Result(boolean eligible, BigDecimal refundableAmount, Optional<String> reason) {}
 

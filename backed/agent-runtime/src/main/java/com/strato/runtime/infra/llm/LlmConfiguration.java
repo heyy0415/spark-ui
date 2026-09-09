@@ -57,11 +57,9 @@ public class LlmConfiguration {
             .build();
     OpenAiChatModel chatModel =
         OpenAiChatModel.builder().openAiApi(api).retryTemplate(fastFailRetry()).build();
-    // 只记录模型名与路径形态，不记录 baseUrl（内部网关地址不进日志 / 冻结产物）
+    // 只记录路径形态；baseUrl / 模型名 / 密钥都是部署配置，不进日志与冻结产物
     log.info(
-        "LLM enabled: spring-ai openai-compatible model={} completionsPath={}",
-        model,
-        completionsPath(baseUrl));
+        "LLM enabled: spring-ai openai-compatible completionsPath={}", completionsPath(baseUrl));
     return new SharedChat(Optional.of(ChatClient.builder(chatModel).build()));
   }
 

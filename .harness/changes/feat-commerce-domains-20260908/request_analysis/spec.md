@@ -26,7 +26,7 @@
 | product | `product.detail.get` **新** | 1.0.0 | low | never | `productId` | 商品全字段 + `specs[]{name, value}` + `salesCount` |
 | aftersale | `aftersale.create` **新** | 1.0.0 | **high** | required | `orderId`、`type ∈ {RETURN, EXCHANGE, REPAIR}`、`reason` | `aftersaleId, orderId, type, status:SUBMITTED, createdAt` |
 | aftersale | `aftersale.list.get` **新** | 1.0.0 | low | never | `orderId?` | `items[]{aftersaleId, orderId, type, status, createdAt}`；带 `orderId` 时另返回 `order{orderId, productName, quantity, amount, currency, status}` 摘要（供售后确认屏渲染订单 Card） |
-| refund | `refund.eligibility.check` | 1.2.0 | low | never | 不变 | 不变 |
+| refund | `refund.eligibility.check` | 1.3.0 | low | never | 不变 | 增 `orderStatus / productName / quantity / orderAmount`（确认屏订单 Card 不再猜默认值；评审 M-1） |
 | refund | `refund.preview` | 1.3.0 | low | never | 不变 | 不变 |
 | refund | `refund.create` | 2.1.0 | high | required | 不变 | 不变 |
 | refund | `refund.status.get` | 1.0.0 | low | never | 不变 | 不变 |
@@ -139,7 +139,7 @@ public record ScreenContext(String runId, String userId, String tenantId) {}
 | `aftersale.list.get` 结果 | `[aftersales: Table]`（带 `order` 摘要时前置 `[order: Card]`） | 列：售后单号 / 类型 / 状态 / 原因 / 时间 |
 | `aftersale.create` 确认 | `[order: Card, aftersale-form: Form{type: select[RETURN/EXCHANGE/REPAIR] required, reason: text required}]`；submit `confirm-aftersale` | Card 来自 `aftersale.list.get.order` |
 | `aftersale.create` 结果 | `[result: Result]` | |
-| `refund.create` 确认 | `[order: Card, refund-summary: Card, refund-form: Form{reason}]`；submit `confirm-refund` | `refund-summary.items` 含 `{label:"退款金额", value:<amount>}`（首期 `RefundConfirmCard.amount` 的替身，`RefundRecheck` 按 id + label 取值比对） |
+| `refund.create` 确认 | `[order: Card, refund-summary: Card, refund-form: Form{reason}]`；submit `confirm-refund` | `order` Card 只用 `refund.eligibility.check` 1.3.0 输出的订单摘要，缺字段不显示、不填默认值；`refund-summary.items` 含 `{label:"退款金额", value:<amount>}`（首期 `RefundConfirmCard.amount` 的替身，`RefundRecheck` 按 id + label 取值比对） |
 | `refund.create` 结果 | `[result: Result]` | `details` 含「退款金额」（首期 e2e `EXECUTED` 断言路径不变） |
 
 #### 2.4.2 实体抽取（M2）

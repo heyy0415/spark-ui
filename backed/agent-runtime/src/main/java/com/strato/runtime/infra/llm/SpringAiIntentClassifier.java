@@ -91,6 +91,6 @@ public final class SpringAiIntentClassifier implements IntentClassifier {
 
   @Override
   public String name() {
-    return "spring-ai:" + model;
+    return "spring-ai";
   }
 }

@@ -20,6 +20,9 @@ public class SnapshotOrderLookup implements OrderLookup {
   public Optional<EligibilityPolicy.Snapshot> snapshot(String tenantId, String orderId) {
     return orders
         .snapshot(tenantId, orderId)
-        .map(s -> new EligibilityPolicy.Snapshot(s.orderId(), s.status(), s.amount()));
+        .map(
+            s ->
+                new EligibilityPolicy.Snapshot(
+                    s.orderId(), s.status(), s.amount(), s.productName(), s.quantity()));
   }
 }

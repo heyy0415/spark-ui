@@ -21,7 +21,8 @@ json() { python3 -c "import sys,json;d=json.load(sys.stdin);print($1)"; }
 events() { node "$P" "$1" --events; }
 data() { node "$P" "$1" --data "$2"; }
 
-pkill -f "app/target/app.jar" 2>/dev/null; sleep 1
+# 只清理本脚本自己起的实例（带 --server.port=$PORT），不碰 IDE 里手动启动的
+pkill -f "app/target/app.jar --server.port=$PORT" 2>/dev/null; sleep 1
 owner=$(lsof -tnP -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | head -1)
 if [ -n "${owner}" ]; then
   echo "port $PORT is held by PID ${owner}: $(ps -o command= -p "${owner}" | cut -c1-80)"
@@ -56,7 +57,7 @@ check "http" 409 "$code"; check "code" TOOL_VERSION_CONFLICT "$(json "d['code']"
 
 echo "--- §6.2.7 Gateway 缺参 → 400；无权限 → 403"
 gwraw() { curl -s -o /tmp/gw.json -w '%{http_code}' -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -d "$1"; }
-code=$(gwraw '{"toolId":"refund.eligibility.check","toolVersion":"1.2.0","arguments":{},"executionContext":{"runId":"run_probe","toolCallId":"tc_p1","userId":"user_001","tenantId":"tenant_001","idempotencyKey":"probe-p1"}}')
+code=$(gwraw '{"toolId":"refund.eligibility.check","toolVersion":"1.3.0","arguments":{},"executionContext":{"runId":"run_probe","toolCallId":"tc_p1","userId":"user_001","tenantId":"tenant_001","idempotencyKey":"probe-p1"}}')
 check "missing orderId http" 400 "$code"; check "code" REQUEST_INVALID "$(json "d['code']" < /tmp/gw.json)"
 code=$(gwraw '{"toolId":"refund.create","toolVersion":"2.1.0","arguments":{"orderId":"10002","amount":"1.00","reason":"DAMAGED"},"executionContext":{"runId":"run_probe","toolCallId":"tc_p2","userId":"user_002","tenantId":"tenant_001","idempotencyKey":"probe-p2"}}')
 check "user_002 refund.create http" 403 "$code"; check "code" FORBIDDEN "$(json "d['code']" < /tmp/gw.json)"
@@ -109,6 +110,8 @@ curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conv
 R2=$(data "$DEPLOY/run2_events.log" run.started | json "d['runId']"); T2=$(data "$DEPLOY/run2_events.log" ui.replace | json "[a for a in d['ui']['actions'] if a['id']=='confirm-refund'][0]['confirmationToken']")
 curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$R2/actions/confirm-refund" "${HDR[@]}" -d "{\"confirmationToken\":\"$T2\",\"formData\":{\"reason\":\"DAMAGED\",\"amount\":\"0.01\"}}" > "$DEPLOY/inject_events.log"
 check "code" CONFIRMATION_REJECTED "$(data "$DEPLOY/inject_events.log" run.failed | json "d['code']")"
+# 评审 M-1：确认屏订单 Card 必须显示真实状态（10002 种子为 SHIPPED），不得出现猜测的默认值
+check "confirm screen shows real order status" SHIPPED "$(data "$DEPLOY/run2_events.log" ui.replace | json "[i for i in [c for c in d['ui']['components'] if c['id']=='order'][0]['props']['items'] if i['label']=='状态'][0]['value']")"
 gw() { curl -s -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -d "{\"toolId\":\"refund.status.get\",\"toolVersion\":\"1.0.0\",\"arguments\":{\"orderId\":\"$1\"},\"executionContext\":{\"runId\":\"run_probe\",\"toolCallId\":\"tc_$1\",\"userId\":\"user_001\",\"tenantId\":\"tenant_001\",\"idempotencyKey\":\"probe-$1\"}}" | json "len(d['output']['refunds'])"; }
 check "refunds for 10002 (injection must not create)" 0 "$(gw 10002)"
 
@@ -273,6 +276,13 @@ check "unknown runId → 404" 404 "$(curl -s -o /dev/null -w '%{http_code}' -X P
 check "§6.2.14 audit fields" 9 "$(grep -m1 'audit runId=' "$DEPLOY/backend.log" | grep -o '[a-zA-Z]*=' | wc -l | tr -d ' ')"
 check "§6.2.15 user text in log" 0 "$(grep -c '帮我把这个订单退款' "$DEPLOY/backend.log")"
 check "ERROR lines" 0 "$(grep -c ' ERROR ' "$DEPLOY/backend.log")"
+# 冻结产物红线：变更目录内（含报告 / 评审）不得出现 LLM 网关主机名或密钥字面量（只允许写环境变量名）
+if [ -n "${STRATO_LLM_BASE_URL:-}" ]; then
+  LLM_HOST2=$(printf '%s' "$STRATO_LLM_BASE_URL" | sed -E 's#^[a-z]+://##; s#[/:].*$##')
+  check "LIVE: LLM host not in change dir" 0 "$(grep -rl -- "$LLM_HOST2" "$DEPLOY/.." | wc -l | tr -d ' ')"
+  check "LIVE: LLM key not in change dir" 0 "$(grep -rl -- "$STRATO_LLM_API_KEY" "$DEPLOY/.." | wc -l | tr -d ' ')"
+  check "LIVE: LLM model not in change dir" 0 "$(grep -rl -- "$STRATO_LLM_MODEL" "$DEPLOY/.." | wc -l | tr -d ' ')"
+fi
 if [ "$LIVE_LLM" = 1 ]; then
   # 冻结产物红线：LLM 网关地址与密钥不得出现在日志（Spring 异常消息会带完整 URL，靠 RetryTemplate 监听器与规划器包装拦住）
   LLM_HOST=$(printf '%s' "${STRATO_LLM_BASE_URL:-}" | sed -E 's#^[a-z]+://##; s#[/:].*$##')
@@ -281,6 +291,6 @@ if [ "$LIVE_LLM" = 1 ]; then
 fi
 check "⑤ route decisions logged" 1 "$([ "$(grep -c 'route runId=.* source=' "$DEPLOY/backend.log")" -ge 3 ] && echo 1 || echo 0)"
 
-pkill -f "app/target/app.jar"
+pkill -f "app/target/app.jar --server.port=$PORT"
 echo; echo "e2e-backend: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

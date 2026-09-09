@@ -4,7 +4,7 @@
 
 | 工具 | 版本 | 风险 | 权限 |
 |---|---|---|---|
-| `refund.eligibility.check` | 1.2.0 | low | `refund:read` |
+| `refund.eligibility.check` | 1.3.0 | low | `refund:read` |
 | `refund.preview` | 1.3.0 | low | `refund:read` |
 | `refund.create` | 2.1.0 | **high / required / sideEffect** | `refund:create` |
 | `refund.status.get` | 1.0.0 | low | `refund:read` |

@@ -41,20 +41,34 @@ public class RefundScreens implements ScreenBuilder {
       String token,
       ScreenContext ctx) {
     String orderId = fixedArgs.getOrDefault("orderId", "");
-    JsonNode detail = previousOutputs.get("order.detail.get");
     JsonNode eligibility = previousOutputs.get("refund.eligibility.check");
     JsonNode preview = previousOutputs.get("refund.preview");
+    if (eligibility == null || preview == null) {
+      // 前置只读步骤是计划表写死的（IntentVerbs.PREREQUISITES）；缺失即编排错误，不用猜测值出屏
+      throw new IllegalStateException(
+          "refund confirmation requires eligibility.check and preview outputs");
+    }
     String amount =
-        UiNodes.text(preview, "amount", UiNodes.text(eligibility, "refundableAmount", "0.00"));
+        UiNodes.text(preview, "amount", UiNodes.text(eligibility, "refundableAmount", ""));
 
     ObjectNode screen = UiNodes.screen("refund-confirmation", "确认退款");
 
+    // 订单摘要全部来自 eligibility.check 的真实输出（1.3.0 起携带订单快照）；没有的字段不显示，绝不填业务默认值
     ObjectNode order = UiNodes.component(screen, "order", "Card");
     order.put("title", "订单 " + orderId);
     ArrayNode oi = order.putArray("items");
-    UiNodes.labelValue(oi, "商品", UiNodes.text(detail, "productName", "订单 " + orderId));
-    UiNodes.labelValue(oi, "金额", UiNodes.text(detail, "amount", amount) + " CNY");
-    UiNodes.labelValue(oi, "状态", UiNodes.text(detail, "status", "PAID"));
+    if (eligibility.hasNonNull("productName")) {
+      UiNodes.labelValue(oi, "商品", eligibility.get("productName").asText());
+    }
+    if (eligibility.hasNonNull("quantity")) {
+      UiNodes.labelValue(oi, "件数", eligibility.get("quantity").asText());
+    }
+    if (eligibility.hasNonNull("orderAmount")) {
+      UiNodes.labelValue(oi, "金额", eligibility.get("orderAmount").asText() + " CNY");
+    }
+    if (eligibility.hasNonNull("orderStatus")) {
+      UiNodes.labelValue(oi, "状态", eligibility.get("orderStatus").asText());
+    }
 
     ObjectNode summary = UiNodes.component(screen, SUMMARY_COMPONENT_ID, "Card");
     summary.put("title", "退款信息");
@@ -95,6 +109,26 @@ public class RefundScreens implements ScreenBuilder {
     UiNodes.labelValue(details, "退款单号", UiNodes.text(created, "refundId", ""));
     UiNodes.labelValue(details, AMOUNT_LABEL, UiNodes.text(created, "amount", ""));
     return screen;
+  }
+
+  /** 自检样例：与 refund.eligibility.check 1.3.0 / refund.preview 1.3.0 的 outputSchema 一致。 */
+  @Override
+  public Map<String, JsonNode> probeOutputs(String toolId) {
+    ObjectNode elig = UiNodes.object();
+    elig.put("orderId", "10003");
+    elig.put("eligible", true);
+    elig.put("refundableAmount", "1.00");
+    elig.put("currency", "CNY");
+    elig.put("orderStatus", "PAID");
+    elig.put("productName", "自检专用商品");
+    elig.put("quantity", 1);
+    elig.put("orderAmount", "1.00");
+    ObjectNode preview = UiNodes.object();
+    preview.put("orderId", "10003");
+    preview.put("amount", "1.00");
+    preview.put("currency", "CNY");
+    preview.put("estimatedDays", 3);
+    return Map.of("refund.eligibility.check", elig, "refund.preview", preview);
   }
 
   @Override

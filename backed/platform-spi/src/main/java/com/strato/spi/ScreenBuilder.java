@@ -29,6 +29,14 @@ public interface ScreenBuilder {
       String token,
       ScreenContext ctx);
 
+  /**
+   * 启动自检生成确认屏时用的代表性 previousOutputs（toolId → 输出样例）。确认屏对缺失前置输出应 fail-closed， 所以自检不能用空 map 探测；各领域给出与
+   * Manifest outputSchema 一致的最小样例即可。默认空。
+   */
+  default Map<String, JsonNode> probeOutputs(String toolId) {
+    return Map.of();
+  }
+
   /** tool.completed.summary 的用户可读一句话；null 表示无。 */
   default String summary(String toolId, JsonNode output) {
     return null;

@@ -27,13 +27,20 @@ public class RefundService {
     this.orders = orders;
   }
 
-  public EligibilityPolicy.Result checkEligibility(String tenantId, String orderId) {
+  /** 资格判定 + 订单快照（确认屏用快照渲染订单摘要，不再让屏层猜默认值）。 */
+  public record Eligibility(EligibilityPolicy.Result result, EligibilityPolicy.Snapshot order) {}
+
+  public Eligibility eligibility(String tenantId, String orderId) {
     EligibilityPolicy.Snapshot snap =
         orders
             .snapshot(tenantId, orderId)
             .orElseThrow(() -> new IllegalArgumentException("order not found: " + orderId));
     boolean already = !refunds.findByOrder(tenantId, orderId).isEmpty();
-    return EligibilityPolicy.evaluate(snap, already);
+    return new Eligibility(EligibilityPolicy.evaluate(snap, already), snap);
+  }
+
+  public EligibilityPolicy.Result checkEligibility(String tenantId, String orderId) {
+    return eligibility(tenantId, orderId).result();
   }
 
   public record Preview(String orderId, BigDecimal amount, int estimatedDays) {}

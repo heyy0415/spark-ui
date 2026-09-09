@@ -29,16 +29,22 @@ public class RefundEligibilityCheckHandler implements ToolHandler {
 
   @Override
   public String version() {
-    return "1.2.0";
+    return "1.3.0";
   }
 
   @Override
   public JsonNode handle(JsonNode args, ExecutionContext ctx) {
     String orderId = args.get("orderId").asText();
-    EligibilityPolicy.Result r = service.checkEligibility(ctx.principal().tenantId(), orderId);
+    RefundService.Eligibility e = service.eligibility(ctx.principal().tenantId(), orderId);
+    EligibilityPolicy.Result r = e.result();
     ObjectNode n = mapper.createObjectNode();
     n.put("orderId", orderId);
     n.put("eligible", r.eligible());
+    // 订单摘要（真实状态 / 商品 / 金额 / 件数）：确认屏据此渲染订单 Card
+    n.put("orderStatus", e.order().status());
+    n.put("productName", e.order().productName());
+    n.put("quantity", e.order().quantity());
+    n.put("orderAmount", e.order().amount().setScale(2, RoundingMode.HALF_UP).toPlainString());
     n.put(
         "refundableAmount", r.refundableAmount().setScale(2, RoundingMode.HALF_UP).toPlainString());
     n.put("currency", "CNY");

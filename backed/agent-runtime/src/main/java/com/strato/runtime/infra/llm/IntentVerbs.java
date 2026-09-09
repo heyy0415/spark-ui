@@ -37,12 +37,34 @@ public final class IntentVerbs {
           "aftersale", "aftersale.list.get",
           "refund", "refund.status.get");
 
+  /** 有实体但无动词时的领域详情工具；没有 detail 工具的领域（refund / aftersale）落到其查询工具。 */
+  private static final Map<String, String> DETAIL_TOOL =
+      Map.of(
+          "order", "order.detail.get",
+          "product", "product.detail.get",
+          "aftersale", "aftersale.list.get",
+          "refund", "refund.status.get");
+
   private IntentVerbs() {}
 
-  /** 动词命中的目标工具（已替换领域占位）；无动词 → empty。 */
+  /**
+   * 动词命中的目标工具（已替换领域占位）；无动词 → empty。先只看路由出的领域自己的动词（「退货退款」路由到 refund 就选 refund.create，而不是表里更靠前的
+   * aftersale.create），再退到全表顺序，使动词表顺序不与 DomainRouter 顺序打架。
+   */
   public static Optional<String> target(String message, String domain) {
     if (message == null) {
       return Optional.empty();
+    }
+    for (Verb v : VERBS) {
+      String t = v.target().replace("<domain>", domain);
+      if (!t.startsWith(domain + ".")) {
+        continue;
+      }
+      for (String k : v.keywords()) {
+        if (message.contains(k)) {
+          return Optional.of(t);
+        }
+      }
     }
     for (Verb v : VERBS) {
       for (String k : v.keywords()) {
@@ -57,7 +79,7 @@ public final class IntentVerbs {
   /** 无动词时的默认目标。 */
   public static String fallbackTarget(String domain, boolean hasDomainEntity) {
     if (hasDomainEntity) {
-      return domain + ".detail.get";
+      return DETAIL_TOOL.getOrDefault(domain, domain + ".detail.get");
     }
     return LIST_TOOL.getOrDefault(domain, domain + ".list.search");
   }
@@ -76,6 +98,7 @@ public final class IntentVerbs {
           ids.addAll(v);
         });
     LIST_TOOL.values().forEach(ids::add);
+    DETAIL_TOOL.values().forEach(ids::add);
     return ids;
   }
 }

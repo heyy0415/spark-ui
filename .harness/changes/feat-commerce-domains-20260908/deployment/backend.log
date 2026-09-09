@@ -8,243 +8,86 @@
 
  :: Spring Boot ::               (v3.5.16)
 
-2026-09-09T11:19:03.448+08:00  INFO 38816 --- [           main] com.strato.app.StratoApplication         : Starting StratoApplication using Java 21.0.11 with PID 38816 (/Users/fangtao/strato_ui/backed/app/target/app.jar started by fangtao in /Users/fangtao/strato_ui)
-2026-09-09T11:19:03.448+08:00  INFO 38816 --- [           main] com.strato.app.StratoApplication         : No active profile set, falling back to 1 default profile: "default"
-2026-09-09T11:19:03.961+08:00  INFO 38816 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8091 (http)
-2026-09-09T11:19:03.968+08:00  INFO 38816 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-09-09T11:19:03.968+08:00  INFO 38816 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.55]
-2026-09-09T11:19:03.979+08:00  INFO 38816 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2026-09-09T11:19:03.979+08:00  INFO 38816 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 513 ms
-2026-09-09T11:19:04.105+08:00  INFO 38816 --- [           main] .a.i.InMemoryPrincipalPermissionResolver : permission table loaded: 2 principals
-2026-09-09T11:19:04.144+08:00  INFO 38816 --- [           main] c.s.d.order.infra.SeededOrderRepository  : order seed loaded orders=30 items=49 logisticsEvents=85
-2026-09-09T11:19:04.150+08:00  INFO 38816 --- [           main] c.s.d.p.infra.SeededProductRepository    : product seed loaded products=20
-2026-09-09T11:19:04.153+08:00  INFO 38816 --- [           main] c.s.d.a.infra.SeededAftersaleRepository  : aftersale seed loaded aftersales=4
-2026-09-09T11:19:04.156+08:00  INFO 38816 --- [           main] c.s.d.r.infra.SeededRefundRepository     : refund seed loaded refunds=3
-2026-09-09T11:19:04.157+08:00  INFO 38816 --- [           main] c.s.g.application.InvokeToolUseCase      : gateway handlers registered: [order.delete@1.0.0, order.detail.get@1.1.0, order.list.search@1.1.0, refund.create@2.1.0, refund.eligibility.check@1.2.0, refund.status.get@1.0.0, aftersale.create@1.0.0, order.logistics.get@1.0.0, product.list.search@1.0.0, aftersale.list.get@1.0.0, product.detail.get@1.0.0, refund.preview@1.3.0]
-2026-09-09T11:19:04.159+08:00  WARN 38816 --- [           main] c.s.runtime.infra.llm.LlmConfiguration   : STRATO_LLM_BASE_URL / STRATO_LLM_API_KEY / STRATO_LLM_MODEL not fully set; using rule-based planner and noop classifier
-2026-09-09T11:19:04.338+08:00  INFO 38816 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
-2026-09-09T11:19:04.368+08:00  INFO 38816 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8091 (http) with context path '/'
-2026-09-09T11:19:04.374+08:00  INFO 38816 --- [           main] com.strato.app.StratoApplication         : Started StratoApplication in 1.1 seconds (process running for 1.349)
-2026-09-09T11:19:04.415+08:00  INFO 38816 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.detail.get@1.1.0 domain=order risk=low
-2026-09-09T11:19:04.416+08:00  INFO 38816 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.list.search@1.1.0 domain=order risk=low
-2026-09-09T11:19:04.416+08:00  INFO 38816 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.logistics.get@1.0.0 domain=order risk=low
-2026-09-09T11:19:04.416+08:00  INFO 38816 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.delete@1.0.0 domain=order risk=high
-2026-09-09T11:19:04.417+08:00  INFO 38816 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool product.detail.get@1.0.0 domain=product risk=low
-2026-09-09T11:19:04.417+08:00  INFO 38816 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool product.list.search@1.0.0 domain=product risk=low
-2026-09-09T11:19:04.418+08:00  INFO 38816 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool aftersale.list.get@1.0.0 domain=aftersale risk=low
-2026-09-09T11:19:04.418+08:00  INFO 38816 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool aftersale.create@1.0.0 domain=aftersale risk=high
-2026-09-09T11:19:04.419+08:00  INFO 38816 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.eligibility.check@1.2.0 domain=refund risk=low
-2026-09-09T11:19:04.419+08:00  INFO 38816 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.preview@1.3.0 domain=refund risk=low
-2026-09-09T11:19:04.419+08:00  INFO 38816 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.create@2.1.0 domain=refund risk=high
-2026-09-09T11:19:04.420+08:00  INFO 38816 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.status.get@1.0.0 domain=refund risk=low
-2026-09-09T11:19:04.420+08:00  INFO 38816 --- [           main] c.s.r.infra.StartupManifestRegistrar     : startup registration done: 12 tools from 4 sources
-2026-09-09T11:19:04.420+08:00  INFO 38816 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: running 7 checks
-2026-09-09T11:19:04.436+08:00  INFO 38816 --- [           main] c.s.c.i.selfcheck.ContractsSelfCheck     : selfcheck: contracts 9 schemas, 26 examples OK
-2026-09-09T11:19:04.436+08:00  INFO 38816 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: contracts OK
-2026-09-09T11:19:04.438+08:00  INFO 38816 --- [           main] c.s.g.i.s.GatewayIdempotencySelfCheck    : selfcheck: gateway idempotency claim OK
-2026-09-09T11:19:04.438+08:00  INFO 38816 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: gateway idempotency claim OK
-2026-09-09T11:19:04.438+08:00  INFO 38816 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=aftersale user=user_001 tenant=tenant_001 candidates=2
-2026-09-09T11:19:04.443+08:00  INFO 38816 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:04.444+08:00  INFO 38816 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=product user=user_001 tenant=tenant_001 candidates=2
-2026-09-09T11:19:04.444+08:00  INFO 38816 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:04.445+08:00  INFO 38816 --- [           main] c.s.r.i.s.ConfirmationCoverageSelfCheck  : selfcheck: confirmation coverage OK (3 tools)
-2026-09-09T11:19:04.445+08:00  INFO 38816 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: confirmation coverage OK
-2026-09-09T11:19:04.452+08:00  INFO 38816 --- [           main] AUDIT                                    : audit runId=run_selfcheck toolCallId=tc_inline_orders toolId=order.list.search version=1.1.0 principal=user_001@tenant_001 argsDigest=2a8276f650319ab72da96dfdddb5ea2b status=succeeded durationMs=7 traceId=null
-2026-09-09T11:19:04.455+08:00  INFO 38816 --- [           main] AUDIT                                    : audit runId=run_selfcheck toolCallId=tc_inline_products toolId=product.list.search version=1.0.0 principal=user_001@tenant_001 argsDigest=2a8276f650319ab72da96dfdddb5ea2b status=succeeded durationMs=0 traceId=null
-2026-09-09T11:19:04.455+08:00  INFO 38816 --- [           main] c.s.r.i.selfcheck.InlineActionSelfCheck  : selfcheck: inline actions OK (69 actions)
-2026-09-09T11:19:04.455+08:00  INFO 38816 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: inline actions OK
-2026-09-09T11:19:04.456+08:00  INFO 38816 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=aftersale user=user_001 tenant=tenant_001 candidates=2
-2026-09-09T11:19:04.456+08:00  INFO 38816 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:04.456+08:00  INFO 38816 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=product user=user_001 tenant=tenant_001 candidates=2
-2026-09-09T11:19:04.456+08:00  INFO 38816 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:04.456+08:00  INFO 38816 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: intent verbs reference registered tools OK
-2026-09-09T11:19:04.456+08:00  INFO 38816 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:04.457+08:00  INFO 38816 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:04.457+08:00  INFO 38816 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=aftersale user=user_001 tenant=tenant_001 candidates=2
-2026-09-09T11:19:04.457+08:00  INFO 38816 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:04.457+08:00  INFO 38816 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=product user=user_001 tenant=tenant_001 candidates=2
-2026-09-09T11:19:04.457+08:00  INFO 38816 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: plan 5 messages OK
-2026-09-09T11:19:04.457+08:00  INFO 38816 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:04.457+08:00  INFO 38816 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: invalid toolId rejected OK
-2026-09-09T11:19:04.458+08:00  INFO 38816 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: missing prerequisite rejected OK
-2026-09-09T11:19:04.458+08:00  INFO 38816 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: plan OK
-2026-09-09T11:19:04.458+08:00  INFO 38816 --- [           main] c.s.r.infra.selfcheck.TokenSelfCheck     : selfcheck: token expired/replayed/digest-mismatch/extra-key rejected OK
-2026-09-09T11:19:04.458+08:00  INFO 38816 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: confirmation token OK
-2026-09-09T11:19:04.459+08:00  INFO 38816 --- [           main] c.s.d.refund.application.RefundService   : refund created refundId=rf_3b0cfccf2784 orderId=10003 tenant=tenant_001
-2026-09-09T11:19:04.459+08:00  INFO 38816 --- [           main] c.s.d.r.i.s.RefundIdempotencySelfCheck   : selfcheck: refund.create idempotent OK
-2026-09-09T11:19:04.459+08:00  INFO 38816 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: refund.create idempotent OK
-2026-09-09T11:19:07.156+08:00  INFO 38816 --- [nio-8091-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-09-09T11:19:07.156+08:00  INFO 38816 --- [nio-8091-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-09-09T11:19:07.157+08:00  INFO 38816 --- [nio-8091-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
-2026-09-09T11:19:07.198+08:00  INFO 38816 --- [nio-8091-exec-1] c.s.registry.api.ToolRegistryController  : search_tools, domain=refund userId=user_001
-2026-09-09T11:19:07.198+08:00  INFO 38816 --- [nio-8091-exec-1] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:07.288+08:00  INFO 38816 --- [nio-8091-exec-2] c.s.registry.api.ToolRegistryController  : search_tools, domain=refund userId=user_002
-2026-09-09T11:19:07.288+08:00  INFO 38816 --- [nio-8091-exec-2] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_002 tenant=tenant_001 candidates=3
-2026-09-09T11:19:07.428+08:00  INFO 38816 --- [nio-8091-exec-4] c.s.registry.api.ToolRegistryController  : register_tool, toolId=refund.create
-2026-09-09T11:19:07.466+08:00  INFO 38816 --- [nio-8091-exec-6] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=refund.eligibility.check version=1.2.0 runId=run_probe toolCallId=tc_p1
-2026-09-09T11:19:07.469+08:00  INFO 38816 --- [nio-8091-exec-6] AUDIT                                    : audit runId=run_probe toolCallId=tc_p1 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=44136fa355b3678a1146ad16f7e8649e status=failed:INPUT_INVALID durationMs=3 traceId=null
-2026-09-09T11:19:07.500+08:00  INFO 38816 --- [nio-8091-exec-7] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=refund.create version=2.1.0 runId=run_probe toolCallId=tc_p2
-2026-09-09T11:19:07.500+08:00  INFO 38816 --- [nio-8091-exec-7] AUDIT                                    : audit runId=run_probe toolCallId=tc_p2 toolId=refund.create version=2.1.0 principal=user_002@tenant_001 argsDigest=9abfdec0371d3b10f5a869eba78f81b6 status=failed:FORBIDDEN durationMs=0 traceId=null
-2026-09-09T11:19:07.629+08:00  INFO 38816 --- [nio-8091-exec-6] c.strato.runtime.api.AgentRunController  : start_run, conversationId=conv_001 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:07.632+08:00  INFO 38816 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : route runId=run_654073acecc641d7 domain=refund source=rule
-2026-09-09T11:19:07.632+08:00  INFO 38816 --- [    agent-run-1] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:07.632+08:00  INFO 38816 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : entities runId=run_654073acecc641d7 {order=10001}
-2026-09-09T11:19:07.633+08:00  INFO 38816 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_654073acecc641d7 domain=refund steps=3 planner=rule-based
-2026-09-09T11:19:07.637+08:00  INFO 38816 --- [    agent-run-1] AUDIT                                    : audit runId=run_654073acecc641d7 toolCallId=tc_000001 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:07.639+08:00  INFO 38816 --- [    agent-run-1] AUDIT                                    : audit runId=run_654073acecc641d7 toolCallId=tc_000002 toolId=refund.preview version=1.3.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:07.794+08:00  INFO 38816 --- [nio-8091-exec-1] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_654073acecc641d7 actionId=confirm-refund userId=user_001
-2026-09-09T11:19:07.796+08:00  INFO 38816 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_654073acecc641d7 step=3 tool=refund.create
-2026-09-09T11:19:07.797+08:00  INFO 38816 --- [    agent-run-2] AUDIT                                    : audit runId=run_654073acecc641d7 toolCallId=tc_000003 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:07.802+08:00  INFO 38816 --- [ gateway-tool-7] c.s.d.refund.application.RefundService   : refund created refundId=rf_5634f1c5b3ba orderId=10001 tenant=tenant_001
-2026-09-09T11:19:07.802+08:00  INFO 38816 --- [    agent-run-2] AUDIT                                    : audit runId=run_654073acecc641d7 toolCallId=tc_000004 toolId=refund.create version=2.1.0 principal=user_001@tenant_001 argsDigest=524c5f36375537fdb1ff539459f71ed4 status=succeeded durationMs=4 traceId=trace_e2e
-2026-09-09T11:19:07.803+08:00  INFO 38816 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmed step executed runId=run_654073acecc641d7 tokenStep=3
-2026-09-09T11:19:07.978+08:00  INFO 38816 --- [nio-8091-exec-6] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_654073acecc641d7 actionId=confirm-refund userId=user_001
-2026-09-09T11:19:07.979+08:00  WARN 38816 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : confirmation rejected runId=run_654073acecc641d7 state=COMPLETED reason=run not waiting for confirmation: COMPLETED
-2026-09-09T11:19:08.057+08:00  INFO 38816 --- [nio-8091-exec-9] c.strato.runtime.api.AgentRunController  : start_run, conversationId=conv_002 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:08.058+08:00  INFO 38816 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : route runId=run_f036b3da739c4d2d domain=refund source=rule
-2026-09-09T11:19:08.058+08:00  INFO 38816 --- [    agent-run-4] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:08.058+08:00  INFO 38816 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : entities runId=run_f036b3da739c4d2d {order=10002}
-2026-09-09T11:19:08.058+08:00  INFO 38816 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_f036b3da739c4d2d domain=refund steps=3 planner=rule-based
-2026-09-09T11:19:08.059+08:00  INFO 38816 --- [    agent-run-4] AUDIT                                    : audit runId=run_f036b3da739c4d2d toolCallId=tc_000005 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:08.060+08:00  INFO 38816 --- [    agent-run-4] AUDIT                                    : audit runId=run_f036b3da739c4d2d toolCallId=tc_000006 toolId=refund.preview version=1.3.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:08.119+08:00  INFO 38816 --- [nio-8091-exec-2] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_f036b3da739c4d2d actionId=confirm-refund userId=user_001
-2026-09-09T11:19:08.120+08:00  WARN 38816 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : run failed runId=run_f036b3da739c4d2d code=CONFIRMATION_REJECTED reason=formData key not allowed: amount
-2026-09-09T11:19:08.152+08:00  INFO 38816 --- [nio-8091-exec-5] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=refund.status.get version=1.0.0 runId=run_probe toolCallId=tc_10002
-2026-09-09T11:19:08.152+08:00  INFO 38816 --- [nio-8091-exec-5] AUDIT                                    : audit runId=run_probe toolCallId=tc_10002 toolId=refund.status.get version=1.0.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=null
-2026-09-09T11:19:08.176+08:00  INFO 38816 --- [nio-8091-exec-7] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=refund.status.get version=1.0.0 runId=run_probe toolCallId=tc_10001
-2026-09-09T11:19:08.176+08:00  INFO 38816 --- [nio-8091-exec-7] AUDIT                                    : audit runId=run_probe toolCallId=tc_10001 toolId=refund.status.get version=1.0.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=null
-2026-09-09T11:19:08.199+08:00  INFO 38816 --- [nio-8091-exec-9] c.strato.runtime.api.AgentRunController  : start_run, conversationId=conv_m2 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:08.199+08:00  INFO 38816 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : route runId=run_fa78397cf896434e domain=refund source=rule
-2026-09-09T11:19:08.199+08:00  INFO 38816 --- [    agent-run-6] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:08.199+08:00  INFO 38816 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : entities runId=run_fa78397cf896434e {order=10002}
-2026-09-09T11:19:08.199+08:00  INFO 38816 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_fa78397cf896434e domain=refund steps=3 planner=rule-based
-2026-09-09T11:19:08.200+08:00  INFO 38816 --- [    agent-run-6] AUDIT                                    : audit runId=run_fa78397cf896434e toolCallId=tc_000007 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:08.202+08:00  INFO 38816 --- [    agent-run-6] AUDIT                                    : audit runId=run_fa78397cf896434e toolCallId=tc_000008 toolId=refund.preview version=1.3.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:08.269+08:00  INFO 38816 --- [nio-8091-exec-2] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_fa78397cf896434e actionId=confirm-refund userId=user_001
-2026-09-09T11:19:08.269+08:00  INFO 38816 --- [nio-8091-exec-3] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_fa78397cf896434e actionId=confirm-refund userId=user_001
-2026-09-09T11:19:08.269+08:00  WARN 38816 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : confirmation rejected runId=run_fa78397cf896434e state=WAITING_CONFIRMATION reason=another confirmation is in progress
-2026-09-09T11:19:08.269+08:00  INFO 38816 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_fa78397cf896434e step=3 tool=refund.create
-2026-09-09T11:19:08.270+08:00  INFO 38816 --- [    agent-run-7] AUDIT                                    : audit runId=run_fa78397cf896434e toolCallId=tc_000009 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:08.271+08:00  INFO 38816 --- [gateway-tool-15] c.s.d.refund.application.RefundService   : refund created refundId=rf_58d794ccaa47 orderId=10002 tenant=tenant_001
-2026-09-09T11:19:08.272+08:00  INFO 38816 --- [    agent-run-7] AUDIT                                    : audit runId=run_fa78397cf896434e toolCallId=tc_000010 toolId=refund.create version=2.1.0 principal=user_001@tenant_001 argsDigest=1512eba97d21fc43fc900d029c0090a3 status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:08.272+08:00  INFO 38816 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : confirmed step executed runId=run_fa78397cf896434e tokenStep=3
-2026-09-09T11:19:08.350+08:00  INFO 38816 --- [io-8091-exec-10] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=refund.status.get version=1.0.0 runId=run_probe toolCallId=tc_10002
-2026-09-09T11:19:08.350+08:00  INFO 38816 --- [io-8091-exec-10] AUDIT                                    : audit runId=run_probe toolCallId=tc_10002 toolId=refund.status.get version=1.0.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=null
-2026-09-09T11:19:08.431+08:00  INFO 38816 --- [nio-8091-exec-2] c.strato.runtime.api.AgentRunController  : start_run, conversationId=conv_r1 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:08.433+08:00  INFO 38816 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : route runId=run_16d900342b5b4f91 domain=refund source=rule
-2026-09-09T11:19:08.434+08:00  INFO 38816 --- [    agent-run-1] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:08.434+08:00  INFO 38816 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : entities runId=run_16d900342b5b4f91 {}
-2026-09-09T11:19:08.434+08:00  INFO 38816 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : entity required but missing runId=run_16d900342b5b4f91 domain=refund
-2026-09-09T11:19:08.577+08:00  INFO 38816 --- [nio-8091-exec-7] c.strato.runtime.api.AgentRunController  : start_run, conversationId=conv_r2 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:08.577+08:00  INFO 38816 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : route runId=run_aae31eafa13a4001 domain=- source=none
-2026-09-09T11:19:08.606+08:00  INFO 38816 --- [io-8091-exec-10] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=refund.create version=2.1.0 runId=run_e2eidem toolCallId=tc_idem1
-2026-09-09T11:19:08.607+08:00  INFO 38816 --- [ gateway-tool-1] c.s.d.refund.application.RefundService   : refund created refundId=rf_b9c891ad330f orderId=10004 tenant=tenant_001
-2026-09-09T11:19:08.607+08:00  INFO 38816 --- [io-8091-exec-10] AUDIT                                    : audit runId=run_e2eidem toolCallId=tc_idem1 toolId=refund.create version=2.1.0 principal=user_001@tenant_001 argsDigest=fb14d0048aee9218b70a43ab4182e1c8 status=succeeded durationMs=0 traceId=null
-2026-09-09T11:19:08.629+08:00  INFO 38816 --- [nio-8091-exec-2] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=refund.create version=2.1.0 runId=run_e2eidem toolCallId=tc_idem2
-2026-09-09T11:19:08.630+08:00  INFO 38816 --- [nio-8091-exec-2] c.s.g.application.InvokeToolUseCase      : idempotent replay toolId=refund.create key=e2e-idem-10004
-2026-09-09T11:19:08.630+08:00  INFO 38816 --- [nio-8091-exec-2] AUDIT                                    : audit runId=run_e2eidem toolCallId=tc_idem2 toolId=refund.create version=2.1.0 principal=user_001@tenant_001 argsDigest=fb14d0048aee9218b70a43ab4182e1c8 status=replayed durationMs=0 traceId=null
-2026-09-09T11:19:08.656+08:00  INFO 38816 --- [nio-8091-exec-4] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=refund.status.get version=1.0.0 runId=run_probe toolCallId=tc_10004
-2026-09-09T11:19:08.656+08:00  INFO 38816 --- [nio-8091-exec-4] AUDIT                                    : audit runId=run_probe toolCallId=tc_10004 toolId=refund.status.get version=1.0.0 principal=user_001@tenant_001 argsDigest=e0de59d05708df86fd793956bfab1b0b status=succeeded durationMs=0 traceId=null
-2026-09-09T11:19:08.679+08:00  INFO 38816 --- [nio-8091-exec-6] c.strato.runtime.api.AgentRunController  : start_run, conversationId=c7 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:08.679+08:00  INFO 38816 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : route runId=run_4421395c301c4201 domain=order source=rule
-2026-09-09T11:19:08.679+08:00  INFO 38816 --- [    agent-run-3] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:08.679+08:00  INFO 38816 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : entities runId=run_4421395c301c4201 {}
-2026-09-09T11:19:08.679+08:00  INFO 38816 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_4421395c301c4201 domain=order steps=1 planner=rule-based
-2026-09-09T11:19:08.680+08:00  INFO 38816 --- [    agent-run-3] AUDIT                                    : audit runId=run_4421395c301c4201 toolCallId=tc_000011 toolId=order.list.search version=1.1.0 principal=user_001@tenant_001 argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:08.793+08:00  INFO 38816 --- [nio-8091-exec-9] c.strato.runtime.api.AgentRunController  : start_run, conversationId=c8 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:08.794+08:00  INFO 38816 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : route runId=run_af9e6e87b6534a7c domain=order source=rule
-2026-09-09T11:19:08.794+08:00  INFO 38816 --- [    agent-run-4] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:08.794+08:00  INFO 38816 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : entities runId=run_af9e6e87b6534a7c {order=10002}
-2026-09-09T11:19:08.794+08:00  INFO 38816 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_af9e6e87b6534a7c domain=order steps=1 planner=rule-based
-2026-09-09T11:19:08.796+08:00  INFO 38816 --- [    agent-run-4] AUDIT                                    : audit runId=run_af9e6e87b6534a7c toolCallId=tc_000012 toolId=order.logistics.get version=1.0.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=1 traceId=trace_e2e
-2026-09-09T11:19:08.902+08:00  INFO 38816 --- [nio-8091-exec-2] c.strato.runtime.api.AgentRunController  : start_run, conversationId=c9 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:08.902+08:00  INFO 38816 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : route runId=run_d2e770d1cdf94a1a domain=product source=rule
-2026-09-09T11:19:08.903+08:00  INFO 38816 --- [    agent-run-5] c.s.r.application.SearchToolsUseCase     : search domain=product user=user_001 tenant=tenant_001 candidates=2
-2026-09-09T11:19:08.903+08:00  INFO 38816 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : entities runId=run_d2e770d1cdf94a1a {}
-2026-09-09T11:19:08.903+08:00  INFO 38816 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_d2e770d1cdf94a1a domain=product steps=1 planner=rule-based
-2026-09-09T11:19:08.903+08:00  INFO 38816 --- [    agent-run-5] AUDIT                                    : audit runId=run_d2e770d1cdf94a1a toolCallId=tc_000013 toolId=product.list.search version=1.0.0 principal=user_001@tenant_001 argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:08.966+08:00  INFO 38816 --- [nio-8091-exec-5] c.strato.runtime.api.AgentRunController  : start_run, conversationId=c10 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:08.966+08:00  INFO 38816 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : route runId=run_f8bacb7941ff43f9 domain=product source=rule
-2026-09-09T11:19:08.966+08:00  INFO 38816 --- [    agent-run-6] c.s.r.application.SearchToolsUseCase     : search domain=product user=user_001 tenant=tenant_001 candidates=2
-2026-09-09T11:19:08.966+08:00  INFO 38816 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : entities runId=run_f8bacb7941ff43f9 {product=P-1003}
-2026-09-09T11:19:08.966+08:00  INFO 38816 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_f8bacb7941ff43f9 domain=product steps=1 planner=rule-based
-2026-09-09T11:19:08.967+08:00  INFO 38816 --- [    agent-run-6] AUDIT                                    : audit runId=run_f8bacb7941ff43f9 toolCallId=tc_000014 toolId=product.detail.get version=1.0.0 principal=user_001@tenant_001 argsDigest=c0e94442d5386ba577574268687db542 status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:09.027+08:00  INFO 38816 --- [nio-8091-exec-8] c.strato.runtime.api.AgentRunController  : start_run, conversationId=c11 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:09.028+08:00  INFO 38816 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : route runId=run_2111d7c98d9741ed domain=aftersale source=rule
-2026-09-09T11:19:09.028+08:00  INFO 38816 --- [    agent-run-8] c.s.r.application.SearchToolsUseCase     : search domain=aftersale user=user_001 tenant=tenant_001 candidates=2
-2026-09-09T11:19:09.028+08:00  INFO 38816 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : entities runId=run_2111d7c98d9741ed {order=10002}
-2026-09-09T11:19:09.028+08:00  INFO 38816 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_2111d7c98d9741ed domain=aftersale steps=2 planner=rule-based
-2026-09-09T11:19:09.029+08:00  INFO 38816 --- [    agent-run-8] AUDIT                                    : audit runId=run_2111d7c98d9741ed toolCallId=tc_000015 toolId=aftersale.list.get version=1.0.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:09.217+08:00  INFO 38816 --- [nio-8091-exec-1] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_2111d7c98d9741ed actionId=confirm-aftersale userId=user_001
-2026-09-09T11:19:09.218+08:00  INFO 38816 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_2111d7c98d9741ed step=2 tool=aftersale.create
-2026-09-09T11:19:09.218+08:00  INFO 38816 --- [    agent-run-7] AUDIT                                    : audit runId=run_2111d7c98d9741ed toolCallId=tc_000016 toolId=aftersale.list.get version=1.0.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:09.220+08:00  INFO 38816 --- [ gateway-tool-9] c.s.d.a.application.AftersaleService     : aftersale created aftersaleId=AS-331ce3cf10 orderId=10002 tenant=tenant_001
-2026-09-09T11:19:09.220+08:00  INFO 38816 --- [    agent-run-7] AUDIT                                    : audit runId=run_2111d7c98d9741ed toolCallId=tc_000017 toolId=aftersale.create version=1.0.0 principal=user_001@tenant_001 argsDigest=4b2fc4a716c4495eecfacb61f82b2188 status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:09.220+08:00  INFO 38816 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : confirmed step executed runId=run_2111d7c98d9741ed tokenStep=2
-2026-09-09T11:19:09.278+08:00  INFO 38816 --- [nio-8091-exec-4] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=aftersale.list.get version=1.0.0 runId=run_e2e_gw toolCallId=tc_28970
-2026-09-09T11:19:09.279+08:00  INFO 38816 --- [nio-8091-exec-4] AUDIT                                    : audit runId=run_e2e_gw toolCallId=tc_28970 toolId=aftersale.list.get version=1.0.0 principal=user_001@tenant_001 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=null
-2026-09-09T11:19:09.308+08:00  INFO 38816 --- [nio-8091-exec-6] c.strato.runtime.api.AgentRunController  : start_run, conversationId=c12 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:09.309+08:00  INFO 38816 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : route runId=run_79da25a834e34cd9 domain=order source=rule
-2026-09-09T11:19:09.309+08:00  INFO 38816 --- [    agent-run-1] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:09.309+08:00  INFO 38816 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : entities runId=run_79da25a834e34cd9 {order=10005}
-2026-09-09T11:19:09.309+08:00  INFO 38816 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_79da25a834e34cd9 domain=order steps=2 planner=rule-based
-2026-09-09T11:19:09.310+08:00  INFO 38816 --- [    agent-run-1] AUDIT                                    : audit runId=run_79da25a834e34cd9 toolCallId=tc_000018 toolId=order.detail.get version=1.1.0 principal=user_001@tenant_001 argsDigest=0a668fb880b8f36abd2e5a10c34ceeb3 status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:09.477+08:00  INFO 38816 --- [nio-8091-exec-9] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_79da25a834e34cd9 actionId=confirm-delete userId=user_001
-2026-09-09T11:19:09.477+08:00  INFO 38816 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_79da25a834e34cd9 step=2 tool=order.delete
-2026-09-09T11:19:09.478+08:00  INFO 38816 --- [    agent-run-2] AUDIT                                    : audit runId=run_79da25a834e34cd9 toolCallId=tc_000019 toolId=order.detail.get version=1.1.0 principal=user_001@tenant_001 argsDigest=0a668fb880b8f36abd2e5a10c34ceeb3 status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:09.479+08:00  INFO 38816 --- [gateway-tool-13] c.s.d.order.infra.OrderDeleteHandler     : order deleted orderId=10005 tenant=tenant_001 runId=run_79da25a834e34cd9
-2026-09-09T11:19:09.479+08:00  INFO 38816 --- [    agent-run-2] AUDIT                                    : audit runId=run_79da25a834e34cd9 toolCallId=tc_000020 toolId=order.delete version=1.0.0 principal=user_001@tenant_001 argsDigest=0a668fb880b8f36abd2e5a10c34ceeb3 status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:09.480+08:00  INFO 38816 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmed step executed runId=run_79da25a834e34cd9 tokenStep=2
-2026-09-09T11:19:09.514+08:00  INFO 38816 --- [nio-8091-exec-2] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=order.list.search version=1.1.0 runId=run_e2e_gw toolCallId=tc_19154
-2026-09-09T11:19:09.515+08:00  INFO 38816 --- [nio-8091-exec-2] AUDIT                                    : audit runId=run_e2e_gw toolCallId=tc_19154 toolId=order.list.search version=1.1.0 principal=user_001@tenant_001 argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=0 traceId=null
-2026-09-09T11:19:09.547+08:00  INFO 38816 --- [nio-8091-exec-4] c.strato.runtime.api.AgentRunController  : start_run, conversationId=c13 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:09.548+08:00  INFO 38816 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : route runId=run_2af6426b53894263 domain=order source=rule
-2026-09-09T11:19:09.548+08:00  INFO 38816 --- [    agent-run-3] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:09.548+08:00  INFO 38816 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : entities runId=run_2af6426b53894263 {order=10001}
-2026-09-09T11:19:09.548+08:00  INFO 38816 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_2af6426b53894263 domain=order steps=2 planner=rule-based
-2026-09-09T11:19:09.549+08:00  INFO 38816 --- [    agent-run-3] AUDIT                                    : audit runId=run_2af6426b53894263 toolCallId=tc_000021 toolId=order.detail.get version=1.1.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:09.679+08:00  INFO 38816 --- [nio-8091-exec-7] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_2af6426b53894263 actionId=confirm-delete userId=user_001
-2026-09-09T11:19:09.680+08:00  INFO 38816 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_2af6426b53894263 step=2 tool=order.delete
-2026-09-09T11:19:09.681+08:00  INFO 38816 --- [    agent-run-4] AUDIT                                    : audit runId=run_2af6426b53894263 toolCallId=tc_000022 toolId=order.detail.get version=1.1.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:09.681+08:00  WARN 38816 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : run failed runId=run_2af6426b53894263 code=CONFIRMATION_REJECTED reason=订单状态不允许删除：PAID
-2026-09-09T11:19:09.785+08:00  INFO 38816 --- [nio-8091-exec-9] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=order.delete version=1.0.0 runId=run_e2e_gw toolCallId=tc_1752
-2026-09-09T11:19:09.786+08:00  WARN 38816 --- [nio-8091-exec-9] c.s.g.application.InvokeToolUseCase      : tool error toolId=order.delete attempt=1/1 cause=java.lang.IllegalStateException: 订单状态不允许删除：PAID
-2026-09-09T11:19:09.786+08:00  INFO 38816 --- [nio-8091-exec-9] AUDIT                                    : audit runId=run_e2e_gw toolCallId=tc_1752 toolId=order.delete version=1.0.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=failed:HANDLER_ERROR durationMs=0 traceId=null
-2026-09-09T11:19:09.823+08:00  INFO 38816 --- [nio-8091-exec-1] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=order.list.search version=1.1.0 runId=run_e2e_gw toolCallId=tc_21808
-2026-09-09T11:19:09.824+08:00  INFO 38816 --- [nio-8091-exec-1] AUDIT                                    : audit runId=run_e2e_gw toolCallId=tc_21808 toolId=order.list.search version=1.1.0 principal=user_001@tenant_001 argsDigest=a9e80df314fe077d2eb47e2006807f19 status=succeeded durationMs=0 traceId=null
-2026-09-09T11:19:09.859+08:00  INFO 38816 --- [nio-8091-exec-3] c.strato.runtime.api.AgentRunController  : start_run, conversationId=c14 userId=user_002 tenantId=tenant_001
-2026-09-09T11:19:09.860+08:00  INFO 38816 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : route runId=run_b7181b1bb1494867 domain=order source=rule
-2026-09-09T11:19:09.860+08:00  INFO 38816 --- [    agent-run-5] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_002 tenant=tenant_001 candidates=3
-2026-09-09T11:19:09.860+08:00  INFO 38816 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : entities runId=run_b7181b1bb1494867 {order=10005}
-2026-09-09T11:19:09.860+08:00  WARN 38816 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : run failed runId=run_b7181b1bb1494867 code=TOOL_SELECTION_INVALID reason=target tool not in candidates: order.delete
-2026-09-09T11:19:09.914+08:00  INFO 38816 --- [nio-8091-exec-6] c.strato.runtime.api.AgentRunController  : start_run, conversationId=c15 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:09.914+08:00  INFO 38816 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : route runId=run_3b8d33f7073c42d5 domain=refund source=rule
-2026-09-09T11:19:09.914+08:00  INFO 38816 --- [    agent-run-6] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:09.914+08:00  INFO 38816 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : entities runId=run_3b8d33f7073c42d5 {order=10006}
-2026-09-09T11:19:09.914+08:00  INFO 38816 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_3b8d33f7073c42d5 domain=refund steps=3 planner=rule-based
-2026-09-09T11:19:09.915+08:00  INFO 38816 --- [    agent-run-6] AUDIT                                    : audit runId=run_3b8d33f7073c42d5 toolCallId=tc_000023 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=f5b7f97b6d84869f11bd1e65dec4369c status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:09.916+08:00  INFO 38816 --- [    agent-run-6] AUDIT                                    : audit runId=run_3b8d33f7073c42d5 toolCallId=tc_000024 toolId=refund.preview version=1.3.0 principal=user_001@tenant_001 argsDigest=f5b7f97b6d84869f11bd1e65dec4369c status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:10.045+08:00  INFO 38816 --- [nio-8091-exec-9] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_3b8d33f7073c42d5 actionId=confirm-refund userId=user_001
-2026-09-09T11:19:10.046+08:00  INFO 38816 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_3b8d33f7073c42d5 step=3 tool=refund.create
-2026-09-09T11:19:10.046+08:00  INFO 38816 --- [    agent-run-8] AUDIT                                    : audit runId=run_3b8d33f7073c42d5 toolCallId=tc_000025 toolId=refund.eligibility.check version=1.2.0 principal=user_001@tenant_001 argsDigest=f5b7f97b6d84869f11bd1e65dec4369c status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:10.047+08:00  INFO 38816 --- [ gateway-tool-6] c.s.d.refund.application.RefundService   : refund created refundId=rf_0c8454f86df0 orderId=10006 tenant=tenant_001
-2026-09-09T11:19:10.047+08:00  INFO 38816 --- [    agent-run-8] AUDIT                                    : audit runId=run_3b8d33f7073c42d5 toolCallId=tc_000026 toolId=refund.create version=2.1.0 principal=user_001@tenant_001 argsDigest=fcf9f573fb8c886209b10c3703937dbe status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:10.047+08:00  INFO 38816 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : confirmed step executed runId=run_3b8d33f7073c42d5 tokenStep=3
-2026-09-09T11:19:10.103+08:00  INFO 38816 --- [nio-8091-exec-2] c.s.gateway.api.ToolGatewayController    : invoke_tool, toolId=refund.status.get version=1.0.0 runId=run_probe toolCallId=tc_10006
-2026-09-09T11:19:10.103+08:00  INFO 38816 --- [nio-8091-exec-2] AUDIT                                    : audit runId=run_probe toolCallId=tc_10006 toolId=refund.status.get version=1.0.0 principal=user_001@tenant_001 argsDigest=f5b7f97b6d84869f11bd1e65dec4369c status=succeeded durationMs=0 traceId=null
-2026-09-09T11:19:10.127+08:00  INFO 38816 --- [nio-8091-exec-4] c.strato.runtime.api.AgentRunController  : start_run, conversationId=c16 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:10.127+08:00  INFO 38816 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : route runId=run_d9e97a175d194e6e domain=order source=rule
-2026-09-09T11:19:10.128+08:00  INFO 38816 --- [    agent-run-7] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:10.128+08:00  INFO 38816 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : entities runId=run_d9e97a175d194e6e {}
-2026-09-09T11:19:10.128+08:00  INFO 38816 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : target entity missing runId=run_d9e97a175d194e6e domain=order entity=order
-2026-09-09T11:19:10.183+08:00  INFO 38816 --- [nio-8091-exec-7] c.strato.runtime.api.AgentRunController  : start_run, conversationId=conv_r6 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:10.183+08:00  INFO 38816 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : route runId=run_416623e944564804 domain=order source=rule
-2026-09-09T11:19:10.183+08:00  INFO 38816 --- [    agent-run-1] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_001 tenant=tenant_001 candidates=4
-2026-09-09T11:19:10.183+08:00  INFO 38816 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : entities runId=run_416623e944564804 {}
-2026-09-09T11:19:10.183+08:00  INFO 38816 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_416623e944564804 domain=order steps=1 planner=rule-based
-2026-09-09T11:19:10.184+08:00  INFO 38816 --- [    agent-run-1] AUDIT                                    : audit runId=run_416623e944564804 toolCallId=tc_000027 toolId=order.list.search version=1.1.0 principal=user_001@tenant_001 argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=0 traceId=trace_e2e
-2026-09-09T11:19:10.240+08:00  INFO 38816 --- [io-8091-exec-10] c.strato.runtime.api.AgentRunController  : start_run, conversationId=conv_003 userId=user_001 tenantId=tenant_001
-2026-09-09T11:19:10.241+08:00  INFO 38816 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : route runId=run_bae6b875d18b4920 domain=- source=none
-2026-09-09T11:19:10.271+08:00  INFO 38816 --- [nio-8091-exec-3] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_nope actionId=x userId=user_001
-2026-09-09T11:19:10.292+08:00  INFO 38816 --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
-2026-09-09T11:19:10.296+08:00  INFO 38816 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2026-09-09T16:35:38.509+08:00  INFO 89248 --- [           main] com.strato.app.StratoApplication         : Starting StratoApplication using Java 21.0.11 with PID 89248 (/Users/fangtao/strato_ui/backed/app/target/app.jar started by fangtao in /Users/fangtao/strato_ui)
+2026-09-09T16:35:38.510+08:00  INFO 89248 --- [           main] com.strato.app.StratoApplication         : No active profile set, falling back to 1 default profile: "default"
+2026-09-09T16:35:38.980+08:00  INFO 89248 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8091 (http)
+2026-09-09T16:35:38.986+08:00  INFO 89248 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-09-09T16:35:38.986+08:00  INFO 89248 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.55]
+2026-09-09T16:35:38.997+08:00  INFO 89248 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-09-09T16:35:38.998+08:00  INFO 89248 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 471 ms
+2026-09-09T16:35:39.114+08:00  INFO 89248 --- [           main] .a.i.InMemoryPrincipalPermissionResolver : permission table loaded: 2 principals
+2026-09-09T16:35:39.153+08:00  INFO 89248 --- [           main] c.s.d.order.infra.SeededOrderRepository  : order seed loaded orders=30 items=49 logisticsEvents=85
+2026-09-09T16:35:39.160+08:00  INFO 89248 --- [           main] c.s.d.p.infra.SeededProductRepository    : product seed loaded products=20
+2026-09-09T16:35:39.163+08:00  INFO 89248 --- [           main] c.s.d.a.infra.SeededAftersaleRepository  : aftersale seed loaded aftersales=4
+2026-09-09T16:35:39.166+08:00  INFO 89248 --- [           main] c.s.d.r.infra.SeededRefundRepository     : refund seed loaded refunds=3
+2026-09-09T16:35:39.182+08:00  INFO 89248 --- [           main] c.s.g.application.InvokeToolUseCase      : gateway handlers registered: [order.logistics.get@1.0.0, product.list.search@1.0.0, aftersale.list.get@1.0.0, product.detail.get@1.0.0, refund.preview@1.3.0, order.delete@1.0.0, order.detail.get@1.1.0, order.list.search@1.1.0, refund.create@2.1.0, refund.eligibility.check@1.3.0, refund.status.get@1.0.0, aftersale.create@1.0.0]
+2026-09-09T16:35:39.196+08:00  WARN 89248 --- [           main] c.s.runtime.infra.llm.LlmConfiguration   : STRATO_LLM_BASE_URL / STRATO_LLM_API_KEY / STRATO_LLM_MODEL not fully set; using rule-based planner and noop classifier
+2026-09-09T16:35:39.386+08:00  INFO 89248 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-09-09T16:35:39.411+08:00  INFO 89248 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8091 (http) with context path '/'
+2026-09-09T16:35:39.417+08:00  INFO 89248 --- [           main] com.strato.app.StratoApplication         : Started StratoApplication in 1.066 seconds (process running for 1.24)
+2026-09-09T16:35:39.456+08:00  INFO 89248 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.detail.get@1.1.0 domain=order risk=low
+2026-09-09T16:35:39.456+08:00  INFO 89248 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.list.search@1.1.0 domain=order risk=low
+2026-09-09T16:35:39.457+08:00  INFO 89248 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.logistics.get@1.0.0 domain=order risk=low
+2026-09-09T16:35:39.457+08:00  INFO 89248 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.delete@1.0.0 domain=order risk=high
+2026-09-09T16:35:39.458+08:00  INFO 89248 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool product.detail.get@1.0.0 domain=product risk=low
+2026-09-09T16:35:39.458+08:00  INFO 89248 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool product.list.search@1.0.0 domain=product risk=low
+2026-09-09T16:35:39.459+08:00  INFO 89248 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool aftersale.list.get@1.0.0 domain=aftersale risk=low
+2026-09-09T16:35:39.459+08:00  INFO 89248 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool aftersale.create@1.0.0 domain=aftersale risk=high
+2026-09-09T16:35:39.460+08:00  INFO 89248 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.eligibility.check@1.3.0 domain=refund risk=low
+2026-09-09T16:35:39.460+08:00  INFO 89248 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.preview@1.3.0 domain=refund risk=low
+2026-09-09T16:35:39.460+08:00  INFO 89248 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.create@2.1.0 domain=refund risk=high
+2026-09-09T16:35:39.460+08:00  INFO 89248 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.status.get@1.0.0 domain=refund risk=low
+2026-09-09T16:35:39.460+08:00  INFO 89248 --- [           main] c.s.r.infra.StartupManifestRegistrar     : startup registration done: 12 tools from 4 sources
+2026-09-09T16:35:39.461+08:00  INFO 89248 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: running 7 checks
+2026-09-09T16:35:39.477+08:00  INFO 89248 --- [           main] c.s.c.i.selfcheck.ContractsSelfCheck     : selfcheck: contracts 9 schemas, 26 examples OK
+2026-09-09T16:35:39.477+08:00  INFO 89248 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: contracts OK
+2026-09-09T16:35:39.478+08:00  INFO 89248 --- [           main] c.s.g.i.s.GatewayIdempotencySelfCheck    : selfcheck: gateway idempotency claim OK
+2026-09-09T16:35:39.478+08:00  INFO 89248 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: gateway idempotency claim OK
+2026-09-09T16:35:39.479+08:00  INFO 89248 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=product user=user_001 tenant=tenant_001 candidates=2
+2026-09-09T16:35:39.479+08:00  INFO 89248 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_001 tenant=tenant_001 candidates=4
+2026-09-09T16:35:39.484+08:00  INFO 89248 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=aftersale user=user_001 tenant=tenant_001 candidates=2
+2026-09-09T16:35:39.484+08:00  INFO 89248 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
+2026-09-09T16:35:39.484+08:00  INFO 89248 --- [           main] c.s.r.i.s.ConfirmationCoverageSelfCheck  : selfcheck: confirmation coverage OK (3 tools)
+2026-09-09T16:35:39.484+08:00  INFO 89248 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: confirmation coverage OK
+2026-09-09T16:35:39.492+08:00  INFO 89248 --- [           main] AUDIT                                    : audit runId=run_selfcheck toolCallId=tc_inline_orders toolId=order.list.search version=1.1.0 principal=user_001@tenant_001 argsDigest=2a8276f650319ab72da96dfdddb5ea2b status=succeeded durationMs=6 traceId=null
+2026-09-09T16:35:39.494+08:00  INFO 89248 --- [           main] AUDIT                                    : audit runId=run_selfcheck toolCallId=tc_inline_products toolId=product.list.search version=1.0.0 principal=user_001@tenant_001 argsDigest=2a8276f650319ab72da96dfdddb5ea2b status=succeeded durationMs=0 traceId=null
+2026-09-09T16:35:39.495+08:00  INFO 89248 --- [           main] c.s.r.i.selfcheck.InlineActionSelfCheck  : selfcheck: inline actions OK (69 actions)
+2026-09-09T16:35:39.495+08:00  INFO 89248 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: inline actions OK
+2026-09-09T16:35:39.495+08:00  INFO 89248 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=product user=user_001 tenant=tenant_001 candidates=2
+2026-09-09T16:35:39.495+08:00  INFO 89248 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_001 tenant=tenant_001 candidates=4
+2026-09-09T16:35:39.495+08:00  INFO 89248 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=aftersale user=user_001 tenant=tenant_001 candidates=2
+2026-09-09T16:35:39.495+08:00  INFO 89248 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
+2026-09-09T16:35:39.496+08:00  INFO 89248 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: intent verbs reference registered tools OK
+2026-09-09T16:35:39.496+08:00  INFO 89248 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
+2026-09-09T16:35:39.497+08:00  INFO 89248 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_001 tenant=tenant_001 candidates=4
+2026-09-09T16:35:39.497+08:00  INFO 89248 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=aftersale user=user_001 tenant=tenant_001 candidates=2
+2026-09-09T16:35:39.497+08:00  INFO 89248 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=order user=user_001 tenant=tenant_001 candidates=4
+2026-09-09T16:35:39.497+08:00  INFO 89248 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=product user=user_001 tenant=tenant_001 candidates=2
+2026-09-09T16:35:39.497+08:00  INFO 89248 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: plan 5 messages OK
+2026-09-09T16:35:39.497+08:00  INFO 89248 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
+2026-09-09T16:35:39.497+08:00  INFO 89248 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: invalid toolId rejected OK
+2026-09-09T16:35:39.497+08:00  INFO 89248 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: missing prerequisite rejected OK
+2026-09-09T16:35:39.498+08:00  INFO 89248 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: plan OK
+2026-09-09T16:35:39.498+08:00  INFO 89248 --- [           main] c.s.r.infra.selfcheck.TokenSelfCheck     : selfcheck: token expired/replayed/digest-mismatch/extra-key rejected OK
+2026-09-09T16:35:39.498+08:00  INFO 89248 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: confirmation token OK
+2026-09-09T16:35:39.499+08:00  INFO 89248 --- [           main] c.s.d.refund.application.RefundService   : refund created refundId=rf_42c95bcd6f30 orderId=10003 tenant=tenant_001
+2026-09-09T16:35:39.499+08:00  INFO 89248 --- [           main] c.s.d.r.i.s.RefundIdempotencySelfCheck   : selfcheck: refund.create idempotent OK
+2026-09-09T16:35:39.499+08:00  INFO 89248 --- [           main] com.strato.app.SelfCheckRunner           : selfcheck: refund.create idempotent OK
+2026-09-09T16:35:40.267+08:00  INFO 89248 --- [nio-8091-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-09-09T16:35:40.267+08:00  INFO 89248 --- [nio-8091-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-09-09T16:35:40.268+08:00  INFO 89248 --- [nio-8091-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-09-09T16:35:41.390+08:00  INFO 89248 --- [nio-8091-exec-5] c.strato.runtime.api.AgentRunController  : start_run, conversationId=conv_001 userId=user_001 tenantId=tenant_001
+2026-09-09T16:35:41.392+08:00  INFO 89248 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : route runId=run_e4da728f29c24a33 domain=refund source=rule
+2026-09-09T16:35:41.392+08:00  INFO 89248 --- [    agent-run-1] c.s.r.application.SearchToolsUseCase     : search domain=refund user=user_001 tenant=tenant_001 candidates=4
+2026-09-09T16:35:41.392+08:00  INFO 89248 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : entities runId=run_e4da728f29c24a33 {order=10001}
+2026-09-09T16:35:41.393+08:00  INFO 89248 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_e4da728f29c24a33 domain=refund steps=3 planner=rule-based
+2026-09-09T16:35:41.396+08:00  INFO 89248 --- [    agent-run-1] AUDIT                                    : audit runId=run_e4da728f29c24a33 toolCallId=tc_000001 toolId=refund.eligibility.check version=1.3.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_deploy
+2026-09-09T16:35:41.398+08:00  INFO 89248 --- [    agent-run-1] AUDIT                                    : audit runId=run_e4da728f29c24a33 toolCallId=tc_000002 toolId=refund.preview version=1.3.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_deploy
+2026-09-09T16:35:41.488+08:00  INFO 89248 --- [nio-8091-exec-7] c.strato.runtime.api.AgentRunController  : confirm_action, runId=run_e4da728f29c24a33 actionId=confirm-refund userId=user_001
+2026-09-09T16:35:41.489+08:00  INFO 89248 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_e4da728f29c24a33 step=3 tool=refund.create
+2026-09-09T16:35:41.490+08:00  INFO 89248 --- [    agent-run-2] AUDIT                                    : audit runId=run_e4da728f29c24a33 toolCallId=tc_000003 toolId=refund.eligibility.check version=1.3.0 principal=user_001@tenant_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_deploy
+2026-09-09T16:35:41.493+08:00  INFO 89248 --- [ gateway-tool-7] c.s.d.refund.application.RefundService   : refund created refundId=rf_29aa78789eef orderId=10001 tenant=tenant_001
+2026-09-09T16:35:41.493+08:00  INFO 89248 --- [    agent-run-2] AUDIT                                    : audit runId=run_e4da728f29c24a33 toolCallId=tc_000004 toolId=refund.create version=2.1.0 principal=user_001@tenant_001 argsDigest=524c5f36375537fdb1ff539459f71ed4 status=succeeded durationMs=2 traceId=trace_deploy
+2026-09-09T16:35:41.494+08:00  INFO 89248 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmed step executed runId=run_e4da728f29c24a33 tokenStep=3
+2026-09-09T16:35:44.782+08:00  INFO 89248 --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-09-09T16:35:44.786+08:00  INFO 89248 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete

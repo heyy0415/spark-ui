@@ -1,28 +1,79 @@
 {
   "toolId": "refund.eligibility.check",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "domain": "refund",
   "name": "检查退款资格",
-  "description": "检查指定订单当前是否满足退款条件，返回是否可退、可退金额与不可退原因。只读，无副作用。",
+  "description": "检查指定订单当前是否满足退款条件，返回是否可退、可退金额与不可退原因。只读，无副作用；同时返回订单状态 / 商品 / 件数 / 金额摘要供确认屏展示。",
   "protocol": "in-process",
   "inputSchema": {
     "type": "object",
     "additionalProperties": false,
-    "required": ["orderId"],
+    "required": [
+      "orderId"
+    ],
     "properties": {
-      "orderId": { "type": "string", "minLength": 1, "maxLength": 64 }
+      "orderId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
     }
   },
   "outputSchema": {
     "type": "object",
     "additionalProperties": false,
-    "required": ["orderId", "eligible", "refundableAmount", "currency"],
+    "required": [
+      "orderId",
+      "eligible",
+      "refundableAmount",
+      "currency",
+      "orderStatus",
+      "productName",
+      "quantity",
+      "orderAmount"
+    ],
     "properties": {
-      "orderId": { "type": "string" },
-      "eligible": { "type": "boolean" },
-      "refundableAmount": { "type": "string", "pattern": "^-?\\d+(\\.\\d{1,2})?$" },
-      "currency": { "type": "string", "enum": ["CNY"] },
-      "reason": { "type": "string", "maxLength": 200 }
+      "orderId": {
+        "type": "string"
+      },
+      "eligible": {
+        "type": "boolean"
+      },
+      "refundableAmount": {
+        "type": "string",
+        "pattern": "^-?\\d+(\\.\\d{1,2})?$"
+      },
+      "currency": {
+        "type": "string",
+        "enum": [
+          "CNY"
+        ]
+      },
+      "reason": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "orderStatus": {
+        "type": "string",
+        "enum": [
+          "PAID",
+          "SHIPPED",
+          "COMPLETED",
+          "REFUNDED",
+          "CANCELLED"
+        ]
+      },
+      "productName": {
+        "type": "string"
+      },
+      "quantity": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "orderAmount": {
+        "type": "string",
+        "pattern": "^\\d+(\\.\\d{1,2})?$"
+      }
     }
   },
   "risk": {

@@ -45,6 +45,11 @@ public class RefundRecheck implements ConfirmationRecheck {
   }
 
   @Override
+  public java.util.Set<String> trustedArgKeys() {
+    return java.util.Set.of("amount");
+  }
+
+  @Override
   public Map<String, String> trustedArgs(JsonNode recheckOutput) {
     String amount = recheckOutput.path("refundableAmount").asText("");
     return amount.isEmpty() ? Map.of() : Map.of("amount", amount);

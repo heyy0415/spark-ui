@@ -1,18 +1,18 @@
 event:run.started
-data:{"runId":"run_f8bacb7941ff43f9","conversationId":"c10","at":"2026-09-09T03:19:08.966221Z"}
+data:{"runId":"run_bc7fb5799d2f40a2","conversationId":"c10","at":"2026-09-09T08:35:35.827471Z"}
 
 event:tool.selected
-data:{"runId":"run_f8bacb7941ff43f9","toolCallId":"tc_000014","toolId":"product.detail.get","version":"1.0.0","displayName":"查询商品详情"}
+data:{"runId":"run_bc7fb5799d2f40a2","toolCallId":"tc_000014","toolId":"product.detail.get","version":"1.0.0","displayName":"查询商品详情"}
 
 event:tool.started
-data:{"runId":"run_f8bacb7941ff43f9","toolCallId":"tc_000014","at":"2026-09-09T03:19:08.966987Z"}
+data:{"runId":"run_bc7fb5799d2f40a2","toolCallId":"tc_000014","at":"2026-09-09T08:35:35.828309Z"}
 
 event:tool.completed
-data:{"runId":"run_f8bacb7941ff43f9","toolCallId":"tc_000014","status":"succeeded","durationMs":0,"summary":"商品 无线耳机 Pro"}
+data:{"runId":"run_bc7fb5799d2f40a2","toolCallId":"tc_000014","status":"succeeded","durationMs":0,"summary":"商品 无线耳机 Pro"}
 
 event:ui.replace
-data:{"runId":"run_f8bacb7941ff43f9","ui":{"schemaVersion":"1.0","screenId":"product-detail","title":"商品详情","components":[{"id":"product","type":"Card","props":{"title":"无线耳机 Pro","description":"无线耳机 Pro，数码品类热销款，支持 7 天无理由退换。","items":[{"label":"编号","value":"P-1003"},{"label":"价格","value":"899.00 CNY"},{"label":"库存","value":"120","tone":"default"},{"label":"分类","value":"数码"},{"label":"销量","value":"4118"},{"label":"颜色","value":"黑"},{"label":"保修","value":"12 个月"}]}}],"actions":[]}}
+data:{"runId":"run_bc7fb5799d2f40a2","ui":{"schemaVersion":"1.0","screenId":"product-detail","title":"商品详情","components":[{"id":"product","type":"Card","props":{"title":"无线耳机 Pro","description":"无线耳机 Pro，数码品类热销款，支持 7 天无理由退换。","items":[{"label":"编号","value":"P-1003"},{"label":"价格","value":"899.00 CNY"},{"label":"库存","value":"120","tone":"default"},{"label":"分类","value":"数码"},{"label":"销量","value":"4118"},{"label":"颜色","value":"黑"},{"label":"保修","value":"12 个月"}]}}],"actions":[]}}
 
 event:run.completed
-data:{"runId":"run_f8bacb7941ff43f9","at":"2026-09-09T03:19:08.968372Z"}
+data:{"runId":"run_bc7fb5799d2f40a2","at":"2026-09-09T08:35:35.829601Z"}
 

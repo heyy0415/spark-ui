@@ -12,8 +12,9 @@ import java.util.regex.Pattern;
  */
 public final class EntityExtractor {
 
-  private static final Pattern ORDER = Pattern.compile("订单\\s*(\\d{5})");
-  private static final Pattern PRODUCT = Pattern.compile("商品\\s*(P-\\d{4})");
+  // 尾部 (?!\\d) 防止「订单 100021」抓成 10002
+  private static final Pattern ORDER = Pattern.compile("订单\\s*(\\d{5})(?!\\d)");
+  private static final Pattern PRODUCT = Pattern.compile("商品\\s*(P-\\d{4})(?!\\d)");
 
   /** 页面实体类型白名单：只有这些类型会被采纳补位。 */
   private static final Map<String, Pattern> ID_FORMAT =

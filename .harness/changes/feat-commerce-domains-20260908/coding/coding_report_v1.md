@@ -40,7 +40,7 @@ STRATO_FRONT_BASE=http://localhost:5199 node e2e-frontend.mjs      33 passed / 0
 rm -rf fronted/*/dist && pnpm -C fronted run ci                    exit 0；check-registry 5 + 两条新规则；verify-pack 17 运行时 / 19 类型；dist 38 KB（基线 40 → 38 重写）
 pnpm -C .harness run ci                                            check-contracts（9 schema / 26 example）/ check-seed（7 项）/ check-module-deps / fronted / backed 全 0
 pnpm -C .harness run doctor                                        0 errors 0 warnings
-grep -r 'sssaiapi|sk-sssaicode|gpt-5.6' 全树（排除 node_modules/target/.git）   0 命中；deployment/ 冻结产物 0 命中
+grep -r <LLM 网关主机名|密钥前缀|模型名>（取自 STRATO_LLM_* 环境变量，字面量不落盘）全树   0 命中；deployment/ 冻结产物 0 命中
 ```
 
 ### 新 e2e 用例（规则模式实测）
@@ -93,3 +93,49 @@ grep -r 'sssaiapi|sk-sssaicode|gpt-5.6' 全树（排除 node_modules/target/.git
 - §2.6 e2e ⑥ 断言形态由「无 ui.replace」改为「含 ui.replace」：列表工具现在有结果屏。
 - 示例总数 23 → 26（spec 计数错误，已回改）。
 - 为让验收脚本在 8080 / 5173 被 IDE 实例占用时也能跑，`e2e-backend.sh` / `deploy-verify.sh` 增 `STRATO_PORT`，vite 代理增 `STRATO_BACKEND`，`e2e-frontend.mjs` 增 `STRATO_FRONT_BASE`（默认值全部不变）。
+
+---
+
+# 阶段 4 回修记录 v1（响应 `coding/review/code_review_backend_v1.md`：2 MUST / 8 SHOULD；`code_review_frontend_v1.md`：1 MUST / 8 SHOULD）
+
+## 后端
+
+| # | 意见 | 处理 | 证据 |
+|---|---|---|---|
+| M-1 | 退款确认屏订单 Card 读不存在的 `order.detail.get`，回退到硬编码 `PAID`（冻结产物 run2 显示 10002 为 PAID，实为 SHIPPED） | `refund.eligibility.check` 升 **1.3.0**，输出增 `orderStatus / productName / quantity / orderAmount`（`RefundService.eligibility()` 返回结果 + 快照）；`RefundScreens.confirmation` 只用该输出，缺字段不显示、**不填任何业务默认值**，前置输出缺失直接抛错（fail-closed）；spi `ScreenBuilder.probeOutputs` 供自检探测；e2e 新增断言「confirm screen shows real order status == SHIPPED」 | 冻结 run2 现为 `状态: SHIPPED`；rule 108/108 |
+| M-2 | coding_report 含 LLM 主机名 / 密钥前缀 / 模型名字面量 | 报告改写为环境变量名；e2e LIVE 增三条断言「host / key / model 不在 change 目录任何文件」；顺带发现 `planner=spring-ai:<model>` 与 `LLM enabled model=` 两处日志泄露模型名 → `name()` 改 `spring-ai`，启动日志只记 completionsPath | 全树 grep 0；LIVE 113/113 |
+| S-1 | 覆盖自检用空节点探 `trustedArgs`，refund 对空输出返回空 map，互斥断言空转 | spi `ConfirmationRecheck.trustedArgKeys()` 静态声明；自检改用它 | `RefundRecheck` 返回 `{amount}` |
+| S-2 | 契约声称 runtime 校验 `Table.cells ⊆ columns`，无代码 | `ScreenRegistry.assertTableCells` 在契约校验后执行 | — |
+| S-3 | 动词表顺序与路由顺序打架（「退货退款」→ refund 域却选 aftersale.create）；`refund.detail.get` 不存在 | `IntentVerbs.target` 先匹配路由领域自己的动词再退全表；`DETAIL_TOOL` 表（refund / aftersale 落到查询工具），纳入 `referencedToolIds` 启动校验 | PlanSelfCheck 5 条不变 |
+| S-4 | `订单\s*(\d{5})` 无尾边界，「订单 100021」抓成 10002 | 两个正则加 `(?!\d)` | — |
+| S-5 | 校验器不比对实体参数值，LIVE 模型可换 orderId | `validate(..., entities)`：实体类参数值必须等于已识别实体 | LIVE 113/113 |
+| S-6 | 脚本无条件 `pkill app.jar` 会杀 IDE 实例 | 只 kill 带 `--server.port=$PORT` 的自起实例 | 验收后 8080 实例仍在 |
+| S-7 | 模型输出解析失败被当传输错误直接 INTERNAL_ERROR | 只有 `RestClientException` 走传输错误；其它 RuntimeException 视为输出不合规、再试一次 | — |
+| S-8 | `stepOutputs` 只在 confirm 清理 | `complete()` / `fail()` 都清理 | — |
+
+## 前端
+
+| # | 意见 | 处理 |
+|---|---|---|
+| F-01 | `@ant-design/icons` 仍在 peer / dev / catalog / verify-pack / README | 全部移除；PEERS 5 |
+| F-02 | check-registry import 白名单可被 `export…from` / 动态 import / require 绕过；子目录崩溃 | 四种引用形态都扫；子目录报错。植入 `export * from 'lodash'` / `await import('lodash')` / 子目录 → 各红 |
+| F-03 | 新一轮开始保留等待确认的旧屏，Form 仍可填 | `beginTurn` 在上一 phase 为 waiting_confirmation 时清空 ui |
+| F-04 | 行内按钮 key 用 intent，重复即 console.error | 索引 key |
+| F-05 | Zod `cells` 无 maxProperties 16 | `.refine` |
+| F-06 | e2e 步骤 6 只断言 `rendered > 0` | 逐示例组件数 == 期望 + 无 UnknownComponent（35/35） |
+| F-07 | e2e 残留 `['OrderCard','RefundConfirmCard','Form'].length` | 改 `['Card','Card','Form']` |
+| F-08 / F-09 | backed/README 表格断裂；verify-pack / project-structure 计数与目录说明过期 | 修正 |
+| F-10 / F-11 / F-12 | `send` 未 memo；chips 容器 aria；行内按钮不随 busy 禁用 | `useCallback`；`role="group"`；无 `onIntent` 时 disabled |
+
+## 回修后复验
+
+```
+mvnw -q verify                                  exit 0
+e2e-backend 规则（STRATO_PORT=8091）              108 passed / 0 failed（+1 M-1 回归断言）
+e2e-backend LIVE                                 113 passed / 0 failed（+3 change 目录卫生断言）；planner=spring-ai 12；unparseable / retry 0
+deploy-verify（STRATO_PORT=8091）                 12 passed / 0 failed
+e2e-frontend（STRATO_FRONT_BASE=5199）            35 passed / 0 failed
+pnpm -C fronted run ci（clean dist）              exit 0；PEERS 5
+pnpm -C .harness run ci                          exit 0；doctor 0
+grep 全树 + .harness/changes（主机名 / 密钥 / 模型名）  0
+```
