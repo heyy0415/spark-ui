@@ -4,7 +4,7 @@
 |---|---|
 | Change ID | feat-commerce-domains-20260908 |
 | 类型 | feat |
-| 状态 | IN REVIEW（待用户确认） |
+| 状态 | DONE |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | contracts / backed / fronted / harness |
 | 起止时间 | 2026-09-08 ~ — |
@@ -22,7 +22,7 @@
 | 5 | 代码推送 | DONE | — | 18 个 commit（`e854104`…`dc5aef5` + 本 commit）；工作区干净；无远端（用户未提供） | 2026-09-09 |
 | 6 | CI 验证 | DONE | — | 清 dist 后 `run ci` 五段 0 → `ci_result/ci_summary.md`；doctor 0；core dist 40 → 38 KB | 2026-09-09 |
 | 7 | 部署验证 | DONE | — | `deploy-verify` 12/12（自检 7/7）→ `deployment/preview_report.md`；e2e rule 109 / LIVE 114 / frontend 35 全绿；不部署、不发包 | 2026-09-09 |
-| 8 | 用户确认 | **WAITING** | — | 等待用户验收：建议在浏览器（IDE 起的 5173 + 8080，先重启后端以加载新 jar）试「看看我的订单」→ 点行内「查看物流」/「申请售后」/「删除订单」，以及「有什么商品」→「查看商品」 | — |
+| 8 | 用户确认 | DONE | — | 用户以新需求（核心能力作为依赖引入领域服务、方法级注解、中心平台 + HTTP 工具协议、整体改名 spark-ui / spark-rooter）继续，视为验收通过。不部署、不发包、无远端 | 2026-09-09 |
 
 ## 契约变更
 - v3.1：修改 `ui-schema.schema.json`（componentType +3；inlineAction / iconName）；新增 5 个示例（已提交 e854104）
