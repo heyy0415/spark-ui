@@ -20,11 +20,12 @@ export function TableDesktop({ id, props, handlers }: RenderedComponentProps<Tab
             title: '操作',
             render: (_: unknown, row: TableRow) => (
               <Space wrap>
-                {(row.actions ?? []).map((a) => (
+                {(row.actions ?? []).map((a, i) => (
                   <Button
-                    key={a.intent}
+                    key={i}
                     size="small"
                     data-intent={a.intent}
+                    disabled={handlers?.onIntent === undefined}
                     onClick={() => handlers?.onIntent?.(a.intent)}
                   >
                     {a.label}

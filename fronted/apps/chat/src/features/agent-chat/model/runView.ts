@@ -49,8 +49,11 @@ export function emptyView(conversationId: string): AgentRunView {
 
 /** 用户发送一条消息（输入框或行内指令）：记入消息区，进度清空，上一屏保留到新屏 ui.replace 到达。 */
 export function beginTurn(view: AgentRunView, text: string): AgentRunView {
+  // 上一屏若是等待确认的表单，新一轮开始时必须撤掉：旧令牌已失效，留着可填的 Form 会误导用户
+  const ui = view.phase === 'waiting_confirmation' ? null : view.ui;
   return {
     ...view,
+    ui,
     phase: 'streaming',
     messages: [...view.messages, { role: 'user', text }],
     tools: [],

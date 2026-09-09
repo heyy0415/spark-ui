@@ -8,7 +8,7 @@
  *   (b) 解包后 package.json：exports 指 dist（publishConfig 已覆盖）、6 peer、无 dependencies、files
  *   (c) es-module-lexer 静态解析 dist/index.js 导出名 == 17 项运行时清单
  *   (d) vite-node 加载解包后的 dist/index.js 成功
- *   (e) consumer.ts 引用 17 运行时 + 10 类型导出，EOPT 开 / 关两次 tsc --noEmit 均 0
+ *   (e) consumer.ts 引用 17 运行时 + 19 类型导出，EOPT 开 / 关两次 tsc --noEmit 均 0
  *   (f) dist 体积 ≤ 基线 × 1.1（首次运行写入 verify-pack.baseline.json）
  *   (g) dist 内 .d.ts 不 import antd / antd-mobile / @ant-design
  * 退出码 0 = 全部通过。结束（含失败）时删除 .verify-pack/。
@@ -74,7 +74,7 @@ const TYPE_EXPORTS = [
   'StratoThemeTokens',
   'StratoThemeProviderProps',
 ];
-const PEERS = ['@ant-design/icons', 'antd', 'antd-mobile', 'react', 'react-dom', 'zod'].toSorted();
+const PEERS = ['antd', 'antd-mobile', 'react', 'react-dom', 'zod'].toSorted();
 
 let failures = 0;
 const ok = (m) => console.log(`  ✓ ${m}`);
@@ -143,7 +143,7 @@ try {
   );
   check(
     sameSet(Object.keys(pkg.peerDependencies ?? {}).toSorted(), PEERS),
-    '(b) peerDependencies = 6 expected peers',
+    '(b) peerDependencies = 5 expected peers',
     `(b) peerDependencies = ${Object.keys(pkg.peerDependencies ?? {}).join(', ')}`,
   );
   // peer range 主版本必须与 workspace catalog 的主版本一致（spec §7：防两处漂移）

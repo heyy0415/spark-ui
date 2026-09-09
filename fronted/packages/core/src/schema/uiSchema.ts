@@ -78,7 +78,9 @@ export type CardProps = z.infer<typeof CardPropsSchema>;
 export const TableRowSchema = z
   .object({
     id: z.string().min(1).max(64),
-    cells: z.record(z.string(), z.string().max(200)),
+    cells: z
+      .record(z.string(), z.string().max(200))
+      .refine((c) => Object.keys(c).length <= 16, { message: 'cells: at most 16 keys' }),
     actions: z.array(InlineActionSchema).max(6).optional(),
   })
   .strict();

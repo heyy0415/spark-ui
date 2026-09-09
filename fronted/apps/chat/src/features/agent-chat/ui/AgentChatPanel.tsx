@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { UiAction } from '@strato-ui/core';
 import { ActionBar, COMPONENT_TYPES, SchemaRenderer } from '@strato-ui/core';
@@ -31,21 +31,24 @@ export function AgentChatPanel({ conversationId, principal, pageContext }: Agent
   });
 
   /** 发送一条用户消息：输入框、示例 chip、行内指令都走这里，文本原样提交、不拼接不改写。 */
-  const send = (message: string) => {
-    if (!message || busy) {
-      return;
-    }
-    start.mutate({
-      message,
-      pageContext: {
-        page: pageContext.page,
-        ...(pageContext.entityType && pageContext.entityId
-          ? { selectedEntity: { type: pageContext.entityType, id: pageContext.entityId } }
-          : {}),
-      },
-      clientCapabilities: { uiSchemaVersion: '1.0', components: [...COMPONENT_TYPES] },
-    });
-  };
+  const send = useCallback(
+    (message: string) => {
+      if (!message || busy) {
+        return;
+      }
+      start.mutate({
+        message,
+        pageContext: {
+          page: pageContext.page,
+          ...(pageContext.entityType && pageContext.entityId
+            ? { selectedEntity: { type: pageContext.entityType, id: pageContext.entityId } }
+            : {}),
+        },
+        clientCapabilities: { uiSchemaVersion: '1.0', components: [...COMPONENT_TYPES] },
+      });
+    },
+    [busy, start, pageContext],
+  );
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -88,7 +91,7 @@ export function AgentChatPanel({ conversationId, principal, pageContext }: Agent
         </Button>
       </form>
 
-      <div className={styles['chips']} aria-label="示例问题">
+      <div className={styles['chips']} role="group" aria-label="示例问题">
         {EXAMPLE_CHIPS.map((c) => (
           <button
             key={c}

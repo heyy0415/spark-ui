@@ -14,7 +14,7 @@
  *   这些文件只允许 import 'antd' / 'antd-mobile' / 'react' / '../../registry/*' / '../../schema/*'（不许引第三方或业务模块）。
  * 纯文本解析，不执行 TS；退出码 0 = 一致。
  */
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -111,11 +111,22 @@ for (const side of ['desktop', 'mobile']) {
         `components/${side}/${f}: 组件文件名必须是契约 type（官方组件名）或 ActionBar，禁止业务命名组件`,
       );
     }
+    if (statSync(join(dir, f)).isDirectory()) {
+      fail(`components/${side}/${f}: 组件目录下不得有子目录（每个 type 一个文件）`);
+      continue;
+    }
     const src = readFileSync(join(dir, f), 'utf-8');
-    for (const m of src.matchAll(/^import[^'"]*['"]([^'"]+)['"]/gm)) {
+    // 覆盖 import / export … from / 动态 import() / require()；任一来源不在白名单即红
+    const specifiers = [
+      ...src.matchAll(/^\s*(?:import|export)[^'"]*?\bfrom\s*['"]([^'"]+)['"]/gm),
+      ...src.matchAll(/^\s*import\s*['"]([^'"]+)['"]/gm),
+      ...src.matchAll(/\bimport\(\s*['"]([^'"]+)['"]\s*\)/g),
+      ...src.matchAll(/\brequire\(\s*['"]([^'"]+)['"]\s*\)/g),
+    ];
+    for (const m of specifiers) {
       if (!ALLOWED_IMPORT.test(m[1]))
         fail(
-          `components/${side}/${f}: 不允许 import '${m[1]}'（只能 antd / antd-mobile / react / 本包 registry / schema）`,
+          `components/${side}/${f}: 不允许引用 '${m[1]}'（只能 antd / antd-mobile / react / 本包 registry / schema）`,
         );
     }
   }

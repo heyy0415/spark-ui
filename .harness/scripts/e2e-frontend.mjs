@@ -119,7 +119,7 @@ try {
     await sleep(800);
     check('tool progress items', 2, await page.$$eval('[aria-label="工具进度"] li', (e) => e.length));
     check('tools all succeeded', 2, await page.$$eval('[aria-label="工具进度"] li[data-status="succeeded"]', (e) => e.length));
-    check('confirmation screen components', ['OrderCard', 'RefundConfirmCard', 'Form'].length, await page.$$eval('[data-screen-id="refund-confirmation"] [data-component-id]', (e) => e.length));
+    check('confirmation screen components', ['Card', 'Card', 'Form'].length, await page.$$eval('[data-screen-id="refund-confirmation"] [data-component-id]', (e) => e.length));
     check('confirm action button present', 1, await page.$$eval('[data-action-id="confirm-refund"]', (e) => e.length));
     await page.screenshot({ path: join(DEPLOY, 'ui-desktop-confirm.png'), fullPage: true });
 
@@ -145,21 +145,26 @@ try {
   // ---- step 6: all contract examples render at both viewports
   console.log('--- step 6: 8 contract examples @1280 / @375');
   {
-    const EXAMPLES = ['confirm', 'result', 'order-table', 'product-table', 'order-detail', 'logistics', 'aftersale-confirm', 'delete-confirm'];
+    // 每个示例的期望组件数（与契约示例文件一致）；渲染出的 data-component-id 数必须相等且无 UnknownComponent 占位
+    const EXAMPLES = { confirm: 3, result: 1, 'order-table': 1, 'product-table': 1, 'order-detail': 3, logistics: 2, 'aftersale-confirm': 2, 'delete-confirm': 1 };
     for (const width of [1280, 375]) {
       let errs = 0;
-      let rendered = 0;
-      for (const ex of EXAMPLES) {
+      const mismatched = [];
+      let unknown = 0;
+      for (const [ex, expected] of Object.entries(EXAMPLES)) {
         const { page, errors } = await newPage(width);
         await page.goto(`${BASE}/dev/schema?example=${ex}`, { waitUntil: 'networkidle0' });
         await page.waitForSelector('[data-screen-id]');
         await sleep(300);
-        rendered += await page.$$eval('[data-component-id]', (e) => e.length);
+        const n = await page.$$eval('[data-component-id]', (e) => e.length);
+        if (n !== expected) mismatched.push(`${ex}=${n}/${expected}`);
+        unknown += await page.$$eval('[role="alert"][data-component-id]', (e) => e.length);
         errs += errors.length;
         if (errors.length) console.log(`    ${ex}@${width} errors:`, errors.slice(0, 2));
         await page.close();
       }
-      checkTrue(`examples @${width} rendered components > 0`, rendered > 0);
+      check(`examples @${width} component counts match`, '[]', JSON.stringify(mismatched));
+      check(`examples @${width} unknown placeholders`, 0, unknown);
       check(`examples @${width} console errors`, 0, errs);
     }
   }

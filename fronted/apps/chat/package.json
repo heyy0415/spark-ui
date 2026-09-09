@@ -13,7 +13,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ant-design/icons": "catalog:",
     "@strato-ui/core": "workspace:*",
     "@tanstack/react-query": "5.102.8",
     "antd": "catalog:",

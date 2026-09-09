@@ -18,11 +18,12 @@ export function TableMobile({ id, props, handlers }: RenderedComponentProps<Tabl
           {r.actions && r.actions.length > 0 ? (
             <List.Item>
               <Space wrap>
-                {r.actions.map((a) => (
+                {r.actions.map((a, i) => (
                   <Button
-                    key={a.intent}
+                    key={i}
                     size="mini"
                     data-intent={a.intent}
+                    disabled={handlers?.onIntent === undefined}
                     onClick={() => handlers?.onIntent?.(a.intent)}
                   >
                     {a.label}

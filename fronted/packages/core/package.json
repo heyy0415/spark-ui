@@ -35,7 +35,6 @@
     "prepublishOnly": "node ../../scripts/verify-pack.mjs"
   },
   "peerDependencies": {
-    "@ant-design/icons": "^6",
     "antd": "^6",
     "antd-mobile": "^5",
     "react": "^19",
@@ -43,7 +42,6 @@
     "zod": "^4"
   },
   "devDependencies": {
-    "@ant-design/icons": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",

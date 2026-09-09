@@ -6,9 +6,6 @@ settings:
 
 catalogs:
   default:
-    '@ant-design/icons':
-      specifier: 6.3.4
-      version: 6.3.4
     '@types/react':
       specifier: ^19.2.18
       version: 19.2.18
@@ -68,9 +65,6 @@ importers:
 
   apps/chat:
     dependencies:
-      '@ant-design/icons':
-        specifier: 'catalog:'
-        version: 6.3.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@strato-ui/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -117,9 +111,6 @@ importers:
 
   packages/core:
     devDependencies:
-      '@ant-design/icons':
-        specifier: 'catalog:'
-        version: 6.3.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.18

@@ -7,7 +7,7 @@ Strato UI 渲染引擎：把后端（Agent Runtime）下发的 **UI Schema** 渲
 ```bash
 pnpm add @strato-ui/core
 # peer（由宿主安装，版本范围见下表）
-pnpm add react react-dom antd antd-mobile @ant-design/icons zod
+pnpm add react react-dom antd antd-mobile zod
 ```
 
 | peer              | 范围 |
@@ -15,7 +15,6 @@ pnpm add react react-dom antd antd-mobile @ant-design/icons zod
 | react / react-dom | ^19  |
 | antd              | ^6   |
 | antd-mobile       | ^5   |
-| @ant-design/icons | ^6   |
 | zod               | ^4   |
 
 peer 而非 dependencies：避免宿主与本包各持一份 antd（主题 token 不共享、体积翻倍）与 zod（`UiSchemaSchema` 组合进宿主 schema 时实例不一致）。

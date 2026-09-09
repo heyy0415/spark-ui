@@ -31,9 +31,9 @@ fronted/
 ├── scripts/                 # check-deps / check-registry / verify-examples / verify-pack
 ├── packages/core/           # @strato-ui/core —— Strato UI 渲染引擎（可 npm 发包）
 │   └── src/
-│       ├── index.ts         # 唯一公共入口（17 运行时 + 10 类型导出，verify-pack 断言）
-│       ├── schema/          # ui-schema 契约的 Zod 投影（前端真源）+ parseUiSchema
-│       ├── registry/        # componentRegistry（desktop / mobile）+ 各组件 props Zod
+│       ├── index.ts         # 唯一公共入口（17 运行时 + 19 类型导出，verify-pack 断言）
+│       ├── schema/          # ui-schema 契约的 Zod 投影（前端真源，含五组件 props）+ parseUiSchema
+│       ├── registry/        # componentRegistry（desktop / mobile）+ 渲染签名类型（props Zod 只 re-export）
 │       ├── renderer/        # SchemaRenderer / UnknownComponent / ActionBar
 │       ├── components/      # desktop/{Type}.tsx（antd）、mobile/{Type}.tsx（antd-mobile）
 │       ├── device/          # StratoDeviceProvider / useDevice

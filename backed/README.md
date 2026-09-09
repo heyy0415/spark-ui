@@ -17,9 +17,9 @@ Java 21 / Spring Boot 3.5 / Spring AI 1.1 / Maven 多模块，首期单进程装
 | `domains/product-service` | 2 个只读工具，种子数据 | [README](domains/product-service/README.md) |
 | `domains/aftersale-service` | 2 个工具（`aftersale.create` 高风险需确认），订单经 spi 快照 | [README](domains/aftersale-service/README.md) |
 | `domains/refund-service` | 4 个工具，`refund.create` 高风险需确认，订单经 spi 快照 | [README](domains/refund-service/README.md) |
+| `app` | 唯一装配点：主类、权限表、`SelfCheckRunner` | — |
 
 每个领域模块还提供 `infra/screen/` 下的 `ScreenBuilder`（结果屏 / 确认屏，只用工具输出）与 `ConfirmationRecheck`（确认后重校验，领域策略）；runtime 只做编排与契约校验。
-| `app` | 唯一装配点：主类、权限表、`SelfCheckRunner` | — |
 
 依赖方向以 `.harness/rules/project-structure.md` §2 为准，`pnpm -C .harness run check-module-deps` 机械校验。
 

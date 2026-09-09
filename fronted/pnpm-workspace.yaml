@@ -8,7 +8,6 @@ catalog:
   react-dom: 19.2.8
   antd: 6.6.2
   antd-mobile: 5.42.3
-  '@ant-design/icons': 6.3.4
   zod: ^4.5.4
   '@types/react': ^19.2.18
   '@types/react-dom': ^19.2.5
