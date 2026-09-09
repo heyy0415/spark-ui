@@ -4,7 +4,7 @@
 |---|---|
 | Change ID | feat-commerce-domains-20260908 |
 | 类型 | feat |
-| 状态 | DRAFT |
+| 状态 | IN REVIEW（待用户确认） |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | contracts / backed / fronted / harness |
 | 起止时间 | 2026-09-08 ~ — |
@@ -19,10 +19,10 @@
 | 2 | 需求评审 | IN PROGRESS | 1/3 | v1 RR（7 MUST：规则规划器排序推演与断言不符、实体抽取在拦截之后、路由顺序未定、spi 签名违红线、重校验语义矛盾、订单数三处不一致、task 超时；12 SHOULD）→ v2 RR（5 MUST：空 Form 违契约、⑮ 复用已退款夹具、10007 不在默认列表、自检数不一致、OrderSnapshot 缺 productName；6 SHOULD）→ v3 RR（3 MUST，均文字补丁：⑫ 断言漏改、夹具表缺金额、售后枚举 / 分布未定；5 SHOULD）→ 按评审「最小补丁清单」吸收为 v3.1。3 轮上限；HITL ② 用户「继续」 | 2026-09-08 |
 | 3 | 编码实现 | DONE | — | 11 commits（T01–T11）；coding/coding_report_v1.md；rule e2e 107/107、LIVE 109/109、e2e-frontend 33/33、deploy-verify 12/12、harness ci 0、doctor 0 | 2026-09-08 ~ 09 |
 | 4 | 编码评审 | DONE | 2/2 | 后端 v1 RR（2 MUST：退款确认屏虚构订单状态、报告含 LLM 字面量；8 SHOULD）→ v2 APPROVED（1 SHOULD N-1 + LOW，均已修）；前端 v1 RR（1 MUST：@ant-design/icons 残留；8 SHOULD）→ v2 APPROVED（4 LOW，已修）。回修记录见 coding_report_v1 尾部 | 2026-09-09 |
-| 5 | 代码推送 | TODO | — | — | — |
-| 6 | CI 验证 | TODO | — | — | — |
-| 7 | 部署验证 | TODO | — | — | — |
-| 8 | 用户确认 | TODO | — | — | — |
+| 5 | 代码推送 | DONE | — | 18 个 commit（`e854104`…`dc5aef5` + 本 commit）；工作区干净；无远端（用户未提供） | 2026-09-09 |
+| 6 | CI 验证 | DONE | — | 清 dist 后 `run ci` 五段 0 → `ci_result/ci_summary.md`；doctor 0；core dist 40 → 38 KB | 2026-09-09 |
+| 7 | 部署验证 | DONE | — | `deploy-verify` 12/12（自检 7/7）→ `deployment/preview_report.md`；e2e rule 109 / LIVE 114 / frontend 35 全绿；不部署、不发包 | 2026-09-09 |
+| 8 | 用户确认 | **WAITING** | — | 等待用户验收：建议在浏览器（IDE 起的 5173 + 8080，先重启后端以加载新 jar）试「看看我的订单」→ 点行内「查看物流」/「申请售后」/「删除订单」，以及「有什么商品」→「查看商品」 | — |
 
 ## 契约变更
 - v3.1：修改 `ui-schema.schema.json`（componentType +3；inlineAction / iconName）；新增 5 个示例（已提交 e854104）
