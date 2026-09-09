@@ -15,8 +15,8 @@
 
 | # | 阶段 | 状态 | 评审轮次 | 产出 | 时间 |
 |---|---|---|---|---|---|
-| 1 | 需求分析 | DONE（v1） | — | spec.md（8 章）, tasks.md（16 task）；用户决策：Starter 嵌入、方法级 @SparkTool、仅 embedded、全量改名 spark-ui / spark-rooter、内核不管身份 / 权限 / 页面上下文、前端只发自然语言、不拆 agent 包、会话记忆 + 澄清屏 | 2026-09-09 |
-| 2 | 需求评审 | IN PROGRESS | 0/3 | — | 2026-09-09 |
+| 1 | 需求分析 | DONE（v2） | — | spec.md（8 章）, tasks.md（16 task）；用户决策：Starter 嵌入、方法级 @SparkTool、仅 embedded、全量改名 spark-ui / spark-rooter、内核不管身份 / 权限 / 页面上下文、前端只发自然语言、不拆 agent 包、会话记忆 + 澄清屏 | 2026-09-09 |
+| 2 | 需求评审 | IN PROGRESS | 1/3 | v1 RR（4 MUST：反射调用绕过 AOP 的边界与宿主 ThreadLocal 跨线程为空、默认 SessionIdResolver 无隔离、T07/T09 超粒度、验收空洞；8 SHOULD）→ v2 | 2026-09-09 |
 | 3 | 编码实现 | TODO | — | — | — |
 | 4 | 编码评审 | TODO | 0/2 | — | — |
 | 5 | 代码推送 | TODO | — | — | — |
