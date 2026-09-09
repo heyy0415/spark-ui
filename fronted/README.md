@@ -57,7 +57,7 @@ pnpm run verify-pack      # pnpm pack 解包后断言：文件清单 / exports /
 
 1. 启动后端（见 [backed/README.md](../backed/README.md)），确认 `curl localhost:8080/actuator/health`。
 2. `pnpm run dev`，打开 `http://localhost:5173/?page=order-detail&entityType=order&entityId=10001`。
-3. 输入「帮我把这个订单退款」→ 两条工具进度 → 确认卡片（OrderCard + RefundConfirmCard + Form）→ 选原因 → 确认 → ResultCard。
+3. 输入「帮我把这个订单退款」→ 两条工具进度 → 确认屏（订单 Card + 退款摘要 Card + Form）→ 选原因 → 确认 → Result。
 
 自动化版本：`pnpm -C .harness run e2e-frontend`（需要本机 Google Chrome，后端 8080 与 vite 5173 已启动），产出截图到当前 change 的 `deployment/`。
 

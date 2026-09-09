@@ -5,7 +5,7 @@
  * @strato-ui/core 发包就绪校验（spec §6.2 (a)–(g)）。一切子进程 cwd = packages/core，临时目录 packages/core/.verify-pack/
  * （zod / react / @types/react 只安装在 core 的 node_modules，vite-node 与 tsc 都从被加载文件所在目录向上解析）。
  *   (a) tarball 只含 package.json / README.md / dist/**
- *   (b) 解包后 package.json：exports 指 dist（publishConfig 已覆盖）、6 peer、无 dependencies、files
+ *   (b) 解包后 package.json：exports 指 dist（publishConfig 已覆盖）、5 peer、无 dependencies、files
  *   (c) es-module-lexer 静态解析 dist/index.js 导出名 == 17 项运行时清单
  *   (d) vite-node 加载解包后的 dist/index.js 成功
  *   (e) consumer.ts 引用 17 运行时 + 19 类型导出，EOPT 开 / 关两次 tsc --noEmit 均 0
@@ -154,7 +154,7 @@ try {
       ),
     ].map((m) => [m[1], m[2]]),
   );
-  // 6 个 peer 必须都在 catalog 中且主版本一致；找不到也算失败（否则 catalog 解析失败会静默变绿）
+  // 5 个 peer 必须都在 catalog 中且主版本一致；找不到也算失败（否则 catalog 解析失败会静默变绿）
   const peerMajorMismatch = Object.entries(pkg.peerDependencies ?? {}).filter(([name, range]) => {
     const major = /[\^~>=]*\s*(\d+)/.exec(String(range))?.[1];
     return catalog[name] === undefined || major !== catalog[name];

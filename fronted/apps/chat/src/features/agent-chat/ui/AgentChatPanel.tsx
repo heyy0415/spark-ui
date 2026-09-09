@@ -29,6 +29,8 @@ export function AgentChatPanel({ conversationId, principal, pageContext }: Agent
     conversationId,
     principal,
   });
+  // useMutation 返回对象每次渲染都是新引用；只依赖稳定的 mutate，send 才真正被 memo
+  const { mutate } = start;
 
   /** 发送一条用户消息：输入框、示例 chip、行内指令都走这里，文本原样提交、不拼接不改写。 */
   const send = useCallback(
@@ -36,7 +38,7 @@ export function AgentChatPanel({ conversationId, principal, pageContext }: Agent
       if (!message || busy) {
         return;
       }
-      start.mutate({
+      mutate({
         message,
         pageContext: {
           page: pageContext.page,
@@ -47,7 +49,7 @@ export function AgentChatPanel({ conversationId, principal, pageContext }: Agent
         clientCapabilities: { uiSchemaVersion: '1.0', components: [...COMPONENT_TYPES] },
       });
     },
-    [busy, start, pageContext],
+    [busy, mutate, pageContext],
   );
 
   const onSubmit = (e: FormEvent) => {
