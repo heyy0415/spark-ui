@@ -175,6 +175,8 @@ public class OrderScreens implements ScreenBuilder {
     UiNodes.labelValue(items, "地区", addr.path("region").asText(""));
     UiNodes.labelValue(items, "下单时间", time(out.path("createdAt").asText("")));
     if (out.hasNonNull("logistics")) {
+      // 详情卡底部「查看物流」（Card.actions，change 5）：完整轨迹走 order.logistics.get
+      UiNodes.inlineAction(card.putArray("actions"), "查看物流", "查看订单 " + orderId + " 的物流");
       JsonNode lg = out.get("logistics");
       logisticsCard(
           screen,

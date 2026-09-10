@@ -18,12 +18,14 @@ import com.sparkrooter.runtime.application.screen.ScreenRegistry;
 import com.sparkrooter.runtime.domain.ConfirmationTokenStore;
 import com.sparkrooter.runtime.domain.RunRepository;
 import com.sparkrooter.runtime.infra.InMemoryConfirmationTokenStore;
+import com.sparkrooter.runtime.infra.InMemoryConversationMemory;
 import com.sparkrooter.runtime.infra.InMemoryRunRepository;
 import com.sparkrooter.runtime.infra.inprocess.InProcessToolGatewayClient;
 import com.sparkrooter.runtime.infra.inprocess.InProcessToolRegistryClient;
 import com.sparkrooter.runtime.infra.llm.IntentVerbs;
 import com.sparkrooter.runtime.infra.llm.LlmFactory;
 import com.sparkrooter.spi.ConfirmationRecheck;
+import com.sparkrooter.spi.ConversationMemory;
 import com.sparkrooter.spi.RunContextPropagator;
 import com.sparkrooter.spi.ScreenBuilder;
 import com.sparkrooter.spi.SessionIdResolver;
@@ -86,6 +88,13 @@ class RuntimeBeans {
   @ConditionalOnMissingBean(RunRepository.class)
   RunRepository sparkRooterRunRepository() {
     return new InMemoryRunRepository();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(ConversationMemory.class)
+  ConversationMemory sparkRooterConversationMemory(
+      SparkRooterProperties props, Clock sparkRooterClock) {
+    return new InMemoryConversationMemory(props.runtime().memoryTtl(), sparkRooterClock);
   }
 
   @Bean
@@ -196,6 +205,7 @@ class RuntimeBeans {
       ToolDisplayNames displayNames,
       ConfirmationTokenService tokens,
       ToolMetaRegistry meta,
+      ConversationMemory memory,
       SchemaValidator validator,
       Clock sparkRooterClock) {
     return new RunOrchestrator(
@@ -209,6 +219,7 @@ class RuntimeBeans {
         displayNames,
         tokens,
         meta,
+        memory,
         validator,
         sparkRooterClock);
   }

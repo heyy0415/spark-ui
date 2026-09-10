@@ -15,6 +15,7 @@ import com.sparkrooter.runtime.application.port.LlmClient;
 import com.sparkrooter.runtime.application.port.RunEventSink;
 import com.sparkrooter.runtime.application.port.ToolGatewayClient;
 import com.sparkrooter.runtime.application.port.ToolRegistryClient;
+import com.sparkrooter.runtime.application.screen.ClarificationScreen;
 import com.sparkrooter.runtime.application.screen.ScreenRegistry;
 import com.sparkrooter.runtime.domain.ConfirmationToken;
 import com.sparkrooter.runtime.domain.Plan;
@@ -23,7 +24,9 @@ import com.sparkrooter.runtime.domain.RunFailure;
 import com.sparkrooter.runtime.domain.RunRepository;
 import com.sparkrooter.runtime.domain.RunState;
 import com.sparkrooter.runtime.domain.Step;
+import com.sparkrooter.runtime.infra.llm.IntentVerbs;
 import com.sparkrooter.spi.ConfirmationRecheck;
+import com.sparkrooter.spi.ConversationMemory;
 import com.sparkrooter.spi.ScreenContext;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -32,6 +35,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -73,6 +77,7 @@ public class RunOrchestrator {
   private final ToolDisplayNames displayNames;
   private final ConfirmationTokenService tokens;
   private final ToolMetaRegistry meta;
+  private final ConversationMemory memory;
   private final SchemaValidator validator;
   private final ObjectMapper mapper;
   private final Clock clock;
@@ -101,6 +106,7 @@ public class RunOrchestrator {
       ToolDisplayNames displayNames,
       ConfirmationTokenService tokens,
       ToolMetaRegistry meta,
+      ConversationMemory memory,
       SchemaValidator validator,
       Clock clock) {
     this.runs = runs;
@@ -113,6 +119,7 @@ public class RunOrchestrator {
     this.displayNames = displayNames;
     this.tokens = tokens;
     this.meta = meta;
+    this.memory = memory;
     this.validator = validator;
     this.mapper = validator.mapper();
     this.clock = clock;
@@ -156,16 +163,24 @@ public class RunOrchestrator {
       found.tools().forEach(c -> schemas.put(c.toolId(), c.inputSchema()));
       inputSchemas.put(runId, schemas);
 
-      // 实体抽取（只从消息正则）；日志只记类型与 ID，不记原文
-      Map<String, String> entities = ArgumentExtractor.extractEntities(intent.message());
+      // 实体抽取（只从消息正则）→ 会话记忆补位（序数指代 → 最近列表行；否则同类型实体）；日志只记类型与 ID 与来源，不记原文
+      Map<String, String> entities =
+          new LinkedHashMap<>(ArgumentExtractor.extractEntities(intent.message()));
+      Optional<ConversationMemory.Memory> remembered = memory.find(intent.conversationId());
+      remembered.ifPresent(m -> fillFromMemory(intent.message(), entities, m, runId));
       log.info("entities runId={} {}", runId, entities);
 
-      // 规划前拦截：领域内全部候选都需要实体而没有 → 提示并结束，不进规划、不调 Gateway
+      // 规划前拦截：领域内全部候选都需要实体而没有 → 澄清屏（有候选源）或提示，不进规划
       Optional<String> needEntity =
           EntityRequirementCheck.check(domain.get(), found.tools(), entities, meta);
       if (needEntity.isPresent()) {
         log.info("entity required but missing runId={} domain={}", runId, domain.get());
-        emit(sink, SseEvent.MESSAGE_DELTA, new SseEvent.MessageDeltaData(runId, needEntity.get()));
+        String missingType =
+            EntityRequirementCheck.missingType(found.tools(), entities, meta).orElse(null);
+        if (!clarify(run, intent.message(), domain.get(), missingType, traceId, sink)) {
+          emit(
+              sink, SseEvent.MESSAGE_DELTA, new SseEvent.MessageDeltaData(runId, needEntity.get()));
+        }
         complete(run, sink);
         return runId;
       }
@@ -176,16 +191,18 @@ public class RunOrchestrator {
             llm.plan(
                 new LlmClient.PlanRequest(intent.message(), domain.get(), found.tools(), entities));
       } catch (LlmClient.MissingEntity e) {
-        // 动词命中但目标工具缺实体（如无号码的「删除订单」）：与拦截同样的友好提示，不算失败
+        // 动词命中但目标工具缺实体（如无号码的「删除订单」）：澄清屏（有候选源）或友好提示，不算失败
         log.info(
             "target entity missing runId={} domain={} entity={}",
             runId,
             domain.get(),
             e.entityType());
-        emit(
-            sink,
-            SseEvent.MESSAGE_DELTA,
-            new SseEvent.MessageDeltaData(runId, EntityRequirementCheck.text(domain.get())));
+        if (!clarify(run, intent.message(), domain.get(), e.entityType(), traceId, sink)) {
+          emit(
+              sink,
+              SseEvent.MESSAGE_DELTA,
+              new SseEvent.MessageDeltaData(runId, EntityRequirementCheck.text(domain.get())));
+        }
         complete(run, sink);
         return runId;
       }
@@ -480,6 +497,134 @@ public class RunOrchestrator {
     sink.close();
   }
 
+  /**
+   * 记忆补位：① 序数指代（「第二个」「最后一个」）→ 最近列表 rowIds；② 消息缺该类型实体 → 记忆里同类型实体。补来的实体日志标 source=memory。 记忆里的实体类型即
+   * lastTable 所属工具的 clarifiesEntity 或记忆 entities 的键。
+   */
+  private void fillFromMemory(
+      String message, Map<String, String> entities, ConversationMemory.Memory m, String runId) {
+    if (m.lastTable() != null && !m.lastTable().rowIds().isEmpty()) {
+      String type =
+          meta.find(m.lastTable().toolId())
+              .map(t -> ToolMetaRegistry.typeName(t.clarifiesEntity()))
+              .filter(t -> !"none".equals(t))
+              .orElse(null);
+      if (type != null && !entities.containsKey(type)) {
+        ArgumentExtractor.ordinalReference(message, m.lastTable().rowIds())
+            .ifPresent(
+                id -> {
+                  entities.put(type, id);
+                  log.info("entity runId={} type={} id={} source=memory(ordinal)", runId, type, id);
+                });
+      }
+    }
+    m.entities()
+        .forEach(
+            (type, id) -> {
+              if (!entities.containsKey(type)) {
+                entities.put(type, id);
+                log.info("entity runId={} type={} id={} source=memory", runId, type, id);
+              }
+            });
+  }
+
+  /**
+   * 澄清屏：查 clarifiesEntity == 缺失类型的工具 → 经 Gateway 调它（无参，全默认）拿原始输出 → ClarificationScreen 投影 → 契约校验 →
+   * ui.replace + message.delta。无候选源 / 输出空 / 调用失败 → false，调用方走现状提示。
+   */
+  private boolean clarify(
+      Run run,
+      String message,
+      String domain,
+      String entityType,
+      String traceId,
+      RunEventSink sink) {
+    if (entityType == null) {
+      return false;
+    }
+    Optional<ToolMetaRegistry.ToolMeta> clarifier = meta.clarifierFor(entityType);
+    if (clarifier.isEmpty()) {
+      return false;
+    }
+    ToolMetaRegistry.ToolMeta c = clarifier.get();
+    JsonNode out;
+    try {
+      out = invoke(run, c.toolId(), c.version(), Map.of(), traceId, sink, "clarify");
+    } catch (RunFailure e) {
+      log.warn("clarification list failed runId={} tool={}", run.runId(), c.toolId());
+      return false;
+    }
+    Optional<ObjectNode> screen =
+        ClarificationScreen.build(
+            entityType,
+            ClarificationScreen.label(entityType),
+            IntentVerbs.verbLabel(message, domain),
+            message,
+            out);
+    if (screen.isEmpty()) {
+      return false;
+    }
+    UiSchema ui = screens.toUi(screen.get());
+    lastUi.put(run.runId(), ui);
+    emit(sink, SseEvent.UI_REPLACE, new SseEvent.UiReplaceData(run.runId(), ui));
+    emit(
+        sink,
+        SseEvent.MESSAGE_DELTA,
+        new SseEvent.MessageDeltaData(run.runId(), ClarificationScreen.TEXT));
+    // 澄清屏也算「最近一次列表」：用户下一句「第二个」即指它的行
+    List<String> ids = new java.util.ArrayList<>();
+    screen
+        .get()
+        .path("components")
+        .get(0)
+        .path("props")
+        .path("rows")
+        .forEach(r -> ids.add(r.path("id").asText()));
+    memory.put(
+        run.conversationId(),
+        new ConversationMemory.Memory(
+            domain, Map.of(), new ConversationMemory.LastTable(c.toolId(), ids), now()));
+    log.info(
+        "clarification screen runId={} entity={} tool={}", run.runId(), entityType, c.toolId());
+    return true;
+  }
+
+  /** 成功终态写入会话记忆：领域、已用实体、最近一次列表屏的行 ID（供下一轮省略实体 / 序数指代）。失败的 Run 不写（评审 N-3）。 */
+  private void remember(Run run) {
+    Map<String, String> ents = new LinkedHashMap<>();
+    ConversationMemory.LastTable lastTable = null;
+    Optional<Plan> plan = run.plan();
+    if (plan.isPresent()) {
+      for (Step s : plan.get().steps()) {
+        s.fixedArgs()
+            .forEach(
+                (k, v) -> {
+                  String type = meta.entityTypeOf(k);
+                  if (type != null) {
+                    ents.put(type, v);
+                  }
+                });
+      }
+    }
+    UiSchema ui = lastUi.get(run.runId());
+    if (ui != null) {
+      for (UiSchema.Component comp : ui.components()) {
+        if (comp.type() == UiSchema.ComponentType.Table) {
+          List<String> ids = new java.util.ArrayList<>();
+          comp.props().path("rows").forEach(r -> ids.add(r.path("id").asText()));
+          String toolId = lastExecuted(run).map(Step::toolId).orElse("");
+          lastTable = new ConversationMemory.LastTable(toolId, ids);
+        }
+      }
+    }
+    if (ents.isEmpty() && lastTable == null) {
+      return;
+    }
+    memory.put(
+        run.conversationId(),
+        new ConversationMemory.Memory(plan.map(Plan::domain).orElse(""), ents, lastTable, now()));
+  }
+
   private static ScreenContext screenContext(Run run) {
     return new ScreenContext(run.runId());
   }
@@ -512,7 +657,7 @@ public class RunOrchestrator {
             + "-"
             + toolId
             + "-"
-            + ("recheck".equals(kind) ? "recheck" : String.valueOf(run.nextSeq()));
+            + ("step".equals(kind) ? String.valueOf(run.nextSeq()) : kind);
     ToolInvoke.Request req =
         new ToolInvoke.Request(
             toolId,
@@ -605,6 +750,7 @@ public class RunOrchestrator {
   private void complete(Run run, RunEventSink sink) {
     run.transition(RunState.COMPLETED, now());
     runs.save(run);
+    remember(run);
     stepOutputs.remove(run.runId());
     inputSchemas.remove(run.runId());
     emit(sink, SseEvent.RUN_COMPLETED, new SseEvent.RunCompletedData(run.runId(), now()));

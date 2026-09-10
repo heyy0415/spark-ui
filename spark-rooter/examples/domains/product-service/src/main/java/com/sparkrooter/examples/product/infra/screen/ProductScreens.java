@@ -15,6 +15,8 @@ import org.springframework.stereotype.Component;
 public class ProductScreens implements ScreenBuilder {
 
   public static final String VIEW_LABEL = "查看商品";
+  public static final String BACK_LABEL = "返回列表";
+  public static final String BACK_INTENT = "有什么商品";
 
   @Override
   public Set<String> resultToolIds() {
@@ -113,6 +115,8 @@ public class ProductScreens implements ScreenBuilder {
     for (JsonNode spec : out.path("specs")) {
       UiNodes.labelValue(items, spec.path("name").asText(""), spec.path("value").asText(""));
     }
+    // 详情卡也是下一屏入口（Card.actions，change 5）：回到商品列表
+    UiNodes.inlineAction(card.putArray("actions"), BACK_LABEL, BACK_INTENT);
     return screen;
   }
 }

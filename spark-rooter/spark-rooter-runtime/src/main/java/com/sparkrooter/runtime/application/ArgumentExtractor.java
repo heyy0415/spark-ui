@@ -37,6 +37,37 @@ public final class ArgumentExtractor {
   private static final Pattern LAST_MONTH = Pattern.compile("上个月|上月");
   private static final Pattern SINCE_DATE = Pattern.compile("(\\d{1,2})\\s*月\\s*(\\d{1,2})\\s*日以后");
 
+  /** 序数指代：「第 2 个 / 第二单 / 最后一个 / 第一个」→ 最近列表的行下标。 */
+  private static final Pattern ORDINAL_DIGIT = Pattern.compile("第\\s*(\\d{1,2})\\s*(个|单|条|件)");
+
+  private static final Pattern ORDINAL_CN = Pattern.compile("第([一二三四五六七八九十])(个|单|条|件)");
+  private static final Pattern LAST_ONE = Pattern.compile("最后一(个|单|条|件)");
+  private static final String CN_DIGITS = "一二三四五六七八九十";
+
+  /** 序数指代 → 最近列表 rowIds 中的 ID（1 起；「最后一个」= 末项）；未命中或越界 empty。 */
+  public static java.util.Optional<String> ordinalReference(String message, List<String> rowIds) {
+    if (message == null || rowIds == null || rowIds.isEmpty()) {
+      return java.util.Optional.empty();
+    }
+    if (LAST_ONE.matcher(message).find()) {
+      return java.util.Optional.of(rowIds.get(rowIds.size() - 1));
+    }
+    int n = -1;
+    Matcher d = ORDINAL_DIGIT.matcher(message);
+    if (d.find()) {
+      n = Integer.parseInt(d.group(1));
+    } else {
+      Matcher c = ORDINAL_CN.matcher(message);
+      if (c.find()) {
+        n = CN_DIGITS.indexOf(c.group(1)) + 1;
+      }
+    }
+    if (n >= 1 && n <= rowIds.size()) {
+      return java.util.Optional.of(rowIds.get(n - 1));
+    }
+    return java.util.Optional.empty();
+  }
+
   private ArgumentExtractor() {}
 
   /** 从消息抓实体 ID：{order, product}（缺则无键）。 */

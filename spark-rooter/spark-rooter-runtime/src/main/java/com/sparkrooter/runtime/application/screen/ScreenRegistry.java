@@ -95,7 +95,8 @@ public class ScreenRegistry {
     return null;
   }
 
-  private UiSchema toUi(JsonNode node) {
+  /** 唯一的 ui-schema 契约校验点；Runtime 自产的屏（澄清屏）也从这里过。 */
+  public UiSchema toUi(JsonNode node) {
     validator.assertValid("ui-schema", node);
     assertTableCells(node);
     try {

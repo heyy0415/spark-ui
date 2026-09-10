@@ -45,6 +45,21 @@ public final class IntentVerbs {
           "aftersale", "aftersale.list.get",
           "refund", "refund.status.get");
 
+  /** 目标工具 → 澄清屏行内按钮文案（与 contracts.md §4 label ↔ intent 绑定表一致）。 */
+  private static final Map<String, String> TARGET_LABEL =
+      Map.of(
+          "order.delete", "删除订单",
+          "order.logistics.get", "查看物流",
+          "aftersale.create", "申请售后",
+          "refund.create", "退款",
+          "product.detail.get", "查看商品",
+          "order.detail.get", "查看详情");
+
+  /** 用户原动词对应的按钮文案；无动词时按实体类型给「选择」。 */
+  public static String verbLabel(String message, String domain) {
+    return target(message, domain).map(t -> TARGET_LABEL.getOrDefault(t, "选择")).orElse("选择");
+  }
+
   private IntentVerbs() {}
 
   /**

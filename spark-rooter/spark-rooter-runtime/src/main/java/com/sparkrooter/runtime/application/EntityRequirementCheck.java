@@ -54,6 +54,20 @@ public final class EntityRequirementCheck {
     return Optional.empty();
   }
 
+  /** 拦截时缺的实体类型（全部候选都要求、而未识别的那个）。 */
+  public static Optional<String> missingType(
+      List<ToolSearch.ToolCandidate> candidates,
+      Map<String, String> entities,
+      ToolMetaRegistry meta) {
+    for (Map.Entry<String, String> e : meta.entityArgs().entrySet()) {
+      boolean allRequire = candidates.stream().allMatch(c -> requires(c, e.getKey()));
+      if (allRequire && !entities.containsKey(e.getValue())) {
+        return Optional.of(e.getValue());
+      }
+    }
+    return Optional.empty();
+  }
+
   private static boolean requires(ToolSearch.ToolCandidate c, String arg) {
     JsonNode required = c.inputSchema().path("required");
     if (!required.isArray()) {

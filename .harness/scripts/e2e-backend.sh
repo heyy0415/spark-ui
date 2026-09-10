@@ -139,12 +139,14 @@ check "shown amount" 128.00 "$SHOWN"; check "executed amount non-empty" 1 "$([ -
 
 echo "--- 意图路由 ①：缺实体拦截（无 pageContext 说「退钱」）"
 curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_r1","message":"退钱","clientCapabilities":{"uiSchemaVersion":"1.0","components":["Card"]}}' > "$DEPLOY/route1_events.log"
-check "① events" "run.started message.delta run.completed" "$(events "$DEPLOY/route1_events.log")"
+# change 5：缺实体不再只提示，而是拉订单列表出澄清屏（spec §4.5）；仍不进规划、不调目标工具
+check "① events" "run.started tool.selected tool.started tool.completed ui.replace message.delta run.completed" "$(events "$DEPLOY/route1_events.log")"
 R1=$(data "$DEPLOY/route1_events.log" run.started | json "d['runId']")
 T1=$(data "$DEPLOY/route1_events.log" message.delta | json "d['text']")
-check "① text mentions selecting an order" 1 "$(echo "$T1" | grep -c '选择一个订单')"
+check "① clarify tool is the order list" order.list.search "$(data "$DEPLOY/route1_events.log" tool.selected | json "d['toolId']")"
+check "① text asks to pick" 1 "$(echo "$T1" | grep -c '请选择')"
 check "① text does not echo user message" 0 "$(echo "$T1" | grep -c '退钱')"
-check "① no gateway audit for this run" 0 "$(grep -c "audit runId=$R1" "$DEPLOY/backend.log")"
+check "① no refund tool audit for this run (only the clarify list)" 0 "$(grep "audit runId=$R1" "$DEPLOY/backend.log" | grep -vc "toolId=order.list.search")"
 curl -s "$BASE/agent/runs/$R1" > "$DEPLOY/route1_summary.json"
 check "① state COMPLETED without failureCode" "COMPLETED-none" "$(json "d['state']+'-'+str(d.get('failureCode','none'))" < "$DEPLOY/route1_summary.json")"
 
@@ -270,8 +272,69 @@ check "⑮ refunds for 10006" 1 "$(gw 10006)"
 
 echo "--- ⑯ 删除订单（无号码）→ message.delta 友好提示"
 run_msg c16 "删除订单"
-check "⑯ events" "run.started message.delta run.completed" "$(events "$DEPLOY/c16.log")"
-check "⑯ text" 1 "$(data "$DEPLOY/c16.log" message.delta | json "1 if '选择一个订单' in d['text'] else 0")"
+# change 5：无号码「删除订单」→ 澄清屏（订单列表 + 每行「删除订单」按钮）
+check "⑯ events" "run.started tool.selected tool.started tool.completed ui.replace message.delta run.completed" "$(events "$DEPLOY/c16.log")"
+check "⑯ text" 1 "$(data "$DEPLOY/c16.log" message.delta | json "1 if '请选择' in d['text'] else 0")"
+check "⑯ row action label" 删除订单 "$(comp c16 clarify "['rows'][0]['actions'][0]['label']")"
+
+echo "--- ⑰ 我想查看最近订单 → order.list.search，参数全走默认 {limit:20}"
+run_msg c17 "我想查看最近订单"
+check "⑰ tool" order.list.search "$(data "$DEPLOY/c17.log" tool.selected | json "d['toolId']")"
+check "⑰ rows" 20 "$(data "$DEPLOY/c17.log" ui.replace | json "len([c for c in d['ui']['components'] if c['id']=='orders'][0]['props']['rows'])")"
+
+echo "--- ⑱ 最近 5 单已发货的订单 → {status:SHIPPED, limit:5}"
+run_msg c18 "最近 5 单已发货的订单"
+check "⑱ rows" 5 "$(data "$DEPLOY/c18.log" ui.replace | json "len([c for c in d['ui']['components'] if c['id']=='orders'][0]['props']['rows'])")"
+check "⑱ all SHIPPED" 1 "$(data "$DEPLOY/c18.log" ui.replace | json "1 if all(r['cells']['status']=='SHIPPED' for r in [c for c in d['ui']['components'] if c['id']=='orders'][0]['props']['rows']) else 0")"
+
+echo "--- ⑲ 最近 100 单 → limit 截断到 50"
+run_msg c19 "最近 100 单订单"
+check "⑲ rows (≤ 50, 29 left)" 29 "$(data "$DEPLOY/c19.log" ui.replace | json "len([c for c in d['ui']['components'] if c['id']=='orders'][0]['props']['rows'])")"
+
+echo "--- ⑳ 看看我的订单 → 第二个的物流 → order.logistics.get{orderId == rows[1].id}，日志 source=memory"
+run_msg c20 "看看我的订单"
+ROW2=$(data "$DEPLOY/c20.log" ui.replace | json "[c for c in d['ui']['components'] if c['id']=='orders'][0]['props']['rows'][1]['id']")
+run_msg c20 "第二个的物流"
+check "⑳ tool" order.logistics.get "$(data "$DEPLOY/c20.log" tool.selected | json "d['toolId']")"
+check "⑳ card title has row2 id" 1 "$(data "$DEPLOY/c20.log" ui.replace | json "1 if '$ROW2' in [c for c in d['ui']['components'] if c['id']=='logistics'][0]['props']['title'] else 0")"
+check "⑳ source=memory logged" 1 "$([ "$(grep -c "runId=$(runid_of c20) .*source=memory" "$DEPLOY/backend.log")" -ge 1 ] && echo 1 || echo 0)"
+
+echo "--- ㉑ 查看订单 10002 的物流 → 申请售后（省略订单号，记忆补位）→ 确认屏 Card 标题「订单 10002」"
+run_msg c21 "查看订单 10002 的物流"
+run_msg c21 "申请售后"
+check "㉑ events" "run.started tool.selected tool.started tool.completed ui.replace confirmation.required" "$(events "$DEPLOY/c21.log")"
+check "㉑ card title" "订单 10002" "$(comp c21 order "['title']")"
+
+echo "--- ㉒ 空会话「申请售后」→ 澄清屏 Table，行内 label「申请售后」；点选 → 确认屏"
+run_msg c22 "申请售后"
+check "㉒ events" "run.started tool.selected tool.started tool.completed ui.replace message.delta run.completed" "$(events "$DEPLOY/c22.log")"
+check "㉒ types" "['Table']" "$(types c22)"
+check "㉒ clarify tool" order.list.search "$(data "$DEPLOY/c22.log" tool.selected | json "d['toolId']")"
+check "㉒ row action label" 申请售后 "$(comp c22 clarify "['rows'][0]['actions'][0]['label']")"
+check "㉒ row action intent has id" 1 "$(data "$DEPLOY/c22.log" ui.replace | json "(lambda r: 1 if r['id'] in r['actions'][0]['intent'] and '售后' in r['actions'][0]['intent'] else 0)([c for c in d['ui']['components'] if c['id']=='clarify'][0]['props']['rows'][0])")"
+check "㉒ text" 1 "$(data "$DEPLOY/c22.log" message.delta | json "1 if '请选择' in d['text'] else 0")"
+PICK=$(data "$DEPLOY/c22.log" ui.replace | json "[c for c in d['ui']['components'] if c['id']=='clarify'][0]['props']['rows'][0]['actions'][0]['intent']")
+run_msg c22 "$PICK"
+check "㉒ pick → confirmation" 1 "$(events "$DEPLOY/c22.log" | grep -c 'confirmation.required$')"
+check "㉒ pick → types" "['Card', 'Form']" "$(types c22)"
+
+echo "--- ㉔ 令牌 sessionId 不一致：用另一 conversationId 提交确认 → CONFIRMATION_REJECTED"
+run_msg c24 "订单 10011 退款"
+check "㉔ confirmation shown" 1 "$(events "$DEPLOY/c24.log" | grep -c 'confirmation.required$')"
+# demo SessionIdResolver：sessionId = conversationId；用他人 runId + 自己的会话（另一 conversation 走不到 Run 的 sessionId）→ 令牌 / 会话不一致
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$(runid_of c24)/actions/$(submit_id c24)" -H 'Content-Type: application/json' -d "{\"confirmationToken\":\"$(token_of c24)\",\"formData\":{\"reason\":\"DAMAGED\"}}" > "$DEPLOY/c24b.log"
+check "㉔ same-session baseline accepted (control)" run.completed "$(events "$DEPLOY/c24b.log" | awk '{print $NF}')"
+run_msg c24s "订单 10006 退款"
+TOK=$(token_of c24s); RID=$(runid_of c24s); AID=$(submit_id c24s)
+# 直接改内存里 Run 的 sessionId 做不到；改用 GET /agent/runs/{id} 不可见性 + 令牌重放做 sessionId 绑定的可观测断言：
+# 令牌被另一 Run 的 actionId 消费必须拒绝（runId/actionId 绑定），本 Run 再用同令牌必须拒绝（一次性）
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$(runid_of c24)/actions/$AID" -H 'Content-Type: application/json' -d "{\"confirmationToken\":\"$TOK\",\"formData\":{\"reason\":\"DAMAGED\"}}" > "$DEPLOY/c24c.log"
+check "㉔ token on another run → CONFIRMATION_REJECTED" CONFIRMATION_REJECTED "$(data "$DEPLOY/c24c.log" run.failed | json "d['code']")"
+check "㉔ selfcheck covers session-mismatch" 1 "$(grep -c "session-mismatch rejected OK" "$DEPLOY/backend.log")"
+
+echo "--- ㉕ 商品详情 Card 含 actions[0].intent == 有什么商品"
+check "㉕ card action intent" 有什么商品 "$(comp c10 product "['actions'][0]['intent']")"
+check "㉕ card action label" 返回列表 "$(comp c10 product "['actions'][0]['label']")"
 
 echo "--- 意图路由 ⑥：order 领域缺实体 → order.list.search 回退（仅规则模式）"
 if [ "$LIVE_LLM" = 1 ]; then
@@ -307,5 +370,17 @@ fi
 check "⑤ route decisions logged" 1 "$([ "$(grep -c 'route runId=.* source=' "$DEPLOY/backend.log")" -ge 3 ] && echo 1 || echo 0)"
 
 pkill -f "examples/host-demo/target/host-demo.jar --server.port=$PORT"
+
+echo "--- ㉓ 第二次启动（--spring.profiles.active=e2e-ttl，memory-ttl=1s）：记忆过期后走澄清屏而非补位"
+sleep 1
+(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar" --server.port="$PORT" --spring.profiles.active=e2e-ttl --spark.selfcheck.enabled=false > "$DEPLOY/backend-ttl.log" 2>&1 &)
+for i in $(seq 1 40); do sleep 1; curl -sf "$BASE/actuator/health" >/dev/null 2>&1 && break; done
+run_msg c23 "查看订单 10002 的物流"
+sleep 2
+run_msg c23 "申请售后"
+check "㉓ after ttl → clarification table" "['Table']" "$(types c23)"
+check "㉓ after ttl → text" 1 "$(data "$DEPLOY/c23.log" message.delta | json "1 if '请选择' in d['text'] else 0")"
+pkill -f "examples/host-demo/target/host-demo.jar --server.port=$PORT"
+
 echo; echo "e2e-backend: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
