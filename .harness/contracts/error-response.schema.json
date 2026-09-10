@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://strato.local/contracts/v1/error-response.schema.json",
+  "$id": "https://spark-rooter.local/contracts/v1/error-response.schema.json",
   "title": "ErrorResponse",
   "description": "所有 HTTP 4xx / 5xx 的统一响应体。code 为稠密枚举，status 与 code 的对应见 spec §4.2。message 面向开发者，不含堆栈与内部实现细节。",
   "type": "object",

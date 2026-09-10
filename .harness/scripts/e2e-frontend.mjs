@@ -11,7 +11,7 @@
  *   6. 8 个契约示例 × 1280 / 375 全部渲染，console.error 0（feat-commerce-domains）
  *   7. 视口 1280 / 自然语言驱动：「看看我的订单」→ Table → 点 data-intent="查看订单 10030 的物流" → 用户消息 + Timeline
  *      → 「有什么商品」→ Table → 点 data-intent="查看商品 P-1003 的详情" → Card
- * 环境变量 STRATO_FRONT_BASE 可覆盖前端地址（默认 http://localhost:5173）。
+ * 环境变量 SPARK_FRONT_BASE 可覆盖前端地址（默认 http://localhost:5173）。
  */
 import { mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -23,7 +23,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..', '..');
 const DEPLOY = deploymentDir();
 mkdirSync(DEPLOY, { recursive: true });
-const BASE = process.env.STRATO_FRONT_BASE ?? 'http://localhost:5173';
+const BASE = process.env.SPARK_FRONT_BASE ?? 'http://localhost:5173';
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
 let pass = 0;

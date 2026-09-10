@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://strato.local/contracts/v1/action-request.schema.json",
+  "$id": "https://spark-rooter.local/contracts/v1/action-request.schema.json",
   "title": "ActionRequest",
   "description": "前端 → Agent Runtime，POST /agent/runs/{runId}/actions/{actionId} 请求体。confirmationToken 原样回传；formData 只允许包含当前屏 Form.props.fields[] 声明的字段名，其余键被拒绝（CONFIRMATION_REJECTED）。",
   "type": "object",

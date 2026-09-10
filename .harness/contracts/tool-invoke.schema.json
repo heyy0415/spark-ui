@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://strato.local/contracts/v1/tool-invoke.schema.json",
+  "$id": "https://spark-rooter.local/contracts/v1/tool-invoke.schema.json",
   "title": "ToolInvoke",
   "description": "Agent Runtime ↔ Tool Gateway，POST /internal/tool-gateway/invoke 的请求与响应对。Gateway 负责输入 / 输出 Schema 校验、鉴权、幂等、超时重试、审计。arguments / output 为按 Manifest inputSchema / outputSchema 校验的自由 JSON。",
   "type": "object",

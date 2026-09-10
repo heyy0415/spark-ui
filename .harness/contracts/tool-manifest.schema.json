@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://strato.local/contracts/v1/tool-manifest.schema.json",
+  "$id": "https://spark-rooter.local/contracts/v1/tool-manifest.schema.json",
   "title": "ToolManifest",
   "description": "领域服务 → Tool Registry 的工具注册清单。toolId@version 一经注册不可变。description 视为不可信文本（≤ 500 字符，注入 prompt 前转义）。约束：risk.level=high ⇒ risk.confirmation=required；risk.sideEffect=true ⇒ execution.idempotency=required。",
   "type": "object",

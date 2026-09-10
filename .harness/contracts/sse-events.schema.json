@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://strato.local/contracts/v1/sse-events.schema.json",
+  "$id": "https://spark-rooter.local/contracts/v1/sse-events.schema.json",
   "title": "SseEvent",
   "description": "Runtime → 前端的 SSE 单帧 data 结构（event 字段与 SSE 的 event: 行一致）。事件发射规则见 spec §4.0。data 不含模型推理原文、工具参数原文、堆栈、凭据。",
   "oneOf": [
@@ -126,7 +126,7 @@
           "required": ["runId", "ui"],
           "properties": {
             "runId": { "$ref": "#/$defs/runId" },
-            "ui": { "$ref": "https://strato.local/contracts/v1/ui-schema.schema.json" }
+            "ui": { "$ref": "https://spark-rooter.local/contracts/v1/ui-schema.schema.json" }
           }
         }
       }
@@ -149,7 +149,7 @@
               "minItems": 1,
               "maxItems": 32,
               "description": "按 id 合并覆盖当前屏中的同 id 组件",
-              "items": { "$ref": "https://strato.local/contracts/v1/ui-schema.schema.json#/$defs/component" }
+              "items": { "$ref": "https://spark-rooter.local/contracts/v1/ui-schema.schema.json#/$defs/component" }
             }
           }
         }

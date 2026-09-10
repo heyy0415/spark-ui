@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://strato.local/contracts/v1/intent-request.schema.json",
+  "$id": "https://spark-rooter.local/contracts/v1/intent-request.schema.json",
   "title": "IntentRequest",
   "description": "前端 → Agent Runtime，POST /agent/runs 请求体。用户自然语言意图 + 页面上下文 + 客户端能力。pageContext 为不可信输入，后端必须重新鉴权；principal 来自请求头而非 body。",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://strato.local/contracts/v1/run-summary.schema.json",
+  "$id": "https://spark-rooter.local/contracts/v1/run-summary.schema.json",
   "title": "RunSummary",
   "description": "Runtime → 前端，GET /agent/runs/{runId} 响应。Run 的当前状态与最近一次下发的 UI Schema；不含执行计划、工具参数、模型输出。",
   "type": "object",
@@ -14,7 +14,7 @@
       "enum": ["CREATED", "PLANNING", "EXECUTING", "WAITING_CONFIRMATION", "COMPLETED", "FAILED"]
     },
     "currentUi": {
-      "$ref": "https://strato.local/contracts/v1/ui-schema.schema.json",
+      "$ref": "https://spark-rooter.local/contracts/v1/ui-schema.schema.json",
       "description": "最近一次 ui.replace 的内容；WAITING_CONFIRMATION 时必有"
     },
     "failureCode": {

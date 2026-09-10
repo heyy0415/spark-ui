@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://strato.local/contracts/v1/tool-search.schema.json",
+  "$id": "https://spark-rooter.local/contracts/v1/tool-search.schema.json",
   "title": "ToolSearch",
   "description": "Agent Runtime ↔ Tool Registry，POST /internal/tool-registry/search 的请求与响应对。Registry 先按 tenant / permission / status / 风险策略过滤；响应项只含六个字段（agent-safety §2），禁止泄露内部地址、凭据、Owner。",
   "type": "object",

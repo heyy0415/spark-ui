@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://strato.local/contracts/v1/ui-schema.schema.json",
+  "$id": "https://spark-rooter.local/contracts/v1/ui-schema.schema.json",
   "title": "UiSchema",
   "description": "Runtime → 前端。声明式 UI 描述：前端只渲染 components[].type 白名单内的组件，actions[] 通过 actionId 提交；confirmationToken 为不透明字符串，前端只回传不解析。禁止出现 URL / HTML / 脚本字段。",
   "type": "object",

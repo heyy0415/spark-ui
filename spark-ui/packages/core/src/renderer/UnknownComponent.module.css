@@ -1,0 +1,20 @@
+/* 只引用 --spark-* 变量且带 fallback：第三方宿主没有 chat 的 global.css 也必须可见 */
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--spark-color-border, #dee0e3);
+  border-radius: var(--spark-radius-md, 6px);
+  background: var(--spark-color-surface-hover, #f0f2f5);
+  color: var(--spark-color-text-muted, #646a73);
+  font-size: 13px;
+}
+
+.meta {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.reason {
+  color: var(--spark-color-text, #1f2329);
+}
