@@ -380,6 +380,14 @@
           "items": {
             "$ref": "#/$defs/labelValue"
           }
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/inlineAction"
+          },
+          "description": "卡片底部的行内快捷指令（如「返回列表」「查看物流」），与 tableRow.actions 同语义：点击后 intent 原样作为新消息发送"
         }
       }
     },

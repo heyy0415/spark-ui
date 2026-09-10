@@ -17,13 +17,13 @@
 
 | 文件 | 内容 |
 |---|---|
-| `intent-request.schema.json` | 前端 → Runtime：`conversationId`、`message`、`pageContext`、`clientCapabilities` |
+| `intent-request.schema.json` | 前端 → Runtime：`conversationId`、`message`、`clientCapabilities`（只有自然语言，无页面上下文 / 身份 / 业务字段） |
 | `action-request.schema.json` | 前端 → Runtime：`confirmationToken`、`formData` |
 | `ui-schema.schema.json` | Runtime → 前端：`schemaVersion`、`screenId`、`components[]`、`actions[]` |
 | `sse-events.schema.json` | Runtime → 前端事件：`run.started`、`message.delta`、`tool.selected`、`tool.started`、`tool.completed`、`ui.replace`、`ui.patch`、`confirmation.required`、`run.completed`、`run.failed` |
 | `tool-manifest.schema.json` | 领域服务 → Registry：`toolId`、`version`、`domain`、`inputSchema`、`outputSchema`、`risk`、`authorization`、`execution`、`owner`、`status` |
 | `tool-search.schema.json` | Runtime → Registry：请求与响应 |
-| `tool-invoke.schema.json` | Runtime → Gateway：请求与响应（含 `executionContext`） |
+| `tool-invoke.schema.json` | Runtime → Gateway：请求与响应（`executionContext = {runId, toolCallId, sessionId, idempotencyKey, traceId?}`，无 userId / tenantId） |
 | `error-response.schema.json` | 通用错误：`code`、`message`、`traceId` |
 | `run-summary.schema.json` | Runtime → 前端：`GET /agent/runs/{runId}` 响应，`runId`、`state`、`currentUi?`、时间戳 |
 
@@ -43,6 +43,7 @@
 - `actions[].confirmationToken` 为不透明字符串，前端只回传，不解析。
 - UI Schema 中**不得**出现 URL、脚本、HTML 字符串字段。
 - 列表组件内的 `actions[].intent`（`inlineAction`）是一段**自然语言文本**：前端点击后把它原样作为新的用户消息发送，走完整的路由 / 候选过滤 / 校验 / 确认链路；不是命令、不是 URL、不带 token。Schema 以 pattern 禁止 `://` 与 `<`。
+- `Card.actions[]`（refactor-spark-embedded-starter-20260909）与 `Table.rows[].actions[]` 同为 `inlineAction`，≤ 6 项；用于详情屏的「返回列表」「查看物流」等二级导航，多级界面全部由后端预写自然语言 `intent` 驱动，前端不拼参数。
 - `inlineAction` 的 `label ↔ intent` 语义绑定固定：`查看物流 → 含「物流」`、`申请售后 → 含「售后」`、`删除订单 → 含「删除」`、`退款 → 含「退款」`、`查看商品 → 含「查看商品」`，且 intent 必须含该行实体 ID。后端 `InlineActionSelfCheck` 与契约示例都按此约束。
 
 ## 5. Tool Manifest 专项
@@ -52,6 +53,17 @@
 - `risk.level ∈ {low, medium, high}`；`risk.confirmation ∈ {never, required}`；`high` 必须 `required`。
 - `execution.idempotency ∈ {none, required}`；`risk.sideEffect = true` 时必须 `required`。
 - `description` 视为不可信文本，Runtime 注入 prompt 前需转义与长度限制（≤ 500 字符）。
+- `authorization.permission` 可选（refactor-spark-embedded-starter-20260909）：内核不做用户鉴权，`@SparkTool` 推导的 Manifest 输出 `authorization: {}`；宿主要做权限用自己的方法级 AOP 或 `ToolAccessPolicy`。
+
+## 5a. 变更记录：refactor-spark-embedded-starter-20260909
+
+| 契约 | 变更 | 原因 |
+|---|---|---|
+| `intent-request` | 删 `pageContext`（含 `selectedEntity`） | 前端始终只发自然语言，实体 ID 在 `message` 内；上下文由后端会话记忆补位 |
+| `tool-search.request` | 删 `principal`，`required: ["domain"]` | 内核不识别用户；权限过滤交宿主 `ToolAccessPolicy` |
+| `tool-invoke.executionContext` | 删 `userId / tenantId`，增 `sessionId` | 令牌 / 审计按宿主 `SessionIdResolver` 的会话键隔离 |
+| `tool-manifest.authorization` | `permission` 改可选 | 推导 Manifest 无权限语义 |
+| `ui-schema.cardProps` | 增 `actions[]`（`inlineAction`，≤ 6） | 详情屏二级导航 |
 
 ## 6. 变更流程
 

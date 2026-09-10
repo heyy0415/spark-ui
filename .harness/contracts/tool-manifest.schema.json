@@ -33,9 +33,9 @@
     "authorization": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["permission"],
+      "description": "内核不做鉴权，本节点仅供宿主 ToolAccessPolicy 参考；@SparkTool 推导的 Manifest 为空对象 {}",
       "properties": {
-        "permission": { "type": "string", "pattern": "^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$", "description": "如 refund:create" }
+        "permission": { "type": "string", "pattern": "^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$", "description": "可选，如 refund:create；宿主自定义语义" }
       }
     },
     "execution": {

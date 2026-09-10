@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://spark-rooter.local/contracts/v1/tool-search.schema.json",
   "title": "ToolSearch",
-  "description": "Agent Runtime ↔ Tool Registry，POST /internal/tool-registry/search 的请求与响应对。Registry 先按 tenant / permission / status / 风险策略过滤；响应项只含六个字段（agent-safety §2），禁止泄露内部地址、凭据、Owner。",
+  "description": "Agent Runtime ↔ Tool Registry，POST /internal/tool-registry/search 的请求与响应对。Registry 按 status / 风险策略过滤，可选经宿主 ToolAccessPolicy 再过滤；请求不携带身份（内核不识别用户）。响应项只含六个字段（agent-safety §2），禁止泄露内部地址、凭据、Owner。",
   "type": "object",
   "additionalProperties": false,
   "required": ["request", "response"],
@@ -14,19 +14,10 @@
     "request": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["domain", "principal"],
+      "required": ["domain"],
       "properties": {
         "domain": { "type": "string", "pattern": "^[a-z][a-z0-9]*$", "maxLength": 32 },
         "intent": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 64, "description": "可选的意图提示，仅用于排序" },
-        "principal": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["userId", "tenantId"],
-          "properties": {
-            "userId": { "type": "string", "minLength": 1, "maxLength": 64 },
-            "tenantId": { "type": "string", "minLength": 1, "maxLength": 64 }
-          }
-        },
         "context": {
           "type": "object",
           "additionalProperties": false,

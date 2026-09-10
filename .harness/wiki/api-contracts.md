@@ -10,7 +10,7 @@
 | `/agent/runs/{runId}/actions/{actionId}` | POST | `action-request` | `text/event-stream`，事件按 `sse-events` |
 | `/agent/runs/{runId}` | GET | — | `run-summary`（state、当前 UI Schema） |
 
-请求头：`X-Tenant-Id`、`X-User-Id`（首期简化身份）、可选 `X-Trace-Id`。缺失身份头 → 401 `UNAUTHENTICATED`；他人的 runId → 404（不泄露存在）。
+请求体只有自然语言 `message` + `conversationId` + `clientCapabilities`，无页面上下文与身份字段。身份与权限完全在宿主工程：宿主实现 `SessionIdResolver` 把自己的登录态映射为 `sessionId`（默认实现回落为 `conversationId`，仅 demo，启动 WARN）；非本 `sessionId` 的 runId → 404（不泄露存在）。可选 `X-Trace-Id`。
 
 健康检查：`GET /actuator/health`（仅暴露 health）。前端 dev server 只代理 `/agent/runs` 与 `/actuator` 两个前缀，`/agent` 本身是 SPA 路由。
 
@@ -41,7 +41,7 @@
 
 ### UI Schema 组件白名单（5，官方组件映射）
 
-`Form` / `Card` / `Table`（`rows[].actions[].intent` 为自然语言行内指令）/ `Result` / `Timeline`；props 全部契约级（`ui-schema.schema.json` if/then）。
+`Form` / `Card`（`actions[].intent` 为卡片底部行内指令）/ `Table`（`rows[].actions[].intent` 为行内指令）/ `Result` / `Timeline`；props 全部契约级（`ui-schema.schema.json` if/then）。多级界面（列表 → 详情 → 返回）全部由后端在屏里预写自然语言 `intent`，前端点击后原样作为新消息发送。
 
 ## 错误
 

@@ -6,8 +6,7 @@
     "executionContext": {
       "runId": "run_20260903_000001",
       "toolCallId": "tc_000002",
-      "userId": "user_001",
-      "tenantId": "tenant_001",
+      "sessionId": "conv_001",
       "idempotencyKey": "run_20260903_000001-refund.preview-2",
       "traceId": "trace_0f1e2d3c4b5a6978"
     }

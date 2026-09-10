@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://spark-rooter.local/contracts/v1/tool-invoke.schema.json",
   "title": "ToolInvoke",
-  "description": "Agent Runtime ↔ Tool Gateway，POST /internal/tool-gateway/invoke 的请求与响应对。Gateway 负责输入 / 输出 Schema 校验、鉴权、幂等、超时重试、审计。arguments / output 为按 Manifest inputSchema / outputSchema 校验的自由 JSON。",
+  "description": "Agent Runtime ↔ Tool Gateway，POST /internal/tool-gateway/invoke 的请求与响应对。Gateway 负责输入 / 输出 Schema 校验、幂等、超时重试、审计，可选经宿主 ToolAccessPolicy 拒绝（FORBIDDEN）；不做用户鉴权，executionContext.sessionId 由宿主 SessionIdResolver 产生、仅用于令牌绑定与审计。arguments / output 为按 Manifest inputSchema / outputSchema 校验的自由 JSON。",
   "type": "object",
   "additionalProperties": false,
   "required": ["request", "response"],
@@ -22,12 +22,11 @@
         "executionContext": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["runId", "toolCallId", "userId", "tenantId", "idempotencyKey"],
+          "required": ["runId", "toolCallId", "sessionId", "idempotencyKey"],
           "properties": {
             "runId": { "type": "string", "pattern": "^run_[A-Za-z0-9_-]{1,60}$" },
             "toolCallId": { "type": "string", "pattern": "^tc_[A-Za-z0-9_-]{1,60}$" },
-            "userId": { "type": "string", "minLength": 1, "maxLength": 64 },
-            "tenantId": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "sessionId": { "type": "string", "minLength": 1, "maxLength": 128, "description": "宿主 SessionIdResolver 产出的会话隔离键；默认实现回落为 conversationId（仅 demo）" },
             "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 128, "description": "格式 {runId}-{toolId}-{seq}" },
             "traceId": { "type": "string", "minLength": 1, "maxLength": 128 }
           }

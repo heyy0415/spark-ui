@@ -2,30 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://spark-rooter.local/contracts/v1/intent-request.schema.json",
   "title": "IntentRequest",
-  "description": "前端 → Agent Runtime，POST /agent/runs 请求体。用户自然语言意图 + 页面上下文 + 客户端能力。pageContext 为不可信输入，后端必须重新鉴权；principal 来自请求头而非 body。",
+  "description": "前端 → Agent Runtime，POST /agent/runs 请求体。前端只发送自然语言：message 即用户原话（按钮 / 行内指令也以自然语言文本发送），实体 ID 必须在 message 内。不含页面上下文、不含任何身份或业务字段；身份由宿主工程在自己的权限体系内解析（spark-rooter 内核不识别用户）。",
   "type": "object",
   "additionalProperties": false,
   "required": ["conversationId", "message", "clientCapabilities"],
   "properties": {
     "conversationId": { "type": "string", "minLength": 1, "maxLength": 64 },
     "message": { "type": "string", "minLength": 1, "maxLength": 2000 },
-    "pageContext": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["page"],
-      "properties": {
-        "page": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z0-9-]+$" },
-        "selectedEntity": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["type", "id"],
-          "properties": {
-            "type": { "type": "string", "minLength": 1, "maxLength": 32, "pattern": "^[a-z]+$" },
-            "id": { "type": "string", "minLength": 1, "maxLength": 64 }
-          }
-        }
-      }
-    },
     "clientCapabilities": {
       "type": "object",
       "additionalProperties": false,
