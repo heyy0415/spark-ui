@@ -10,24 +10,30 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Set;
-import org.springframework.stereotype.Service;
 
 /**
  * 确认令牌服务（agent-safety §3）：随机不透明 token；绑定 runId / actionId / 步骤 / argsDigest / conversationId /
  * sessionId / formData 键白名单；10 分钟过期；一次性（consume 即删）。 任一校验失败抛 CONFIRMATION_REJECTED，且不泄露具体哪一项失败给前端。
  */
-@Service
 public class ConfirmationTokenService {
 
-  static final Duration TTL = Duration.ofMinutes(10);
+  /** 默认有效期；starter 经 spark.runtime.token-ttl 覆盖。 */
+  static final Duration DEFAULT_TTL = Duration.ofMinutes(10);
+
   private static final SecureRandom RANDOM = new SecureRandom();
 
   private final ConfirmationTokenStore store;
   private final Clock clock;
+  private final Duration ttl;
 
   public ConfirmationTokenService(ConfirmationTokenStore store, Clock clock) {
+    this(store, clock, DEFAULT_TTL);
+  }
+
+  public ConfirmationTokenService(ConfirmationTokenStore store, Clock clock, Duration ttl) {
     this.store = store;
     this.clock = clock;
+    this.ttl = ttl;
   }
 
   public ConfirmationToken issue(
@@ -51,7 +57,7 @@ public class ConfirmationTokenService {
             conversationId,
             sessionId,
             allowedFormKeys,
-            Instant.now(clock).plus(TTL));
+            Instant.now(clock).plus(ttl));
     store.put(t);
     return t;
   }

@@ -14,14 +14,12 @@ import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
  * 需确认工具覆盖自检：Registry 中所有 confirmation=required / risk=high
  * 的工具都必须同时有领域确认屏（ScreenBuilder.confirmToolIds） 与重校验契约（ConfirmationRecheck）；且 trustedArgs 的键与确认屏
  * Form 字段互斥（可信参数不能被表单覆盖）。 任一缺失启动即失败——运行期对应 fail-closed INTERNAL_ERROR，自检把它提前到启动。
  */
-@Component
 public class ConfirmationCoverageSelfCheck implements com.sparkrooter.spi.SelfCheck {
 
   private static final Logger log = LoggerFactory.getLogger(ConfirmationCoverageSelfCheck.class);

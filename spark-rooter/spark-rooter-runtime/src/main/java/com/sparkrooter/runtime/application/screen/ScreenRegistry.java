@@ -15,13 +15,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import org.springframework.stereotype.Component;
 
 /**
  * 屏注册表：按 toolId 把「结果屏 / 确认屏」交给领域模块的 ScreenBuilder（spi Bean），查不到走 FallbackScreenBuilder。 领域返回
  * JsonNode，本类是唯一的 ui-schema 契约校验点（校验后再转 UiSchema）。同一 toolId 被两个 builder 声明视为装配错误。
  */
-@Component
 public class ScreenRegistry {
 
   /**

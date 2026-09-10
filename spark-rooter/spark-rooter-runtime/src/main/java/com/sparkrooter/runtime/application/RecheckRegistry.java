@@ -6,10 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.springframework.stereotype.Component;
 
 /** 需确认工具 → 领域提供的重校验契约（spi ConfirmationRecheck Bean）。同一 toolId 出现两次视为装配错误，启动即失败。 */
-@Component
 public class RecheckRegistry {
 
   private final Map<String, ConfirmationRecheck> byTool = new HashMap<>();

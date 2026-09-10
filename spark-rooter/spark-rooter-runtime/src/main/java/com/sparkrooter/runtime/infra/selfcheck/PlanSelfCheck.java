@@ -16,13 +16,11 @@ import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
  * 规划自检（spec §2.4.3）：① IntentVerbs 表引用的 toolId 都已注册；② 规则规划器对 5 条核心消息各断言 toolId 序列； ③ 候选外 toolId
  * 被校验器拒绝；④ 需确认步骤缺前置被拒绝。真模型模式跳过 ②。
  */
-@Component
 public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
 
   private static final Logger log = LoggerFactory.getLogger(PlanSelfCheck.class);

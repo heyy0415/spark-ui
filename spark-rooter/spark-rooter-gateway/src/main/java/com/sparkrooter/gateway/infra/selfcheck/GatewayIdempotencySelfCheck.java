@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
  * 幂等占位自检：只测 IdempotencyStore（不经 InvokeToolUseCase，不产生审计行）。三条断言：
@@ -27,7 +26,6 @@ import org.springframework.stereotype.Component;
  *
  * 用 CountDownLatch 保证 B 的 claim 确定落在 A 的占位期内，而不是靠调度巧合。
  */
-@Component
 public class GatewayIdempotencySelfCheck implements SelfCheck {
 
   private static final Logger log = LoggerFactory.getLogger(GatewayIdempotencySelfCheck.class);

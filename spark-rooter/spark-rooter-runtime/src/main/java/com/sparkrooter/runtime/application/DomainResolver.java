@@ -5,13 +5,11 @@ import com.sparkrooter.runtime.application.port.ToolRegistryClient;
 import com.sparkrooter.runtime.domain.DomainRouter;
 import java.util.Optional;
 import java.util.Set;
-import org.springframework.stereotype.Component;
 
 /**
  * 分层领域路由：规则优先（0 延迟）→ 模型补位（只输出可发现领域的枚举，经代码校验）→ none。 结果只决定去 Registry 查哪个领域的候选；内核不鉴权。source 只进日志，不进
  * SSE。
  */
-@Component
 public class DomainResolver {
 
   /** 路由决策；source ∈ {rule, model, none}。 */

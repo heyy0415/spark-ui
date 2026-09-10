@@ -11,13 +11,11 @@ import com.sparkrooter.spi.ScreenContext;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
  * 行内指令自检（spec S9 / contracts.md §4）：经 Gateway 拉全部订单与商品，生成列表屏，断言每个 Table.rows[].actions[]：intent 含该行
  * id，且 label ↔ 动词映射一致。防止屏层生成的按钮文本与规划器动词表脱节（点了按钮却路由不到目标工具）。
  */
-@Component
 public class InlineActionSelfCheck implements com.sparkrooter.spi.SelfCheck {
 
   private static final Logger log = LoggerFactory.getLogger(InlineActionSelfCheck.class);

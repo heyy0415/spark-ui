@@ -12,13 +12,11 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.stereotype.Service;
 
 /**
  * 发现用例：按 domain 取候选 → 按 status 过滤 → （宿主有 ToolAccessPolicy 时）按策略过滤 → 投影为六字段候选。 内核不识别用户；策略入参只有 toolId
  * 与 sessionId，宿主要按用户判定就从自己传播过来的上下文取。
  */
-@Service
 public class SearchToolsUseCase implements ToolSearchPort {
 
   private static final Logger log = LoggerFactory.getLogger(SearchToolsUseCase.class);

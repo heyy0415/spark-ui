@@ -31,11 +31,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * RunContextPropagator 把宿主 ThreadLocal 带到 agent-run-* 线程。Controller 只做绑定与分发；编排在 RunOrchestrator。
  */
 @RestController
-@RequestMapping("/agent/runs")
+@RequestMapping("${spark.web.base-path:/agent}/runs")
 public class AgentRunController {
 
   private static final Logger log = LoggerFactory.getLogger(AgentRunController.class);
-  private static final long SSE_TIMEOUT_MS = 5 * 60 * 1000L;
 
   private final RunOrchestrator orchestrator;
   private final SchemaValidator validator;
@@ -44,6 +43,7 @@ public class AgentRunController {
   private final ScheduledExecutorService pingScheduler;
   private final SessionIdResolver sessions;
   private final RunContextPropagator propagator;
+  private final long sseTimeoutMs;
 
   public AgentRunController(
       RunOrchestrator orchestrator,
@@ -52,7 +52,8 @@ public class AgentRunController {
       ExecutorService runExecutor,
       ScheduledExecutorService pingScheduler,
       SessionIdResolver sessions,
-      RunContextPropagator propagator) {
+      RunContextPropagator propagator,
+      long sseTimeoutMs) {
     this.orchestrator = orchestrator;
     this.validator = validator;
     this.mapper = mapper;
@@ -60,6 +61,7 @@ public class AgentRunController {
     this.pingScheduler = pingScheduler;
     this.sessions = sessions;
     this.propagator = propagator;
+    this.sseTimeoutMs = sseTimeoutMs;
   }
 
   @PostMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -70,7 +72,7 @@ public class AgentRunController {
     IntentRequest intent = validator.bind("intent-request", null, body, IntentRequest.class);
     String sessionId = sessions.resolve(intent.conversationId());
     log.info("start_run, conversationId={}", intent.conversationId());
-    SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
+    SseEmitter emitter = new SseEmitter(sseTimeoutMs);
     SseRunEventSink sink = new SseRunEventSink(emitter, mapper, pingScheduler);
     submit(() -> orchestrator.start(intent, sessionId, traceId, sink));
     return emitter;
@@ -87,7 +89,7 @@ public class AgentRunController {
     // runId 不存在必须同步 404，而不是在 SSE 里失败
     Run run = orchestrator.find(runId).orElseThrow(() -> new RunOrchestrator.RunNotFound(runId));
     String sessionId = sessions.resolve(run.conversationId());
-    SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
+    SseEmitter emitter = new SseEmitter(sseTimeoutMs);
     SseRunEventSink sink = new SseRunEventSink(emitter, mapper, pingScheduler);
     Map<String, Object> formData = action.formData();
     submit(

@@ -13,10 +13,8 @@ import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /** 令牌自检：过期、重放、参数摘要不符、白名单外键、sessionId 不一致 五种情况必须全部被拒；正常路径必须通过。 */
-@Component
 public class TokenSelfCheck implements SelfCheck {
 
   private static final Logger log = LoggerFactory.getLogger(TokenSelfCheck.class);

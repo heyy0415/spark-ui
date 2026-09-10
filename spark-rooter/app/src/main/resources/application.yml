@@ -10,3 +10,5 @@ management:
 spark:
   selfcheck:
     enabled: true
+  web:
+    internal-endpoints: true

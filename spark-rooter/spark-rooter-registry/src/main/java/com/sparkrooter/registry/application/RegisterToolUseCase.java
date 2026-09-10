@@ -7,10 +7,8 @@ import com.sparkrooter.registry.domain.ToolRegistryRepository;
 import com.sparkrooter.registry.domain.ToolVersionConflictException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 /** 注册用例：契约校验 → 反序列化 → 原子写入；重复即 409。 */
-@Service
 public class RegisterToolUseCase {
 
   private static final Logger log = LoggerFactory.getLogger(RegisterToolUseCase.class);

@@ -42,7 +42,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.stereotype.Service;
 
 /**
  * Run 编排器（决策面 / 状态面）。 意图 → 领域路由 → Registry 搜索 → LLM 规划 → 逐步执行：低风险经 Gateway 自动执行；遇
@@ -55,7 +54,6 @@ import org.springframework.stereotype.Service;
  * <p>确认路径按 runId 互斥：并发 / 重放的确认请求要么等待，要么因令牌已消费被拒绝，且这类前置拒绝不改变 Run 状态， 保证成功执行的写操作不会被并发请求报告为
  * FAILED。可信参数（如退款金额）一律取重校验结果并与确认屏展示值比对，模型或前端都无法决定。
  */
-@Service
 public class RunOrchestrator {
 
   private static final Logger log = LoggerFactory.getLogger(RunOrchestrator.class);

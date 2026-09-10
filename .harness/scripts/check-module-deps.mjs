@@ -5,6 +5,7 @@
  * 后端模块依赖红线（project-structure.md §2 / §4）：
  *   - spark-rooter-runtime、spark-rooter-registry、spark-rooter-gateway、spark-rooter-spi、spark-rooter-contracts 的 pom.xml 不得依赖任何 domains/* 模块（只有 app 可以）
  *   - 平台模块（spi / contracts / runtime / registry / gateway）pom 不得依赖 spring-boot-starter-web / starter-validation（Web 绑定只在 spark-rooter-web-mvc，spec refactor-spark-embedded-starter §2.2）
+ *   - 平台模块（runtime / registry / gateway / web-mvc / contracts）源码禁 @Component / @Service / @Repository / @Configuration / @ComponentScan：Bean 全部由 starter @Bean 装配，不依赖包扫描
  *   - 任何模块 DDD 分层 domain/ 包（文件直接父目录为 domain）下的 .java 不得 import org.springframework.* 或 com.fasterxml.*
  *
  * spark-rooter/ 尚无 pom.xml 时视为通过（骨架未初始化）。
@@ -84,6 +85,9 @@ for (const mod of ['spark-rooter-spi', 'spark-rooter-contracts', 'spark-rooter-r
   }
 }
 
+// 平台 Bean 不靠包扫描：平台模块源码不得出现 Spring 组件注解（starter 与 examples 除外）
+const STEREOTYPES = /^\s*@(Component|Service|Repository|Configuration|ComponentScan)\b/m;
+
 async function* walk(dir) {
   for (const e of await readdir(dir)) {
     const p = join(dir, e);
@@ -92,6 +96,14 @@ async function* walk(dir) {
       if (e === 'target' || e === 'node_modules') continue;
       yield* walk(p);
     } else if (p.endsWith('.java')) yield p;
+  }
+}
+
+for (const mod of ['spark-rooter-contracts', 'spark-rooter-runtime', 'spark-rooter-registry', 'spark-rooter-gateway', 'spark-rooter-web-mvc']) {
+  const src = join(sparkRooterDir, mod, 'src', 'main', 'java');
+  if (!existsSync(src)) continue;
+  for await (const file of walk(src)) {
+    if (STEREOTYPES.test(await readFile(file, 'utf-8'))) fail(`${relative(root, file)}: platform module must not use Spring stereotype annotations (beans are assembled by the starter)`);
   }
 }
 

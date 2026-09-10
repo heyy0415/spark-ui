@@ -6,10 +6,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.stereotype.Component;
 
 /** 内存幂等表：值是 CompletableFuture，未完成 = 占位中，已完成 = 最终结果。 */
-@Component
 public class InMemoryIdempotencyStore implements IdempotencyStore {
 
   private final Map<String, CompletableFuture<ToolInvoke.Response>> store =

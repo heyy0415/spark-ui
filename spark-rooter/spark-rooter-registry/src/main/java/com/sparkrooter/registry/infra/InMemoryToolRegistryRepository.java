@@ -6,10 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.stereotype.Repository;
 
 /** 内存实现；键 toolId@version。putIfAbsent 由 ConcurrentHashMap 保证原子。 */
-@Repository
 public class InMemoryToolRegistryRepository implements ToolRegistryRepository {
 
   private final Map<String, ToolManifest> store = new ConcurrentHashMap<>();

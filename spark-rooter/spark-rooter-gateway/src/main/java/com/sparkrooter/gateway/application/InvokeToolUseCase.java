@@ -33,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.stereotype.Service;
 
 /**
  * 执行面唯一入口（agent-safety §5）。顺序固定： 寻址 → 输入 Schema 校验 → 宿主访问策略（可选）→ 幂等 → 调用（超时 / 重试按 Manifest）→ 输出
@@ -41,7 +40,6 @@ import org.springframework.stereotype.Service;
  *
  * <p>Gateway 不做规划、不选工具；ToolHandler 由 Spring 注入，pom 不依赖任何领域模块。
  */
-@Service
 public class InvokeToolUseCase implements ToolInvokePort {
 
   private static final Logger log = LoggerFactory.getLogger(InvokeToolUseCase.class);

@@ -12,13 +12,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 
 /**
  * 启动注册：遍历所有领域模块暴露的 ToolManifestSource（platform-spi 端口），逐个注册。 领域模块因此不依赖 registry；依赖方向 domains → spi
  * ← registry。
  */
-@Component
 public class StartupManifestRegistrar {
 
   private static final Logger log = LoggerFactory.getLogger(StartupManifestRegistrar.class);

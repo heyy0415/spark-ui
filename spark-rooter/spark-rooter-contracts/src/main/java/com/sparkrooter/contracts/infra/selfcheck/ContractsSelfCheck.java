@@ -11,13 +11,11 @@ import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
  * 启动自检：9 个契约全部可编译，20 个示例全部通过各自契约校验。 示例文件名规则：{name}.example.json 或 {name}.{variant}.example.json（与
  * check-contracts.mjs 一致）。
  */
-@Component
 public class ContractsSelfCheck implements SelfCheck {
 
   private static final Logger log = LoggerFactory.getLogger(ContractsSelfCheck.class);

@@ -10,22 +10,20 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.api.OpenAiApi;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.RetryCallback;
 import org.springframework.retry.RetryContext;
 import org.springframework.retry.RetryListener;
 import org.springframework.retry.support.RetryTemplate;
 
 /**
- * LLM 装配。三个环境变量任一缺失 → RuleBasedLlmClient 并 WARN（backend-standard §7）。 不使用 Spring AI 的自动配置 starter
- * 属性（需要 key 才能启动），改为手工装配 OpenAiApi，以便无 key 也能启动。
+ * LLM 工厂（纯静态，starter 的 RuntimeBeans 装配）。三项配置任一缺失 → RuleBasedLlmClient 并 WARN（backend-standard §7）。
+ * 不使用 Spring AI 的自动配置 starter 属性（需要 key 才能启动），改为手工装配 OpenAiApi，以便无 key 也能启动。
  */
-@Configuration
-public class LlmConfiguration {
+public final class LlmFactory {
 
-  private static final Logger log = LoggerFactory.getLogger(LlmConfiguration.class);
+  private static final Logger log = LoggerFactory.getLogger(LlmFactory.class);
+
+  private LlmFactory() {}
 
   /** 是否配置齐三个环境变量；分类器与规划器共用同一判定。 */
   private static boolean configured(String baseUrl, String apiKey, String model) {
@@ -39,14 +37,10 @@ public class LlmConfiguration {
    */
   public record SharedChat(Optional<ChatClient> client) {}
 
-  @Bean
-  public SharedChat sparkChatClient(
-      @Value("${SPARK_LLM_BASE_URL:}") String baseUrl,
-      @Value("${SPARK_LLM_API_KEY:}") String apiKey,
-      @Value("${SPARK_LLM_MODEL:}") String model) {
+  public static SharedChat chat(String baseUrl, String apiKey, String model) {
     if (!configured(baseUrl, apiKey, model)) {
       log.warn(
-          "SPARK_LLM_BASE_URL / SPARK_LLM_API_KEY / SPARK_LLM_MODEL not fully set; using rule-based planner and noop classifier");
+          "spark.llm.base-url / api-key / model (or SPARK_LLM_*) not fully set; using rule-based planner and noop classifier");
       return new SharedChat(Optional.empty());
     }
     OpenAiApi api =
@@ -64,17 +58,13 @@ public class LlmConfiguration {
   }
 
   /** 两个实现都持有 ToolDisplayNames Bean 引用（Registry 启动时才回填 name），不能取构造期快照。 */
-  @Bean
-  public LlmClient llmClient(
-      SharedChat chat, ToolDisplayNames names, @Value("${SPARK_LLM_MODEL:}") String model) {
+  public static LlmClient llmClient(SharedChat chat, ToolDisplayNames names, String model) {
     return chat.client()
         .<LlmClient>map(c -> new SpringAiLlmClient(c, model, names))
         .orElseGet(() -> new RuleBasedLlmClient(names));
   }
 
-  @Bean
-  public IntentClassifier intentClassifier(
-      SharedChat chat, @Value("${SPARK_LLM_MODEL:}") String model) {
+  public static IntentClassifier intentClassifier(SharedChat chat, String model) {
     return chat.client()
         .<IntentClassifier>map(c -> new SpringAiIntentClassifier(c, model))
         .orElseGet(NoopIntentClassifier::new);
