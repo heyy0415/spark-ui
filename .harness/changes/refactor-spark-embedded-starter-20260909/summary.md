@@ -4,10 +4,10 @@
 |---|---|
 | Change ID | refactor-spark-embedded-starter-20260909 |
 | 类型 | refactor |
-| 状态 | IN PROGRESS |
+| 状态 | DONE |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | contracts / backed（→ spark-rooter）/ fronted（→ spark-ui）/ harness |
-| 起止时间 | 2026-09-09 ~ — |
+| 起止时间 | 2026-09-09 ~ 2026-09-10 |
 | Spec | [request_analysis/spec.md](request_analysis/spec.md) |
 | Tasks | [request_analysis/tasks.md](request_analysis/tasks.md) |
 
@@ -22,7 +22,7 @@
 | 5 | 代码推送 | DONE | — | `git push origin main` → https://github.com/heyy0415/spark-ui.git（`7934eb7`，含远端原有 MIT LICENSE 的合并）；根 README `5a195cd` | 2026-09-10 |
 | 6 | CI 验证 | DONE（本地等价） | — | 仓库无远端 CI；`pnpm -C .harness run ci` 全 0 即门禁（推送前最后一次 exit 0） | 2026-09-10 |
 | 7 | 部署验证 | DONE | — | deploy-verify 12/12、e2e-backend 159/159、e2e-frontend 37/37，产物冻结于 deployment/；LIVE 模式未跑（本机无 SPARK_LLM_*） | 2026-09-10 |
-| 8 | 用户确认 | WAITING | — | 待用户确认 | — |
+| 8 | 用户确认 | DONE | — | 用户确认 | 2026-09-10 |
 
 ## 契约变更
 - 9 个 `$id` → `https://spark-rooter.local/contracts/v1/`；`intent-request` 删 `pageContext`；`tool-search.request` 删 `principal`；`tool-invoke.executionContext` 删 `userId / tenantId` 增 `sessionId`；`tool-manifest.authorization.permission` 可选；`ui-schema.cardProps` 增 `actions[]`（示例 26 → 27）。见 `contracts.md` §5a。

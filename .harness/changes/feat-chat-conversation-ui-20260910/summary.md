@@ -4,10 +4,10 @@
 |---|---|
 | Change ID | feat-chat-conversation-ui-20260910 |
 | 类型 | feat |
-| 状态 | IN PROGRESS |
+| 状态 | DONE |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | spark-ui / harness / docs（契约与后端不动） |
-| 起止时间 | 2026-09-10 ~ — |
+| 起止时间 | 2026-09-10 ~ 2026-09-10 |
 | Spec | [request_analysis/spec.md](request_analysis/spec.md) |
 | Tasks | [request_analysis/tasks.md](request_analysis/tasks.md) |
 
@@ -22,7 +22,7 @@
 | 5 | 代码推送 | DONE | — | push origin/main | 2026-09-10 |
 | 6 | CI 验证 | DONE（本地等价） | — | harness ci 全 0 | 2026-09-10 |
 | 7 | 部署验证 | DONE | — | e2e-frontend 54/54；Dockerfile 等价验证（静态托管 + SSE）；本机无 Docker daemon 未真实 build 镜像 | 2026-09-10 |
-| 8 | 用户确认 | WAITING | — | 待用户确认 | — |
+| 8 | 用户确认 | DONE | — | 用户确认 | 2026-09-10 |
 
 ## 契约变更
 - （列出本 change 新增 / 修改的 `.harness/contracts/*.schema.json`；无则写 NONE）
