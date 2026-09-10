@@ -52,7 +52,7 @@ public class ConfirmationCoverageSelfCheck implements com.sparkrooter.spi.SelfCh
   public void run() {
     int count = 0;
     for (String domain : registry.domains()) {
-      ToolSearch.Response found = registry.search(new ToolSearch.Request(domain, null, null));
+      ToolSearch.Response found = registry.search(new ToolSearch.Request(domain, null, null), null);
       for (ToolSearch.ToolCandidate c : found.tools()) {
         boolean confirm =
             c.confirmation() == ToolManifest.Confirmation.required

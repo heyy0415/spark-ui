@@ -8,7 +8,7 @@
  *   3. 视口 375  同 URL               → adm-* > 0 且 ant-* = 0
  *   4. /dev/schema?example=unknown     → UnknownComponent 占位且 console.error 恰 1
  *   5. 视口 1280 / 主链路（chat 即首页）：输入 → 两条工具进度 + 确认卡片 → 选原因 → 确认 → 结果卡片；console 无 error
- *   6. 8 个契约示例 × 1280 / 375 全部渲染，console.error 0（feat-commerce-domains）
+ *   6. 9 个契约示例 × 1280 / 375 全部渲染，console.error 0（feat-commerce-domains）
  *   7. 视口 1280 / 自然语言驱动：「看看我的订单」→ Table → 点 data-intent="查看订单 10030 的物流" → 用户消息 + Timeline
  *      → 「有什么商品」→ Table → 点 data-intent="查看商品 P-1003 的详情" → Card
  * 环境变量 SPARK_FRONT_BASE 可覆盖前端地址（默认 http://localhost:5173）。

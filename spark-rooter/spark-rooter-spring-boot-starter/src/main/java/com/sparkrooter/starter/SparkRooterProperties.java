@@ -29,13 +29,15 @@ public record SparkRooterProperties(
    * @param sseTimeout SSE 连接超时（LIVE 规划实测 9–39s）
    * @param tokenTtl 确认令牌有效期
    * @param memoryTtl 会话记忆有效期
+   * @param runTtl Run 记录保留时间（按 updatedAt；到期后 GET /agent/runs/{id} 404，确认令牌自身有更短的 TTL）
    */
   public record Runtime(
       @DefaultValue("8") int runPool,
       @DefaultValue("2") int pingPool,
       @DefaultValue("90s") Duration sseTimeout,
       @DefaultValue("10m") Duration tokenTtl,
-      @DefaultValue("30m") Duration memoryTtl) {}
+      @DefaultValue("30m") Duration memoryTtl,
+      @DefaultValue("1h") Duration runTtl) {}
 
   /** 工具执行线程池大小。 */
   public record Gateway(@DefaultValue("8") int toolPool) {}

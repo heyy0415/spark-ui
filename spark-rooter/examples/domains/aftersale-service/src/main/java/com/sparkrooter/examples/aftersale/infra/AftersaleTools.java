@@ -3,7 +3,7 @@ package com.sparkrooter.examples.aftersale.infra;
 import com.sparkrooter.examples.aftersale.application.AftersaleService;
 import com.sparkrooter.examples.aftersale.domain.Aftersale;
 import com.sparkrooter.examples.support.DemoUserContext;
-import com.sparkrooter.spi.OrderSnapshot;
+import com.sparkrooter.examples.support.OrderSnapshot;
 import com.sparkrooter.spi.ToolContext;
 import com.sparkrooter.spi.annotation.Confirmation;
 import com.sparkrooter.spi.annotation.EntityType;

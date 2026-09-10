@@ -68,7 +68,7 @@ for (const mod of ['spark-rooter-runtime', 'spark-rooter-registry', 'spark-roote
     if (!existsSync(pom)) continue;
     const text = await readFile(pom, 'utf-8');
     const depsBlock = (text.match(/<dependencies>([\s\S]*?)<\/dependencies>/g) ?? []).join('\n');
-    for (const m of depsBlock.matchAll(/<groupId>com\.spark<\/groupId><artifactId>([^<]+)<\/artifactId>/g)) {
+    for (const m of depsBlock.matchAll(/<groupId>com\.sparkrooter<\/groupId><artifactId>([^<]+)<\/artifactId>/g)) {
       if (!ok.includes(m[1])) fail(`${mod}/pom.xml must not depend on com.sparkrooter:${m[1]} (bottom layer)`);
     }
   }
@@ -86,7 +86,12 @@ for (const mod of ['spark-rooter-spi', 'spark-rooter-contracts', 'spark-rooter-r
 }
 
 // 平台 Bean 不靠包扫描：平台模块源码不得出现 Spring 组件注解（starter 与 examples 除外）
-const STEREOTYPES = /^\s*@(Component|Service|Repository|Configuration|ComponentScan)\b/m;
+// 简名与 FQN 内联都抓（`@org.springframework.stereotype.Service` 不能绕过）
+const STEREOTYPES =
+  /@(?:org\.springframework\.(?:stereotype|context\.annotation)\.)?(Component|Service|Repository|Configuration|ComponentScan)\b/;
+// 身份归宿主（spec §2.5）：平台模块源码禁 userId / tenantId / Principal 标识符
+const IDENTITY = /\b(userId|tenantId|Principal)\b/;
+const PLATFORM_SRC = ['spark-rooter-spi', 'spark-rooter-contracts', 'spark-rooter-runtime', 'spark-rooter-registry', 'spark-rooter-gateway', 'spark-rooter-web-mvc', 'spark-rooter-spring-boot-starter'];
 
 async function* walk(dir) {
   for (const e of await readdir(dir)) {
@@ -99,12 +104,27 @@ async function* walk(dir) {
   }
 }
 
-for (const mod of ['spark-rooter-contracts', 'spark-rooter-runtime', 'spark-rooter-registry', 'spark-rooter-gateway', 'spark-rooter-web-mvc']) {
+for (const mod of PLATFORM_SRC) {
   const src = join(sparkRooterDir, mod, 'src', 'main', 'java');
   if (!existsSync(src)) continue;
   for await (const file of walk(src)) {
-    if (STEREOTYPES.test(await readFile(file, 'utf-8'))) fail(`${relative(root, file)}: platform module must not use Spring stereotype annotations (beans are assembled by the starter)`);
+    const text = await readFile(file, 'utf-8');
+    if (mod !== 'spark-rooter-spring-boot-starter' && STEREOTYPES.test(text)) fail(`${relative(root, file)}: platform module must not use Spring stereotype annotations (beans are assembled by the starter)`);
+    if (IDENTITY.test(text)) fail(`${relative(root, file)}: platform module must not reference userId / tenantId / Principal (identity belongs to the host)`);
   }
+}
+
+// 规则自测（Hashimoto）：每条正则对一个「必须命中」的样本为真，防止改名后正则静默失效
+const selfTests = [
+  [STEREOTYPES, '@org.springframework.stereotype.Service\npublic class X {}'],
+  [STEREOTYPES, '  @Component\npublic class X {}'],
+  [IDENTITY, 'String tenantId'],
+  [new RegExp(`\\bcom\\.sparkrooter\\.gateway\\.(infra|domain|application)\\.`), 'import com.sparkrooter.gateway.infra.LogAuditSink;'],
+  [/\bcom\.sparkrooter\.examples\.([a-z]+)\./, 'import com.sparkrooter.examples.order.domain.Order;'],
+  [/<groupId>com\.sparkrooter<\/groupId><artifactId>([^<]+)<\/artifactId>/, '<dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-runtime</artifactId></dependency>'],
+];
+for (const [re, sample] of selfTests) {
+  if (!re.test(sample)) fail(`check-module-deps self-test: rule ${re} does not match its own positive sample`);
 }
 
 // 全文匹配（含 FQN 内联引用与 import），不只看 import 行，避免 `org.springframework.stereotype.Service` 内联绕过
@@ -136,7 +156,7 @@ for (const [mod, others] of Object.entries(peers)) {
     const text = await readFile(file, 'utf-8');
     for (const o of others) {
       // 三模块之间只允许依赖对方 api 包（project-structure §2）；infra / domain / application 都不行
-      const re = new RegExp(`\\bcom\\.spark\\.${o}\\.(infra|domain|application)\\.`);
+      const re = new RegExp(`\\bcom\\.sparkrooter\\.${o}\\.(infra|domain|application)\\.`);
       if (re.test(text)) fail(`${relative(root, file)}: ${mod} must not depend on ${o}'s infra/domain/application package (only api)`);
     }
   }
@@ -157,7 +177,7 @@ for (const [mod, others] of Object.entries(peers)) {
 }
 
 // 领域模块互不依赖（project-structure §2）：domains/<a> 源码不得引用 com.sparkrooter.examples.<b>（b ≠ a），也不得在 pom 里依赖其他领域 artifact。
-// 跨领域读数据只能经 spark-rooter-spi 端口（如 OrderSnapshotProvider）。
+// 跨领域读数据只能经 demo-support 的 OrderSnapshotProvider 端口。
 {
   const domainsDir = join(sparkRooterDir, 'examples', 'domains');
   const mods = existsSync(domainsDir) ? await readdir(domainsDir) : [];
@@ -174,7 +194,9 @@ for (const [mod, others] of Object.entries(peers)) {
     }
     for await (const file of walk(src)) {
       const text = await readFile(file, 'utf-8');
-      for (const m of text.matchAll(/\bcom\.sparkrooter\.domain\.([a-z]+)\./g)) {
+      for (const m of text.matchAll(/\bcom\.sparkrooter\.examples\.([a-z]+)\./g)) {
+        // examples.support（demo-support：mock 用户上下文 + OrderSnapshot 跨域只读端口）是共享支撑模块，不是兄弟领域
+        if (m[1] === 'support') continue;
         if (!own.includes(m[1])) fail(`${relative(root, file)}: domains/${mod} must not reference com.sparkrooter.examples.${m[1]} (cross-domain only via spark-rooter-spi)`);
       }
     }

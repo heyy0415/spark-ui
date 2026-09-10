@@ -1,18 +1,18 @@
 event:run.started
-data:{"runId":"run_550d3cfa0d5146f0","conversationId":"c12","at":"2026-09-10T07:29:30.832802Z"}
+data:{"runId":"run_6cf1ce8c3770409d","conversationId":"c12","at":"2026-09-10T08:12:24.113400Z"}
 
 event:tool.selected
-data:{"runId":"run_550d3cfa0d5146f0","toolCallId":"tc_000019","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
+data:{"runId":"run_6cf1ce8c3770409d","toolCallId":"tc_000019","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
 
 event:tool.started
-data:{"runId":"run_550d3cfa0d5146f0","toolCallId":"tc_000019","at":"2026-09-10T07:29:30.833608Z"}
+data:{"runId":"run_6cf1ce8c3770409d","toolCallId":"tc_000019","at":"2026-09-10T08:12:24.114056Z"}
 
 event:tool.completed
-data:{"runId":"run_550d3cfa0d5146f0","toolCallId":"tc_000019","status":"succeeded","durationMs":0,"summary":"订单 10005 COMPLETED"}
+data:{"runId":"run_6cf1ce8c3770409d","toolCallId":"tc_000019","status":"succeeded","durationMs":0,"summary":"订单 10005 COMPLETED"}
 
 event:ui.replace
-data:{"runId":"run_550d3cfa0d5146f0","ui":{"schemaVersion":"1.0","screenId":"delete-confirmation","title":"确认删除订单","components":[{"id":"order","type":"Card","props":{"title":"订单 10005","items":[{"label":"商品","value":"运动鞋"},{"label":"件数","value":"1"},{"label":"金额","value":"459.00 CNY"},{"label":"状态","value":"COMPLETED"},{"label":"提示","value":"删除后订单将从列表消失，不可恢复","tone":"danger"}]}}],"actions":[{"id":"confirm-delete","type":"submit","label":"确认删除","style":"danger","confirmationToken":"ct_-7B4AdbUWPJha9R5MwxeywexK6YLbHX-"},{"id":"cancel","type":"cancel","label":"取消","style":"default"}]}}
+data:{"runId":"run_6cf1ce8c3770409d","ui":{"schemaVersion":"1.0","screenId":"delete-confirmation","title":"确认删除订单","components":[{"id":"order","type":"Card","props":{"title":"订单 10005","items":[{"label":"商品","value":"运动鞋"},{"label":"件数","value":"1"},{"label":"金额","value":"459.00 CNY"},{"label":"状态","value":"COMPLETED"},{"label":"提示","value":"删除后订单将从列表消失，不可恢复","tone":"danger"}]}}],"actions":[{"id":"confirm-delete","type":"submit","label":"确认删除","style":"danger","confirmationToken":"ct_HDV2lzrL0a8jQlHas0mwaNDvzwZzcEvE"},{"id":"cancel","type":"cancel","label":"取消","style":"default"}]}}
 
 event:confirmation.required
-data:{"runId":"run_550d3cfa0d5146f0","actionId":"confirm-delete","expiresAt":"2026-09-10T07:39:30.834702Z"}
+data:{"runId":"run_6cf1ce8c3770409d","actionId":"confirm-delete","expiresAt":"2026-09-10T08:22:24.114964Z"}
 

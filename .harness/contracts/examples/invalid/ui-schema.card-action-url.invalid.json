@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "screenId": "s",
+  "title": "t",
+  "components": [
+    {
+      "id": "c",
+      "type": "Card",
+      "props": {
+        "title": "x",
+        "actions": [
+          {
+            "label": "a",
+            "intent": "http://evil"
+          }
+        ]
+      }
+    }
+  ],
+  "actions": []
+}

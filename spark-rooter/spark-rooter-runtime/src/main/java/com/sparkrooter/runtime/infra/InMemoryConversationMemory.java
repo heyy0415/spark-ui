@@ -21,23 +21,28 @@ public class InMemoryConversationMemory implements ConversationMemory {
   }
 
   @Override
-  public void put(String conversationId, Memory memory) {
+  public void put(String sessionId, String conversationId, Memory memory) {
     Instant now = Instant.now(clock);
     store.entrySet().removeIf(e -> expired(e.getValue(), now));
-    store.put(conversationId, memory);
+    store.put(key(sessionId, conversationId), memory);
   }
 
   @Override
-  public Optional<Memory> find(String conversationId) {
-    Memory m = store.get(conversationId);
+  public Optional<Memory> find(String sessionId, String conversationId) {
+    String k = key(sessionId, conversationId);
+    Memory m = store.get(k);
     if (m == null) {
       return Optional.empty();
     }
     if (expired(m, Instant.now(clock))) {
-      store.remove(conversationId, m);
+      store.remove(k, m);
       return Optional.empty();
     }
     return Optional.of(m);
+  }
+
+  private static String key(String sessionId, String conversationId) {
+    return sessionId + "/" + conversationId;
   }
 
   private boolean expired(Memory m, Instant now) {

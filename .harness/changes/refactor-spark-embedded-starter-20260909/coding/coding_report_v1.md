@@ -74,3 +74,48 @@ spec §6.1–6.4 grep                               strato 0 / fronted|backed 0 
 - python 批量锚点替换：一次 `edit()` 内任一锚点失配会让后续锚点静默不生效 → 每批替换后 grep 复核（本 change 因此漏改三次）。
 - BSD sed 不识别 `\b` → 改名类批量替换用 perl。
 - 推导 Manifest 与手写 JSON 比对经字符串往返归一化数字节点。
+
+---
+
+# 阶段 4 回修记录 v1（响应 `coding/review/code_review_backend_v1.md`：4 MUST / 10 SHOULD；`code_review_frontend_v1.md`：1 MUST / 4 SHOULD / 8 LOW）
+
+## 后端
+
+| # | 意见 | 处理 | 证据 |
+|---|---|---|---|
+| M-1 | `check-module-deps` 身份标识符红线未实现；三条既有规则正则仍旧包名（`com.spark.` / `com.sparkrooter.domain.`）静默失效 | 新增 `IDENTITY` 规则（7 个平台模块源码禁 `\b(userId\|tenantId\|Principal)\b`）；三处正则改 `com\.sparkrooter\.` / `examples\.`；组件注解规则同时抓 FQN（S-8）；**每条正则配内置正样本自测**，改名后失效会直接红（Hashimoto） | 植入 runtime `String userId` → 红；自测 6 条 |
+| M-2 | spi `OrderSnapshotProvider.snapshot(String tenantId, …)` 含 `tenantId`；报告声称 grep 0 不实 | `OrderSnapshot(Provider)` 从 spi 迁到 `examples/demo-support`（示例领域间的跨域只读端口是宿主 / 示例侧概念，tenantId 是示例业务字段）；module-deps 把 `examples.support` 列为共享支撑模块；文档同步 | 平台模块 grep 0 且由门禁守 |
+| M-3 | 「user text in log」断言的短语已无人发送，恒 0 | e2e 改为对本轮实际发送的 5 条消息逐条 grep 0；deploy-verify 同步 | 5 条断言全 0 |
+| M-4 | 澄清屏后 `remember()` 用 `LastTable("", ids)` 覆盖 clarify 写入，「第二个」失效 | `clarified` 集合标记出过澄清屏的 Run，`remember()` 不覆盖；`LastTable` 增 `pendingMessage`（挂起原话）；纯序数指代消息路由沿用记忆领域（`source=memory`），规划消息 = 原话 + 「第二个」 | e2e ㉒'：「申请售后」→ 澄清屏 → 「第二个」→ 确认屏标题 == 「订单 rows[1].id」，日志 `source=memory(ordinal)` |
+| S-1 | Runtime 发现路径给 `ToolAccessPolicy` 的 sessionId 恒 null | `ToolSearchPort.search(request, sessionId)` / `ToolRegistryClient.search(request, sessionId)`；编排器透传 `run.sessionId()`；HTTP 直调与自检仍为 null | — |
+| S-2 | 记忆只按可伪造的 conversationId 键控 | spi `ConversationMemory.put/find(sessionId, conversationId, …)`；内存实现键 `sessionId/conversationId` | e2e ㉔：B 用 A 的 conversationId 说「申请售后」→ 澄清屏而非 A 的订单 |
+| S-3 | 双绑定退化为单因子；㉔ 只测 runId 绑定 | host-demo 增 `DemoSessionIdResolver`（`@Profile("e2e")`，`user:conversationId`），e2e 主启动带 `--spring.profiles.active=e2e`；㉔ 改为真实 HTTP 级断言：A 的令牌用 `X-Demo-User: userb` 提交 → `CONFIRMATION_REJECTED` + 日志 `session mismatch` + B 读 A 的 Run 404 + 无 refund.create 审计。默认 profile 仍走 demo WARN | ㉔ 6 条 |
+| S-4 | 澄清 intent 回拼原话：超长截掉 id / 含 `<` 违反契约 → INTERNAL_ERROR | intent 改为「`<动词标签> <实体名> <id>`」（如「申请售后 订单 10029」），不回拼原话 | ㉒ 点选仍到确认屏 |
+| S-5 | 自检 echo 工具以 active 进 Registry，污染候选与 `domains()` | `ManifestDeriver`：`spark` 域（自检专用）注册为 `draft`，Gateway 可直调、Registry 不可发现 | ProxyInvocationSelfCheck 仍 OK |
+| S-6 | `RunRepository` 无 TTL；`lastUi` 只增不减 | `InMemoryRunRepository(ttl, clock)` + `RunRepository.evictExpired()`；`spark.runtime.run-ttl`（默认 1h）；编排器每次终态淘汰过期 Run 并清 `lastUi / stepOutputs / inputSchemas / confirmLocks / clarified` | — |
+| S-7 | 校验器另起 `JsonSchemaFactory` + 裸 mapper | `assertValueMatches(…, SchemaValidator)` 复用 `validateWithInlineSchema`；`validate()` 增 validator 参数，两个 LlmClient / PlanSelfCheck 注入 | — |
+| S-8 | 组件注解规则可被 FQN 绕过 | 并入 M-1 | 自测含 FQN 样本 |
+| S-9 | `entityArgs()` 同名不同类型 last-wins 且每次重算 | `register()` 增量维护并在冲突时启动失败；`entityArgs()` 只做一次 map 合并 | — |
+| S-10 | ⑭' 拦截器只拦 `/demo/**`，与 spark 路径无交集，同义反复 | host-demo 增 `/demo/orders`（直接调同一个 `OrderTools.list`）；⑭' 断言 guest 直调 403、admin 200、guest 经 spark 同能力成功 | ⑭' 3 条 |
+
+## 前端
+
+| # | 意见 | 处理 |
+|---|---|---|
+| M-1 | `baseUrl ?? ''` 永久短路 `VITE_API_BASE_URL` | `AgentChatPanel` 缺省 `baseUrl ?? env.VITE_API_BASE_URL` |
+| S-1 | `getRun` 绕开 `request()`，裸 `Error`、不读 env | `RequestOptions` 增 `fetch? / baseUrl?`；`getRun` 回到 `request()` |
+| S-2 | 破坏性契约变更原地改 v1 无说明 | `contracts.md` §5a 补「无外部消费方、沿用 v1；首个外部消费方后失效」 |
+| S-3 | `check-rename` 按子串放行仓库根目录名，掩盖 `servers.json` 的本机绝对路径 | 删根目录名放行；`servers.json` 改相对路径 `"."` |
+| S-4 | 门禁只证明合法示例通过，投影放宽不可见 | `.harness/contracts/examples/invalid/*.invalid.json`（6 条：pageContext 残留、components 重复、principal 残留、userId/tenantId 残留、Card.actions 7 项、intent 含 URL）；`check-contracts` 断言 Ajv 拒绝、`verify-examples` 断言 Zod 拒绝（4 条前端投影） |
+| L-1 / L-2 / L-3 / L-5 / L-6 | README / 注释仍写 `onIntent` 只来自 Table；e2e 注释 8 示例；verify-examples 注释 16；`components` 缺 uniqueItems；placeholder「这个订单」 | 全部修正；`components` 增 `.refine` 唯一性 |
+| L-4 / L-7 / L-8 | 基线手写时间戳；§5a 未记 `$id`；`transport.fetch` 方法调用 | 基线保留 note（`--write-baseline` 会覆盖 recordedAt，改动仅 1 KB 记录）；`$id` 变更已在 §5a 首段与 T02 提交说明；`getRun` 现经 `request()` 内 `(doFetch ?? fetch)(…)` 非方法调用 |
+
+## 回修后复验
+
+```
+pnpm -C .harness run ci（clean dist）             exit 0（check-contracts 9 schema / 27 example + 6 invalid rejected；verify-examples 23 OK, 4 invalid rejected）
+e2e-backend 规则（8091，--spring.profiles.active=e2e）  155 passed / 0 failed（+ ㉒' 3 条、㉔ 6 条、⑭' 3 条、日志卫生 5 条）
+deploy-verify（8091）                              12 passed / 0 failed
+e2e-frontend（5199）                               37 passed / 0 failed
+植入 runtime `String userId` → check-module-deps 红；doctor 0
+```

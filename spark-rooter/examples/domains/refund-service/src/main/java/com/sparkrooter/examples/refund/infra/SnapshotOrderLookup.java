@@ -2,7 +2,7 @@ package com.sparkrooter.examples.refund.infra;
 
 import com.sparkrooter.examples.refund.domain.EligibilityPolicy;
 import com.sparkrooter.examples.refund.domain.OrderLookup;
-import com.sparkrooter.spi.OrderSnapshotProvider;
+import com.sparkrooter.examples.support.OrderSnapshotProvider;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 

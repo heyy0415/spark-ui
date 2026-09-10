@@ -17,9 +17,13 @@ public interface ConversationMemory {
    */
   record Memory(String domain, Map<String, String> entities, LastTable lastTable, Instant at) {}
 
-  record LastTable(String toolId, List<String> rowIds) {}
+  /**
+   * @param pendingMessage 澄清屏挂起的用户原话（如「申请售后」）：用户下一句只答「第二个」时，把原话拼回去规划；普通列表屏为 null
+   */
+  record LastTable(String toolId, List<String> rowIds, String pendingMessage) {}
 
-  void put(String conversationId, Memory memory);
+  /** 键 = (sessionId, conversationId)：conversationId 由前端生成可伪造，必须叠加宿主会话键，否则 B 可用 A 的会话号继承 A 的实体。 */
+  void put(String sessionId, String conversationId, Memory memory);
 
-  Optional<Memory> find(String conversationId);
+  Optional<Memory> find(String sessionId, String conversationId);
 }

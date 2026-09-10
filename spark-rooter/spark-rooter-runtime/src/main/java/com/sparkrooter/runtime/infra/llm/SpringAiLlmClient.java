@@ -1,5 +1,6 @@
 package com.sparkrooter.runtime.infra.llm;
 
+import com.sparkrooter.contracts.SchemaValidator;
 import com.sparkrooter.contracts.model.ToolSearch;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
@@ -27,18 +28,21 @@ public final class SpringAiLlmClient implements LlmClient {
 
   private final ToolMetaRegistry meta;
   private final Clock clock;
+  private final SchemaValidator validator;
 
   public SpringAiLlmClient(
       ChatClient chat,
       String model,
       ToolDisplayNames displayNames,
       ToolMetaRegistry meta,
-      Clock clock) {
+      Clock clock,
+      SchemaValidator validator) {
     this.chat = chat;
     this.model = model;
     this.displayNames = displayNames;
     this.meta = meta;
     this.clock = clock;
+    this.validator = validator;
   }
 
   @Override
@@ -69,7 +73,8 @@ public final class SpringAiLlmClient implements LlmClient {
             req.candidates(),
             displayNames,
             req.entities(),
-            meta);
+            meta,
+            validator);
       } catch (MissingEntity e) {
         // 目标工具缺必填实体：编排器走友好提示，不重试、不当传输错误
         throw e;

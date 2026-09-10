@@ -64,7 +64,11 @@ export const IntentRequestSchema = z
     clientCapabilities: z
       .object({
         uiSchemaVersion: z.literal('1.0'),
-        components: z.array(z.string().min(1).max(64)).min(1).max(64),
+        components: z
+          .array(z.string().min(1).max(64))
+          .min(1)
+          .max(64)
+          .refine((a) => new Set(a).size === a.length, { message: 'components: uniqueItems' }),
       })
       .strict(),
   })

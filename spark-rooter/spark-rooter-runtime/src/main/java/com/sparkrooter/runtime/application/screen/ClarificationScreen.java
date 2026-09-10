@@ -27,7 +27,7 @@ public final class ClarificationScreen {
    * @param entityType 缺失的实体类型（小写，如 order）
    * @param entityLabel 该实体的中文名（如「订单」），拼进 intent 让下一轮能抽到 ID
    * @param verbLabel 用户原动词的按钮文案（如「申请售后」）
-   * @param originalMessage 用户原话（原样拼回 intent）
+   * @param originalMessage 用户原话（只用于日志语义，不拼进 intent：原话可能含 `<` / `://` 或超长把 id 截掉）
    * @param listOutput 澄清列表工具的原始输出（含 items[]）
    * @return 屏树；items 为空返回 empty
    */
@@ -78,10 +78,11 @@ public final class ClarificationScreen {
       for (String c : columns) {
         cells.put(c, UiNodes.truncate(it.path(c).asText(""), 200));
       }
+      // intent = 「<动词标签> <实体名> <id>」（如「申请售后 订单 10002」）：下一轮动词表与实体正则都能命中；不回拼原话
       UiNodes.inlineAction(
           row.putArray("actions"),
           UiNodes.truncate(verbLabel, 32),
-          UiNodes.truncate(originalMessage + " " + entityLabel + " " + id, 200));
+          UiNodes.truncate(verbLabel + " " + entityLabel + " " + id, 200));
       if (++n >= 50) {
         break;
       }

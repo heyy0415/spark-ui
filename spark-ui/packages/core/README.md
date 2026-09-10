@@ -46,7 +46,7 @@ const ui = parseUiSchema(payloadFromBackend); // 不要写 payload as UiSchema
 
 - `SparkDeviceProvider`：挂载时按 `window.innerWidth < 768` 一次性判定端型；不监听 resize。
 - `SparkThemeProvider`：同一套令牌同时下发 antd `ConfigProvider`、antd-mobile `--adm-*` 变量与包内 `--spark-*` 变量。令牌全部可选，默认值见下。
-- `SchemaRenderer`：只渲染注册表内的组件；`onFormChange` 收集 `Form` 组件的值，由宿主在确认动作时回传；`onIntent` 接收 `Table` 行内指令的文本，宿主把它当作用户输入原样发送（新一轮对话）。
+- `SchemaRenderer`：只渲染注册表内的组件；`onFormChange` 收集 `Form` 组件的值，由宿主在确认动作时回传；`onIntent` 接收 `Table` 行内指令与 `Card.actions` 的文本，宿主把它当作用户输入原样发送（新一轮对话）。
 - `ActionBar`：渲染 `ui.actions`，点击回调整个 action 对象；`confirmationToken` 只回传，不解析。
 
 ## 公共 API

@@ -59,8 +59,12 @@ class SelfCheckBeans {
 
   @Bean
   SelfCheck sparkRooterPlanSelfCheck(
-      LlmClient llm, ToolRegistryClient registry, ToolDisplayNames names, ToolMetaRegistry meta) {
-    return new PlanSelfCheck(llm, registry, names, meta);
+      LlmClient llm,
+      ToolRegistryClient registry,
+      ToolDisplayNames names,
+      ToolMetaRegistry meta,
+      SchemaValidator validator) {
+    return new PlanSelfCheck(llm, registry, names, meta, validator);
   }
 
   @Bean

@@ -48,7 +48,7 @@ check "confirm reaches run.completed" 1 "$(node "$P" "$DEPLOY/confirm_events.log
 curl -s "localhost:4173/agent/runs/$RUNID" > "$DEPLOY/run_summary_done.json"
 check "run-summary state" COMPLETED "$(python3 -c "import json;print(json.load(open('$DEPLOY/run_summary_done.json'))['state'])")"
 check "backend.log has this run" 1 "$(grep -c "plan attached runId=$RUNID" "$DEPLOY/backend.log")"
-check "user text in log" 0 "$(grep -c '帮我把这个订单退款' "$DEPLOY/backend.log")"
+check "user text in log" 0 "$(grep -c '帮我把订单 10001 退款' "$DEPLOY/backend.log")"
 
 echo "--- 4. 预览页面 console.error（headless Chrome）"
 node "$ROOT/.harness/scripts/preview-console.mjs" "$DEPLOY" 2>&1 | tee "$DEPLOY/preview-console.log"; rc=${PIPESTATUS[0]}

@@ -5,6 +5,7 @@
  * 校验 .harness/contracts/ 真源：
  *   1. 每个 *.schema.json 是合法的 JSON Schema 2020-12（Ajv 编译通过）
  *   2. 每个 Schema 至少有一个 examples/{name}.example.json 或 examples/{name}.*.example.json
+ *   3. examples/invalid/{name}.*.invalid.json 每个都必须被对应 Schema 拒绝（防止 Schema 被放宽而门禁仍绿）
  *   3. 每个示例都能通过对应 Schema 校验
  *   4. Schema 有 $id / title / description
  *
@@ -89,6 +90,22 @@ for (const [f, schema] of schemas) {
     }
   }
 }
+
+// 反例：必须被拒绝
+const invalidDir = join(examplesDir, 'invalid');
+const invalidFiles = (await readdir(invalidDir).catch(() => [])).filter((f) => f.endsWith('.invalid.json'));
+for (const e of invalidFiles) {
+  const stem = e.split('.')[0];
+  const entry = [...schemas].find(([f]) => basename(f, '.schema.json') === stem);
+  if (!entry) {
+    fail(`invalid example ${e}: no schema named ${stem}`);
+    continue;
+  }
+  const data = JSON.parse(await readFile(join(invalidDir, e), 'utf-8'));
+  if (ajv.compile(entry[1])(data)) fail(`  invalid example ${e} was ACCEPTED by ${entry[0]} (schema too loose)`);
+  else ok(`  rejected: ${e}`);
+}
+if (invalidFiles.length === 0) fail('examples/invalid/ is empty: at least one negative example per breaking rule');
 
 console.log('');
 if (errors > 0) {

@@ -57,6 +57,8 @@
 
 ## 5a. 变更记录：refactor-spark-embedded-starter-20260909
 
+**破坏性变更、原地改 v1 不发新版本文件**：删 `pageContext` / `principal`、替换 `executionContext` 必填字段属破坏性变更；与 §4 的组件收敛同理，当时无任何外部消费方（前端与后端同仓同 change 改），`$id` 仍为 `/v1/`、`schemaVersion` 仍 `1.0`。首个外部消费方出现后再有破坏性变更必须发 `/v2/`。
+
 | 契约 | 变更 | 原因 |
 |---|---|---|
 | `intent-request` | 删 `pageContext`（含 `selectedEntity`） | 前端始终只发自然语言，实体 ID 在 `message` 内；上下文由后端会话记忆补位 |

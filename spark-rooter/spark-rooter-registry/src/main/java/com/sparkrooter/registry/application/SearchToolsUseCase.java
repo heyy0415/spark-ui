@@ -31,8 +31,8 @@ public class SearchToolsUseCase implements ToolSearchPort {
   }
 
   @Override
-  public ToolSearch.Response search(ToolSearch.Request req) {
-    return execute(req, null);
+  public ToolSearch.Response search(ToolSearch.Request req, String sessionId) {
+    return execute(req, sessionId);
   }
 
   @Override

@@ -14,14 +14,14 @@ Java 21 / Spring Boot 3.5 / Spring AI 1.1 / Maven 多模块。**形态是一个 
 
 | 模块 | 职责 | README |
 |---|---|---|
-| `spark-rooter-spi` | 注解 `@SparkTool / @SparkRisk / @SparkPrerequisite / @SparkParam / @SparkDefault`；端口 `ToolHandler`、`ScreenBuilder`、`ConfirmationRecheck`、`AuditSink`、`SessionIdResolver`、`ToolAccessPolicy`、`RunContextPropagator`、`ConversationMemory`、`OrderSnapshotProvider`、`SelfCheck`；预留 `ToolTransport` / `ToolProviderDiscovery`；零 Spring | — |
+| `spark-rooter-spi` | 注解 `@SparkTool / @SparkRisk / @SparkPrerequisite / @SparkParam / @SparkDefault`；端口 `ToolHandler`、`ScreenBuilder`、`ConfirmationRecheck`、`AuditSink`、`SessionIdResolver`、`ToolAccessPolicy`、`RunContextPropagator`、`ConversationMemory`、`SelfCheck`；预留 `ToolTransport` / `ToolProviderDiscovery`；零 Spring | — |
 | `spark-rooter-contracts` | 9 个契约的 record DTO + `SchemaValidator`（契约从 `.harness/contracts/` 构建期打进 jar） | — |
 | `spark-rooter-runtime` | 路由 → 抽取 → 记忆补位 → 规划 → 编排 → 令牌 → 屏 / 澄清屏 → SSE 事件 | [README](spark-rooter-runtime/README.md) |
 | `spark-rooter-registry` | 注册 / 发现 / 版本；无转发端点 | [README](spark-rooter-registry/README.md) |
 | `spark-rooter-gateway` | 校验 → 幂等 → 经 Spring 代理调用 → 输出校验 → 脱敏 → 审计 | [README](spark-rooter-gateway/README.md) |
 | `spark-rooter-web-mvc` | `/agent/runs` SSE 端点、`/internal/**`（可选）、异常映射；唯一依赖 starter-web 的平台模块 | — |
 | `spark-rooter-spring-boot-starter` | `AutoConfiguration.imports`、`spark.*` 属性、全部默认实现 `@ConditionalOnMissingBean`、`@SparkTool` 扫描 / Manifest 推导 / 代理调用适配、启动自检 | — |
-| `examples/demo-support` | 示例宿主的 mock 用户上下文 `DemoUserContext`（纯 JDK） | — |
+| `examples/demo-support` | 示例宿主的 mock 用户上下文 `DemoUserContext` + 示例领域间的 `OrderSnapshotProvider` 只读端口（纯 JDK；tenantId 等业务字段只在这里，内核不识别） | — |
 | `examples/domains/*` | 四个示例领域（order / product / aftersale / refund，12 个工具）`@SparkTool` 形态 + `ScreenBuilder` / `ConfirmationRecheck` + 种子数据 | 各目录 README |
 | `examples/host-demo` | **独立 Maven 工程**（parent `spring-boot-starter-parent`，不在根 modules）：引入 starter + 示例领域即可运行的验收物；含拦截器、传播器、方法级权限切面正反例 | [README](examples/host-demo/README.md) |
 

@@ -19,7 +19,7 @@ export type {
 /** Form 组件回传：只有 formData，不发请求（05-styling-spec）。 */
 export type FormValues = Record<string, string | number | boolean>;
 
-/** 组件回调：Form 值变化；Table 行内指令点击（只回调纯文本，core 不发请求、不解释文本）。 */
+/** 组件回调：Form 值变化；Table 行内指令 / Card.actions 点击（只回调纯文本，core 不发请求、不解释文本）。 */
 export interface ComponentHandlers {
   onChange?: (values: FormValues) => void;
   onIntent?: (intent: string) => void;

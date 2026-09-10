@@ -1,5 +1,6 @@
 package com.sparkrooter.runtime.infra.selfcheck;
 
+import com.sparkrooter.contracts.SchemaValidator;
 import com.sparkrooter.contracts.model.ToolSearch;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
@@ -86,13 +87,19 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
   private final ToolRegistryClient registry;
   private final ToolDisplayNames names;
   private final ToolMetaRegistry meta;
+  private final SchemaValidator validator;
 
   public PlanSelfCheck(
-      LlmClient llm, ToolRegistryClient registry, ToolDisplayNames names, ToolMetaRegistry meta) {
+      LlmClient llm,
+      ToolRegistryClient registry,
+      ToolDisplayNames names,
+      ToolMetaRegistry meta,
+      SchemaValidator validator) {
     this.llm = llm;
     this.registry = registry;
     this.names = names;
     this.meta = meta;
+    this.validator = validator;
   }
 
   @Override
@@ -153,7 +160,8 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
           refund,
           names,
           Map.of(),
-          meta);
+          meta,
+          validator);
       throw new IllegalStateException("validator accepted a toolId outside candidates");
     } catch (RunFailure expected) {
       log.info("selfcheck: invalid toolId rejected OK");
@@ -166,7 +174,8 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
           refund,
           names,
           Map.of("order", "10003"),
-          meta);
+          meta,
+          validator);
       throw new IllegalStateException("validator accepted confirmation step without prerequisites");
     } catch (RunFailure expected) {
       log.info("selfcheck: missing prerequisite rejected OK");
@@ -180,7 +189,8 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
           refund,
           names,
           Map.of("order", "10001"),
-          meta);
+          meta,
+          validator);
       throw new IllegalStateException(
           "validator accepted an entity arg that differs from recognized entity");
     } catch (RunFailure expected) {
@@ -196,7 +206,8 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
           candidates("order"),
           names,
           Map.of(),
-          meta);
+          meta,
+          validator);
       throw new IllegalStateException("validator accepted an enum value outside inputSchema");
     } catch (RunFailure expected) {
       log.info("selfcheck: schema-violating arg rejected OK");
@@ -204,6 +215,6 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
   }
 
   private List<ToolSearch.ToolCandidate> candidates(String domain) {
-    return registry.search(new ToolSearch.Request(domain, null, null)).tools();
+    return registry.search(new ToolSearch.Request(domain, null, null), null).tools();
   }
 }

@@ -1,5 +1,6 @@
 package com.sparkrooter.runtime.infra.llm;
 
+import com.sparkrooter.contracts.SchemaValidator;
 import com.sparkrooter.contracts.model.ToolSearch;
 import com.sparkrooter.runtime.application.ArgumentExtractor;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
@@ -22,11 +23,17 @@ public final class RuleBasedLlmClient implements LlmClient {
   private final ToolDisplayNames displayNames;
   private final ToolMetaRegistry meta;
   private final Clock clock;
+  private final SchemaValidator validator;
 
-  public RuleBasedLlmClient(ToolDisplayNames displayNames, ToolMetaRegistry meta, Clock clock) {
+  public RuleBasedLlmClient(
+      ToolDisplayNames displayNames,
+      ToolMetaRegistry meta,
+      Clock clock,
+      SchemaValidator validator) {
     this.displayNames = displayNames;
     this.meta = meta;
     this.clock = clock;
+    this.validator = validator;
   }
 
   @Override
@@ -65,7 +72,8 @@ public final class RuleBasedLlmClient implements LlmClient {
         req.candidates(),
         displayNames,
         req.entities(),
-        meta);
+        meta,
+        validator);
   }
 
   /**

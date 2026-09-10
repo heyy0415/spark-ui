@@ -81,7 +81,7 @@ spark-rooter/
 spi ↛ 任何 com.sparkrooter；contracts → spi
 runtime / registry / gateway → contracts, spi（三者之间只经对方 api 包接口 ToolSearchPort / ToolInvokePort）
 web-mvc → runtime, registry, gateway；starter → 全部平台模块
-examples/domains/* → spi, contracts, demo-support（不依赖任何平台模块；互不 import，跨领域读订单只经 spi OrderSnapshotProvider）
+examples/domains/* → spi, contracts, demo-support（不依赖任何平台模块；互不 import，跨领域读订单只经 demo-support 的 OrderSnapshotProvider）
 host-demo → starter + examples/domains/*（本地仓坐标）
 平台模块（spi / contracts / runtime / registry / gateway）pom 禁 spring-boot-starter-web / starter-validation
 平台模块（contracts / runtime / registry / gateway / web-mvc）源码禁 @Component / @Service / @Repository / @Configuration / @ComponentScan —— Bean 由 starter @Bean 装配，不依赖包扫描

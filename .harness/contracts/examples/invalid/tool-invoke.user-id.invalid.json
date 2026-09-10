@@ -1,0 +1,20 @@
+{
+  "request": {
+    "toolId": "refund.preview",
+    "toolVersion": "1.3.0",
+    "arguments": {},
+    "executionContext": {
+      "runId": "run_1",
+      "toolCallId": "tc_1",
+      "userId": "u",
+      "tenantId": "t",
+      "idempotencyKey": "k"
+    }
+  },
+  "response": {
+    "toolCallId": "tc_1",
+    "status": "succeeded",
+    "durationMs": 1,
+    "output": {}
+  }
+}

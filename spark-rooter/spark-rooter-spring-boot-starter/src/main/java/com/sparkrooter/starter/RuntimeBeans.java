@@ -86,8 +86,8 @@ class RuntimeBeans {
 
   @Bean
   @ConditionalOnMissingBean(RunRepository.class)
-  RunRepository sparkRooterRunRepository() {
-    return new InMemoryRunRepository();
+  RunRepository sparkRooterRunRepository(SparkRooterProperties props, Clock sparkRooterClock) {
+    return new InMemoryRunRepository(props.runtime().runTtl(), sparkRooterClock);
   }
 
   @Bean
@@ -151,10 +151,16 @@ class RuntimeBeans {
       ToolDisplayNames names,
       ToolMetaRegistry meta,
       Clock sparkRooterClock,
+      SchemaValidator validator,
       SparkRooterProperties props,
       Environment env) {
     return LlmFactory.llmClient(
-        chat, names, meta, sparkRooterClock, pick(props.llm().model(), env, "SPARK_LLM_MODEL"));
+        chat,
+        names,
+        meta,
+        sparkRooterClock,
+        validator,
+        pick(props.llm().model(), env, "SPARK_LLM_MODEL"));
   }
 
   @Bean

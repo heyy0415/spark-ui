@@ -30,7 +30,7 @@ if [ -n "${owner}" ]; then
   echo "e2e-backend needs exclusive port $PORT; stop that process or set SPARK_PORT, and rerun."
   exit 2
 fi
-(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar" --server.port="$PORT" > "$DEPLOY/backend.log" 2>&1 &)
+(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar" --server.port="$PORT" --spring.profiles.active=e2e > "$DEPLOY/backend.log" 2>&1 &)
 for i in $(seq 1 40); do sleep 1; grep -q "selfcheck: running" "$DEPLOY/backend.log" 2>/dev/null && break; grep -q "Application run failed" "$DEPLOY/backend.log" 2>/dev/null && break; done; sleep 2
 if grep -q "Application run failed" "$DEPLOY/backend.log"; then echo "BOOT FAILED"; grep -m1 -A2 "Application run failed" "$DEPLOY/backend.log"; exit 1; fi
 echo "boot: ready after ${i}s"
@@ -253,7 +253,8 @@ check "⑭ order.delete audit failed" 1 "$([ "$(grep -c "audit runId=$(runid_of 
 gwc order.list.search 1.1.0 '{"status":"COMPLETED","limit":50}' >/dev/null; check "⑭ 10010 still listed" 1 "$(json "sum(1 for i in d['output']['items'] if i['orderId']=='10010')" < /tmp/gwc.json)"
 
 echo "--- ⑭' 反面路径：Controller 级拦截器对 spark 无效（教学断言）"
-check "⑭' guest GET /demo/whoami" 403 "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/demo/whoami" -H 'X-Demo-User: guest')"
+check "⑭' guest GET /demo/orders (same capability via Controller)" 403 "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/demo/orders" -H 'X-Demo-User: guest')"
+check "⑭' admin GET /demo/orders" 200 "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/demo/orders")"
 curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${GUEST[@]}" -d "{\"conversationId\":\"c14g\",\"message\":\"看看我的订单\",$CAP}" > "$DEPLOY/c14g.log"
 check "⑭' guest via spark bypasses interceptor" "run.started tool.selected tool.started tool.completed ui.replace run.completed" "$(events "$DEPLOY/c14g.log")"
 
@@ -317,20 +318,25 @@ PICK=$(data "$DEPLOY/c22.log" ui.replace | json "[c for c in d['ui']['components
 run_msg c22 "$PICK"
 check "㉒ pick → confirmation" 1 "$(events "$DEPLOY/c22.log" | grep -c 'confirmation.required$')"
 check "㉒ pick → types" "['Card', 'Form']" "$(types c22)"
+echo "--- ㉒' 澄清屏 → 「第二个」序数指代 → 确认屏标题含 rows[1].id（评审 M-4）"
+run_msg c22b "申请售后"
+ROW2B=$(data "$DEPLOY/c22b.log" ui.replace | json "[c for c in d['ui']['components'] if c['id']=='clarify'][0]['props']['rows'][1]['id']")
+run_msg c22b "第二个"
+check "㉒' ordinal → confirmation" 1 "$(events "$DEPLOY/c22b.log" | grep -c 'confirmation.required$')"
+check "㉒' card title has rows[1].id" "订单 $ROW2B" "$(comp c22b order "['title']")"
+check "㉒' source=memory(ordinal) logged" 1 "$([ "$(grep -c "runId=$(runid_of c22b) .*source=memory(ordinal)" "$DEPLOY/backend.log")" -ge 1 ] && echo 1 || echo 0)"
 
-echo "--- ㉔ 令牌 sessionId 不一致：用另一 conversationId 提交确认 → CONFIRMATION_REJECTED"
+echo "--- ㉔ 令牌 sessionId 不一致：A（user_001）的确认令牌用 B（X-Demo-User: userb）的请求提交 → CONFIRMATION_REJECTED"
 run_msg c24 "订单 10011 退款"
 check "㉔ confirmation shown" 1 "$(events "$DEPLOY/c24.log" | grep -c 'confirmation.required$')"
-# demo SessionIdResolver：sessionId = conversationId；用他人 runId + 自己的会话（另一 conversation 走不到 Run 的 sessionId）→ 令牌 / 会话不一致
-curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$(runid_of c24)/actions/$(submit_id c24)" -H 'Content-Type: application/json' -d "{\"confirmationToken\":\"$(token_of c24)\",\"formData\":{\"reason\":\"DAMAGED\"}}" > "$DEPLOY/c24b.log"
-check "㉔ same-session baseline accepted (control)" run.completed "$(events "$DEPLOY/c24b.log" | awk '{print $NF}')"
-run_msg c24s "订单 10006 退款"
-TOK=$(token_of c24s); RID=$(runid_of c24s); AID=$(submit_id c24s)
-# 直接改内存里 Run 的 sessionId 做不到；改用 GET /agent/runs/{id} 不可见性 + 令牌重放做 sessionId 绑定的可观测断言：
-# 令牌被另一 Run 的 actionId 消费必须拒绝（runId/actionId 绑定），本 Run 再用同令牌必须拒绝（一次性）
-curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$(runid_of c24)/actions/$AID" -H 'Content-Type: application/json' -d "{\"confirmationToken\":\"$TOK\",\"formData\":{\"reason\":\"DAMAGED\"}}" > "$DEPLOY/c24c.log"
-check "㉔ token on another run → CONFIRMATION_REJECTED" CONFIRMATION_REJECTED "$(data "$DEPLOY/c24c.log" run.failed | json "d['code']")"
-check "㉔ selfcheck covers session-mismatch" 1 "$(grep -c "session-mismatch rejected OK" "$DEPLOY/backend.log")"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$(runid_of c24)/actions/$(submit_id c24)" -H 'Content-Type: application/json' -H 'X-Demo-User: userb' -d "{\"confirmationToken\":\"$(token_of c24)\",\"formData\":{\"reason\":\"DAMAGED\"}}" > "$DEPLOY/c24b.log"
+check "㉔ other user's session → CONFIRMATION_REJECTED" CONFIRMATION_REJECTED "$(data "$DEPLOY/c24b.log" run.failed | json "d['code']")"
+check "㉔ session mismatch logged" 1 "$([ "$(grep -c "runId=$(runid_of c24) .*session mismatch" "$DEPLOY/backend.log")" -ge 1 ] && echo 1 || echo 0)"
+check "㉔ B cannot read A's run" 404 "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/agent/runs/$(runid_of c24)" -H 'X-Demo-User: userb')"
+check "㉔ refund.create audit in run" 0 "$(grep -c "audit runId=$(runid_of c24) .*toolId=refund.create" "$DEPLOY/backend.log")"
+# 记忆按 (sessionId, conversationId) 隔离：B 用 A 的 conversationId 说「申请售后」拿不到 A 的订单号 → 澄清屏而非补位
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" -H 'Content-Type: application/json' -H 'X-Demo-User: userb' -d "{\"conversationId\":\"c21\",\"message\":\"申请售后\",$CAP}" > "$DEPLOY/c24m.log"
+check "㉔ memory isolated per session (B gets clarification, not A's order)" "['Table']" "$(types c24m)"
 
 echo "--- ㉕ 商品详情 Card 含 actions[0].intent == 有什么商品"
 check "㉕ card action intent" 有什么商品 "$(comp c10 product "['actions'][0]['intent']")"
@@ -352,7 +358,10 @@ check "events" "run.started message.delta run.completed" "$(events "$DEPLOY/noca
 echo "--- 其他"
 check "unknown runId → 404" 404 "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/agent/runs/run_nope/actions/x" "${HDR[@]}" -d '{"confirmationToken":"ct_xxxxxxxxxxxxxxxx","formData":{}}')"
 check "§6.2.14 audit fields" 9 "$(grep -m1 'audit runId=' "$DEPLOY/backend.log" | grep -o '[a-zA-Z]*=' | wc -l | tr -d ' ')"
-check "§6.2.15 user text in log" 0 "$(grep -c '帮我把这个订单退款' "$DEPLOY/backend.log")"
+# 用户原文不得进日志：对本轮实际发送过的多条消息逐条 grep（评审 M-3：旧断言的短语已无人发送，恒 0）
+for phrase in '帮我把订单 10001 退款' '最近 5 单已发货的订单' '删除订单 10010' '查看订单 10002 的物流' '有什么商品'; do
+  check "§6.2.15 user text in log: $phrase" 0 "$(grep -c -- "$phrase" "$DEPLOY/backend.log")"
+done
 check "ERROR lines" 0 "$(grep -c ' ERROR ' "$DEPLOY/backend.log")"
 # 冻结产物红线：变更目录内（含报告 / 评审）不得出现 LLM 网关主机名或密钥字面量（只允许写环境变量名）
 if [ -n "${SPARK_LLM_BASE_URL:-}" ]; then

@@ -44,6 +44,14 @@ public final class ArgumentExtractor {
   private static final Pattern LAST_ONE = Pattern.compile("最后一(个|单|条|件)");
   private static final String CN_DIGITS = "一二三四五六七八九十";
 
+  /** 消息是否含序数指代（供路由：纯指代消息没有领域词，沿用记忆领域）。 */
+  public static boolean isOrdinalReference(String message) {
+    return message != null
+        && (LAST_ONE.matcher(message).find()
+            || ORDINAL_DIGIT.matcher(message).find()
+            || ORDINAL_CN.matcher(message).find());
+  }
+
   /** 序数指代 → 最近列表 rowIds 中的 ID（1 起；「最后一个」= 末项）；未命中或越界 empty。 */
   public static java.util.Optional<String> ordinalReference(String message, List<String> rowIds) {
     if (message == null || rowIds == null || rowIds.isEmpty()) {

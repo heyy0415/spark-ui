@@ -14,8 +14,8 @@ public class InProcessToolRegistryClient implements ToolRegistryClient {
   }
 
   @Override
-  public ToolSearch.Response search(ToolSearch.Request request) {
-    return registry.search(request);
+  public ToolSearch.Response search(ToolSearch.Request request, String sessionId) {
+    return registry.search(request, sessionId);
   }
 
   @Override

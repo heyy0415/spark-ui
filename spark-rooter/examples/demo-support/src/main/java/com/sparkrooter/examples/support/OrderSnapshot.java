@@ -1,4 +1,4 @@
-package com.sparkrooter.spi;
+package com.sparkrooter.examples.support;
 
 import java.math.BigDecimal;
 import java.time.Instant;

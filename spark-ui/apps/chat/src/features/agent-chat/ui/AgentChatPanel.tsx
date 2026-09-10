@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import type { UiAction } from '@spark-ui/core';
 import { ActionBar, COMPONENT_TYPES, SchemaRenderer } from '@spark-ui/core';
 import { HttpError } from '@shared/api';
+import { env } from '@shared/config';
 import { Button } from '@shared/ui';
 import { FormIncompleteError, useAgentRun } from '../api/useAgentRun';
 import styles from './AgentChatPanel.module.css';
@@ -27,9 +28,13 @@ const EXAMPLE_CHIPS = [
 
 export function AgentChatPanel({ conversationId, baseUrl, fetch: hostFetch }: AgentChatPanelProps) {
   const [input, setInput] = useState('');
-  // 默认同源 + window.fetch；注入的 fetch 需绑定到 globalThis，否则 Illegal invocation
+  // 缺省 baseUrl 回落到 VITE_API_BASE_URL（同源为 ''），不能写成 ''：否则会短路 env（评审 M-1）；
+  // 注入的 fetch 需绑定到 globalThis，否则 Illegal invocation
   const transport = useMemo(
-    () => ({ baseUrl: baseUrl ?? '', fetch: hostFetch ?? globalThis.fetch.bind(globalThis) }),
+    () => ({
+      baseUrl: baseUrl ?? env.VITE_API_BASE_URL,
+      fetch: hostFetch ?? globalThis.fetch.bind(globalThis),
+    }),
     [baseUrl, hostFetch],
   );
   const { view, start, submitAction, onFormChange, busy } = useAgentRun({
@@ -85,7 +90,7 @@ export function AgentChatPanel({ conversationId, baseUrl, fetch: hostFetch }: Ag
           className={styles['input']}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="例如：帮我把这个订单退款"
+          placeholder="例如：帮我把订单 10001 退款"
           disabled={busy}
           maxLength={2000}
         />

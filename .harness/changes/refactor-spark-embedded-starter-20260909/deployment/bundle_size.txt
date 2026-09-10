@@ -1,17 +1,17 @@
 # bundle_size (bytes  path)
 ## apps/chat
-53042 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/Form-DNA6-idR-CpdqJDZo.js
+53042 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/Form-DNA6-idR-BQDIKpZv.js
 62564 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/tooltip-DhQ_33l0.js
-74560 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/Card-BKV1Y7JD-CsLaXOqn.js
-78387 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/Input-BnnPQh_T.js
-107457 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/Form-1nCkFUUu-S3dAVDA-.js
-226773 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/Table-CzYVpGid-DQefmsEg.js
+74560 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/Card-BKV1Y7JD-D8EjoWQe.js
+78387 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/Input-Cv61UKY-.js
+107457 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/Form-1nCkFUUu-DQO5I6yQ.js
+226773 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/Table-CzYVpGid-Dof07VbS.js
 252084 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/useSize-D67bIHRO.js
-262520 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/index-BBlVy8Uj.js
+262613 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/index-BcluO_2w.js
 ## packages/core
 1244 /Users/fangtao/strato_ui/spark-ui/packages/core/dist/chunks/Card-BKV1Y7JD.js
 1252 /Users/fangtao/strato_ui/spark-ui/packages/core/dist/chunks/Table-Ctk43Pn-.js
 1293 /Users/fangtao/strato_ui/spark-ui/packages/core/dist/chunks/Card-DlujmgYg.js
 9532 /Users/fangtao/strato_ui/spark-ui/packages/core/dist/index.js
 ## spark-rooter
-38525721 /Users/fangtao/strato_ui/spark-rooter/examples/host-demo/target/host-demo.jar
+38529648 /Users/fangtao/strato_ui/spark-rooter/examples/host-demo/target/host-demo.jar

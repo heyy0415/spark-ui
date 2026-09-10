@@ -1,0 +1,11 @@
+{
+  "conversationId": "c",
+  "message": "退款",
+  "clientCapabilities": {
+    "uiSchemaVersion": "1.0",
+    "components": [
+      "Card",
+      "Card"
+    ]
+  }
+}

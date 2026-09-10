@@ -1,1 +1,1 @@
-{"toolCallId":"tc_whoami","status":"succeeded","durationMs":1,"output":{"viewer":"guest","tenantId":"tenant_001"}}
+{"toolCallId":"tc_whoami","status":"succeeded","durationMs":0,"output":{"viewer":"guest","tenantId":"tenant_001"}}

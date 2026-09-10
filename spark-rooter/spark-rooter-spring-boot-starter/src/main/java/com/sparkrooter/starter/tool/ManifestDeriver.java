@@ -39,6 +39,9 @@ public final class ManifestDeriver {
 
   static final String MONEY_PATTERN = "^\\d+(\\.\\d{1,2})?$";
 
+  /** starter 自检工具所在领域；该领域的工具注册为 draft。 */
+  public static final String SELFCHECK_DOMAIN = "spark";
+
   private final ObjectMapper mapper;
   private final SchemaValidator validator;
   private final String ownerTeam;
@@ -88,7 +91,8 @@ public final class ManifestDeriver {
     exec.put("maxRetries", risk == null ? 1 : risk.maxRetries());
     exec.put("idempotency", risk == null ? "none" : lower(risk.idempotency()));
     m.putObject("owner").put("team", ownerTeam);
-    m.put("status", "active");
+    // 自检专用工具以 draft 注册：Gateway 可直调，但 Registry 不可发现、不进 domains()（评审 S-5：不污染候选与分类枚举）
+    m.put("status", tool.domain().equals(SELFCHECK_DOMAIN) ? "draft" : "active");
     validator.assertValid("tool-manifest", m);
 
     ToolMetaRegistry.ToolMeta meta =

@@ -20,13 +20,17 @@ interface RequestOptions<T> {
   schema: ZodType<T>;
   signal?: AbortSignal;
   headers?: Record<string, string>;
+  /** 宿主注入的 fetch（带登录态）；缺省 window.fetch。 */
+  fetch?: typeof fetch;
+  /** 覆盖 env.VITE_API_BASE_URL。 */
+  baseUrl?: string;
 }
 
 /**
  * 唯一的 HTTP 出口。所有响应都必须带 Zod schema 校验后才能进入应用。
  */
 export async function request<T>(path: string, options: RequestOptions<T>): Promise<T> {
-  const { method = 'GET', body, schema, signal, headers = {} } = options;
+  const { method = 'GET', body, schema, signal, headers = {}, baseUrl, fetch: doFetch } = options;
 
   const init: RequestInit = {
     method,
@@ -40,7 +44,7 @@ export async function request<T>(path: string, options: RequestOptions<T>): Prom
     init.signal = signal;
   }
 
-  const res = await fetch(`${env.VITE_API_BASE_URL}${path}`, init);
+  const res = await (doFetch ?? fetch)(`${baseUrl ?? env.VITE_API_BASE_URL}${path}`, init);
 
   const text = await res.text();
   const json: unknown = text.length > 0 ? JSON.parse(text) : null;

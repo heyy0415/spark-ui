@@ -1,18 +1,18 @@
 event:run.started
-data:{"runId":"run_1b1d77b496e24983","conversationId":"c18","at":"2026-09-10T07:29:32.048371Z"}
+data:{"runId":"run_6ad98cfb0715480c","conversationId":"c18","at":"2026-09-10T08:12:25.198875Z"}
 
 event:tool.selected
-data:{"runId":"run_1b1d77b496e24983","toolCallId":"tc_000034","toolId":"order.list.search","version":"1.1.0","displayName":"搜索订单"}
+data:{"runId":"run_6ad98cfb0715480c","toolCallId":"tc_000034","toolId":"order.list.search","version":"1.1.0","displayName":"搜索订单"}
 
 event:tool.started
-data:{"runId":"run_1b1d77b496e24983","toolCallId":"tc_000034","at":"2026-09-10T07:29:32.049206Z"}
+data:{"runId":"run_6ad98cfb0715480c","toolCallId":"tc_000034","at":"2026-09-10T08:12:25.199580Z"}
 
 event:tool.completed
-data:{"runId":"run_1b1d77b496e24983","toolCallId":"tc_000034","status":"succeeded","durationMs":0,"summary":"找到 7 个订单"}
+data:{"runId":"run_6ad98cfb0715480c","toolCallId":"tc_000034","status":"succeeded","durationMs":0,"summary":"找到 7 个订单"}
 
 event:ui.replace
-data:{"runId":"run_1b1d77b496e24983","ui":{"schemaVersion":"1.0","screenId":"order-list","title":"我的订单","components":[{"id":"orders","type":"Table","props":{"columns":[{"key":"orderId","title":"订单号"},{"key":"productName","title":"商品"},{"key":"quantity","title":"件数"},{"key":"amount","title":"金额"},{"key":"status","title":"状态"},{"key":"createdAt","title":"下单时间"}],"rows":[{"id":"10030","cells":{"orderId":"10030","productName":"无线耳机 Pro","quantity":"1","amount":"899.00 CNY","status":"SHIPPED","createdAt":"2026-09-08 16:10"},"actions":[{"label":"查看物流","intent":"查看订单 10030 的物流"},{"label":"申请售后","intent":"订单 10030 申请售后"}]},{"id":"10028","cells":{"orderId":"10028","productName":"精品咖啡豆 500g 等 2 件","quantity":"4","amount":"594.00 CNY","status":"SHIPPED","createdAt":"2026-09-06 03:56"},"actions":[{"label":"查看物流","intent":"查看订单 10028 的物流"},{"label":"申请售后","intent":"订单 10028 申请售后"}]},{"id":"10025","cells":{"orderId":"10025","productName":"巧克力礼盒","quantity":"2","amount":"198.00 CNY","status":"SHIPPED","createdAt":"2026-09-02 07:29"},"actions":[{"label":"查看物流","intent":"查看订单 10025 的物流"},{"label":"申请售后","intent":"订单 10025 申请售后"}]},{"id":"10024","cells":{"orderId":"10024","productName":"北欧风落地灯","quantity":"2","amount":"918.00 CNY","status":"SHIPPED","createdAt":"2026-09-01 00:05"},"actions":[{"label":"查看物流","intent":"查看订单 10024 的物流"},{"label":"申请售后","intent":"订单 10024 申请售后"}]},{"id":"10017","cells":{"orderId":"10017","productName":"记忆棉枕头 等 2 件","quantity":"3","amount":"5257.00 CNY","status":"SHIPPED","createdAt":"2026-08-23 04:26"},"actions":[{"label":"查看物流","intent":"查看订单 10017 的物流"},{"label":"申请售后","intent":"订单 10017 申请售后"}]}],"total":7,"emptyText":"共 7 单，仅展示最近 5 单"}}],"actions":[]}}
+data:{"runId":"run_6ad98cfb0715480c","ui":{"schemaVersion":"1.0","screenId":"order-list","title":"我的订单","components":[{"id":"orders","type":"Table","props":{"columns":[{"key":"orderId","title":"订单号"},{"key":"productName","title":"商品"},{"key":"quantity","title":"件数"},{"key":"amount","title":"金额"},{"key":"status","title":"状态"},{"key":"createdAt","title":"下单时间"}],"rows":[{"id":"10030","cells":{"orderId":"10030","productName":"无线耳机 Pro","quantity":"1","amount":"899.00 CNY","status":"SHIPPED","createdAt":"2026-09-08 16:10"},"actions":[{"label":"查看物流","intent":"查看订单 10030 的物流"},{"label":"申请售后","intent":"订单 10030 申请售后"}]},{"id":"10028","cells":{"orderId":"10028","productName":"精品咖啡豆 500g 等 2 件","quantity":"4","amount":"594.00 CNY","status":"SHIPPED","createdAt":"2026-09-06 03:56"},"actions":[{"label":"查看物流","intent":"查看订单 10028 的物流"},{"label":"申请售后","intent":"订单 10028 申请售后"}]},{"id":"10025","cells":{"orderId":"10025","productName":"巧克力礼盒","quantity":"2","amount":"198.00 CNY","status":"SHIPPED","createdAt":"2026-09-02 07:29"},"actions":[{"label":"查看物流","intent":"查看订单 10025 的物流"},{"label":"申请售后","intent":"订单 10025 申请售后"}]},{"id":"10024","cells":{"orderId":"10024","productName":"北欧风落地灯","quantity":"2","amount":"918.00 CNY","status":"SHIPPED","createdAt":"2026-09-01 00:05"},"actions":[{"label":"查看物流","intent":"查看订单 10024 的物流"},{"label":"申请售后","intent":"订单 10024 申请售后"}]},{"id":"10017","cells":{"orderId":"10017","productName":"记忆棉枕头 等 2 件","quantity":"3","amount":"5257.00 CNY","status":"SHIPPED","createdAt":"2026-08-23 04:26"},"actions":[{"label":"查看物流","intent":"查看订单 10017 的物流"},{"label":"申请售后","intent":"订单 10017 申请售后"}]}],"total":7,"emptyText":"共 7 单，仅展示最近 5 单"}}],"actions":[]}}
 
 event:run.completed
-data:{"runId":"run_1b1d77b496e24983","at":"2026-09-10T07:29:32.050399Z"}
+data:{"runId":"run_6ad98cfb0715480c","at":"2026-09-10T08:12:25.200786Z"}
 

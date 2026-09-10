@@ -1,0 +1,12 @@
+{
+  "request": {
+    "domain": "refund",
+    "principal": {
+      "userId": "u",
+      "tenantId": "t"
+    }
+  },
+  "response": {
+    "tools": []
+  }
+}

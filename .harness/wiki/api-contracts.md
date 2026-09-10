@@ -37,7 +37,7 @@
 | aftersale-service | `aftersale.list.get`、`aftersale.create` | `AftersaleScreens`（Card + Form / Result）、`AftersaleRecheck` |
 | refund-service | `refund.eligibility.check`、`refund.preview`、`refund.create`、`refund.status.get` | `RefundScreens`（Card + Card + Form / Result）、`RefundRecheck` |
 
-领域工具是 `@Service` 上的 `@SparkTool` 方法（record In / Out，`@SparkParam` 决定 inputSchema），starter 启动时扫描推导 Manifest 并注册；Gateway 经 Spring 代理反射调用（宿主方法级切面生效）。屏与重校验由 runtime 的 `ScreenRegistry` / `RecheckRegistry` 按 toolId 查表。领域之间不 import（`check-module-deps`），跨领域读订单只经 spi `OrderSnapshotProvider`。示例宿主 `examples/host-demo` 另有 `demo.whoami`（回显宿主用户，验证上下文传播）。`/internal/**` 端点默认不装配（`spark.web.internal-endpoints=true` 打开）。
+领域工具是 `@Service` 上的 `@SparkTool` 方法（record In / Out，`@SparkParam` 决定 inputSchema），starter 启动时扫描推导 Manifest 并注册；Gateway 经 Spring 代理反射调用（宿主方法级切面生效）。屏与重校验由 runtime 的 `ScreenRegistry` / `RecheckRegistry` 按 toolId 查表。领域之间不 import（`check-module-deps`），跨领域读订单只经 demo-support 的 `OrderSnapshotProvider`。示例宿主 `examples/host-demo` 另有 `demo.whoami`（回显宿主用户，验证上下文传播）。`/internal/**` 端点默认不装配（`spark.web.internal-endpoints=true` 打开）。
 
 ### UI Schema 组件白名单（5，官方组件映射）
 

@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
  * record 组件推导，并按 tool-manifest 契约校验。
  *
  * <p>调用约束（安全关键）：spark-rooter 经 Spring 代理反射调用该方法，宿主的方法级切面（@PreAuthorize / @Aspect）照常触发； Controller
- * 级拦截器对它无效。方法与所在类不得为 final、方法必须 public、不得声明在 @Configuration 类上，否则启动失败。
+ * 级拦截器对它无效。方法与所在类不得为 final、方法必须 public、不得声明在 {@code Configuration} 类上，否则启动失败。
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

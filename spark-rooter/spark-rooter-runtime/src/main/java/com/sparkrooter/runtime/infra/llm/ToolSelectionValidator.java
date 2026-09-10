@@ -1,5 +1,6 @@
 package com.sparkrooter.runtime.infra.llm;
 
+import com.sparkrooter.contracts.SchemaValidator;
 import com.sparkrooter.contracts.model.ToolManifest;
 import com.sparkrooter.contracts.model.ToolSearch;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
@@ -63,15 +64,13 @@ public final class ToolSelectionValidator {
             });
   }
 
-  private static final com.networknt.schema.JsonSchemaFactory SCHEMA_FACTORY =
-      com.networknt.schema.JsonSchemaFactory.getInstance(
-          com.networknt.schema.SpecVersion.VersionFlag.V202012);
-  private static final com.fasterxml.jackson.databind.ObjectMapper MAPPER =
-      new com.fasterxml.jackson.databind.ObjectMapper();
-
   /** 单参数值校验：按 inputSchema.properties[k] 校验（string 直接校；integer / boolean 先转，转不了即不合规）。 */
   static void assertValueMatches(
-      com.fasterxml.jackson.databind.JsonNode propSchema, String key, String value, String toolId) {
+      com.fasterxml.jackson.databind.JsonNode propSchema,
+      String key,
+      String value,
+      String toolId,
+      SchemaValidator validator) {
     if (propSchema == null || propSchema.isMissingNode()) {
       return;
     }
@@ -80,18 +79,18 @@ public final class ToolSelectionValidator {
     try {
       typed =
           switch (type) {
-            case "integer" -> MAPPER.getNodeFactory().numberNode(Long.parseLong(value));
-            case "number" -> MAPPER.getNodeFactory().numberNode(Double.parseDouble(value));
-            case "boolean" -> MAPPER.getNodeFactory().booleanNode(Boolean.parseBoolean(value));
-            default -> MAPPER.getNodeFactory().textNode(value);
+            case "integer" -> validator.mapper().getNodeFactory().numberNode(Long.parseLong(value));
+            case "number" ->
+                validator.mapper().getNodeFactory().numberNode(Double.parseDouble(value));
+            case "boolean" ->
+                validator.mapper().getNodeFactory().booleanNode(Boolean.parseBoolean(value));
+            default -> validator.mapper().getNodeFactory().textNode(value);
           };
     } catch (NumberFormatException e) {
       throw new RunFailure(
           "TOOL_SELECTION_INVALID", "arg " + key + " of " + toolId + " is not a " + type);
     }
-    var config =
-        com.networknt.schema.SchemaValidatorsConfig.builder().formatAssertionsEnabled(true).build();
-    var errors = SCHEMA_FACTORY.getSchema(propSchema, config).validate(typed);
+    var errors = validator.validateWithInlineSchema(propSchema, typed);
     if (!errors.isEmpty()) {
       throw new RunFailure(
           "TOOL_SELECTION_INVALID",
@@ -111,7 +110,8 @@ public final class ToolSelectionValidator {
       List<ToolSearch.ToolCandidate> candidates,
       ToolDisplayNames displayNames,
       Map<String, String> entities,
-      ToolMetaRegistry meta) {
+      ToolMetaRegistry meta,
+      SchemaValidator validator) {
     if (draft == null || draft.steps() == null || draft.steps().isEmpty()) {
       throw new RunFailure("TOOL_SELECTION_INVALID", "planner returned no steps");
     }
@@ -134,7 +134,7 @@ public final class ToolSelectionValidator {
         }
         // 值过该参数的 JSON Schema（enum / min / max / format / pattern）；Step 值是字符串，integer / boolean
         // 先按类型转
-        assertValueMatches(props.path(k), k, args.get(k), d.toolId());
+        assertValueMatches(props.path(k), k, args.get(k), d.toolId(), validator);
         String type = meta.entityTypeOf(k);
         if (type != null && !args.get(k).equals(entities.get(type))) {
           throw new RunFailure(

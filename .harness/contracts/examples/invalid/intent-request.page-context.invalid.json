@@ -1,0 +1,14 @@
+{
+  "conversationId": "c",
+  "message": "退款",
+  "pageContext": {
+    "page": "x"
+  },
+  "clientCapabilities": {
+    "uiSchemaVersion": "1.0",
+    "components": [
+      "Form",
+      "Card"
+    ]
+  }
+}

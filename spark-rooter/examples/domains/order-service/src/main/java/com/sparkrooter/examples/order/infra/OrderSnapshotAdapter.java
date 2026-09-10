@@ -2,8 +2,8 @@ package com.sparkrooter.examples.order.infra;
 
 import com.sparkrooter.examples.order.domain.Order;
 import com.sparkrooter.examples.order.domain.OrderRepository;
-import com.sparkrooter.spi.OrderSnapshot;
-import com.sparkrooter.spi.OrderSnapshotProvider;
+import com.sparkrooter.examples.support.OrderSnapshot;
+import com.sparkrooter.examples.support.OrderSnapshotProvider;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 

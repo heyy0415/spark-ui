@@ -59,6 +59,10 @@ public final class ToolMetaRegistry {
   }
 
   private final Map<String, ToolMeta> byId = new ConcurrentHashMap<>();
+
+  /** 参数名 → 实体类型（小写），register 时增量维护；同名不同类型 → 启动失败。 */
+  private final Map<String, String> entityArgs = new ConcurrentHashMap<>();
+
   private final Map<String, List<String>> defaultPrerequisites;
   private final Map<String, String> defaultEntityArgs;
 
@@ -76,6 +80,25 @@ public final class ToolMetaRegistry {
   public void register(ToolMeta meta) {
     if (byId.putIfAbsent(meta.toolId(), meta) != null) {
       throw new IllegalStateException("duplicate @SparkTool id: " + meta.toolId());
+    }
+    for (ParamMeta p : meta.params().values()) {
+      if (p.entity() == EntityType.NONE) {
+        continue;
+      }
+      String type = typeName(p.entity());
+      String prev = entityArgs.putIfAbsent(p.name(), type);
+      if (prev != null && !prev.equals(type)) {
+        throw new IllegalStateException(
+            "@SparkParam.entity conflict for parameter '"
+                + p.name()
+                + "': "
+                + prev
+                + " vs "
+                + type
+                + " ("
+                + meta.toolId()
+                + "); same parameter name must map to one entity type");
+      }
     }
   }
 
@@ -96,16 +119,10 @@ public final class ToolMetaRegistry {
     return defaultPrerequisites.getOrDefault(toolId, List.of());
   }
 
-  /** 参数名 → 实体类型（小写）；全部已注册工具的 @SparkParam.entity 与内核默认表合并（同名参数语义一致是约定）。 */
+  /** 参数名 → 实体类型（小写）：内核默认表 + 注册时增量维护的注解声明（同名冲突已在 register 拒绝）。 */
   public Map<String, String> entityArgs() {
     Map<String, String> merged = new LinkedHashMap<>(defaultEntityArgs);
-    for (ToolMeta m : byId.values()) {
-      for (ParamMeta p : m.params().values()) {
-        if (p.entity() != EntityType.NONE) {
-          merged.put(p.name(), typeName(p.entity()));
-        }
-      }
-    }
+    merged.putAll(entityArgs);
     return merged;
   }
 

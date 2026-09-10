@@ -4,7 +4,8 @@
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/fangtao/strato_ui"],
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
+      "_note": "仓库根（相对当前工作目录），不要写机器绝对路径",
       "purpose": "受限文件读写沙箱（仓库根）"
     },
     "fetch": {
