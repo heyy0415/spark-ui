@@ -22,12 +22,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +51,7 @@ public class InvokeToolUseCase implements ToolInvokePort {
   private final IdempotencyStore idempotency;
   private final AuditSink audit;
   private final SchemaValidator validator;
-  private final Map<String, ToolHandler> handlers;
+  private final Map<String, ToolHandler> handlers = new ConcurrentHashMap<>();
   private final ExecutorService executor;
 
   /** pipeline 的结果：response + 是否为重放 / 等待得到（审计口径用，契约 status 不变）。 */
@@ -73,13 +73,22 @@ public class InvokeToolUseCase implements ToolInvokePort {
     this.idempotency = idempotency;
     this.audit = audit;
     this.validator = validator;
-    this.handlers =
-        handlerBeans.stream()
-            .collect(
-                Collectors.toUnmodifiableMap(
-                    h -> h.toolId() + "@" + h.version(), Function.identity()));
+    for (ToolHandler h : handlerBeans) {
+      String key = h.toolId() + "@" + h.version();
+      if (handlers.putIfAbsent(key, h) != null) {
+        throw new IllegalStateException("duplicate tool handler for " + key);
+      }
+    }
     this.executor = toolExecutor;
     log.info("gateway handlers registered: {}", handlers.keySet());
+  }
+
+  /** 注册一个工具执行入口（构造期的 ToolHandler Bean 与启动期 @SparkTool 扫描出的适配器共用）；同 toolId@version 二次注册 → 启动失败。 */
+  public void registerHandler(ToolHandler handler) {
+    String key = handler.toolId() + "@" + handler.version();
+    if (handlers.putIfAbsent(key, handler) != null) {
+      throw new IllegalStateException("duplicate tool handler for " + key);
+    }
   }
 
   /**

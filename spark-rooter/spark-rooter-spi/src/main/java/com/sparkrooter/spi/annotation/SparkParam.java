@@ -41,6 +41,15 @@ public @interface SparkParam {
 
   ParamFormat format() default ParamFormat.NONE;
 
+  /** 显式 JSON Schema pattern（覆盖 format 推导出的 pattern）；空表示无。 */
+  String pattern() default "";
+
+  /** 数组组件的最小长度；-1 表示不限。 */
+  int minItems() default -1;
+
+  /** JSON Schema const（字符串形态，按组件类型转换，如布尔 "true"）；空表示无。 */
+  String constant() default "";
+
   /** 标记为实体 ID 参数（订单号 / 商品编号）：值只能来自用户原话或会话记忆，规划器不得编造。 */
   EntityType entity() default EntityType.NONE;
 }

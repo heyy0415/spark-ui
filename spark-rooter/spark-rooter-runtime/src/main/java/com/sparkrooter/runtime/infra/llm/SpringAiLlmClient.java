@@ -1,6 +1,7 @@
 package com.sparkrooter.runtime.infra.llm;
 
 import com.sparkrooter.runtime.application.ToolDisplayNames;
+import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.runtime.application.port.LlmClient;
 import com.sparkrooter.runtime.domain.Plan;
 import com.sparkrooter.runtime.domain.RunFailure;
@@ -22,16 +23,21 @@ public final class SpringAiLlmClient implements LlmClient {
   private final String model;
   private final ToolDisplayNames displayNames;
 
-  public SpringAiLlmClient(ChatClient chat, String model, ToolDisplayNames displayNames) {
+  private final ToolMetaRegistry meta;
+
+  public SpringAiLlmClient(
+      ChatClient chat, String model, ToolDisplayNames displayNames, ToolMetaRegistry meta) {
     this.chat = chat;
     this.model = model;
     this.displayNames = displayNames;
+    this.meta = meta;
   }
 
   @Override
   public Plan plan(PlanRequest req) {
     // 与规则模式一致的确定性前置：动词命中的目标工具不在候选（如无权用户说「删除」）→ 不调模型，直接 TOOL_SELECTION_INVALID
-    ToolSelectionValidator.preflight(req.message(), req.domain(), req.candidates(), req.entities());
+    ToolSelectionValidator.preflight(
+        req.message(), req.domain(), req.candidates(), req.entities(), meta);
     RunFailure last = null;
     for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
@@ -50,7 +56,7 @@ public final class SpringAiLlmClient implements LlmClient {
                 .call()
                 .entity(LlmPlanDraft.class);
         return ToolSelectionValidator.validate(
-            draft, req.domain(), req.candidates(), displayNames, req.entities());
+            draft, req.domain(), req.candidates(), displayNames, req.entities(), meta);
       } catch (MissingEntity e) {
         // 目标工具缺必填实体：编排器走友好提示，不重试、不当传输错误
         throw e;

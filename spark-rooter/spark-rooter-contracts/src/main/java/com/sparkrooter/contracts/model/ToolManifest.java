@@ -1,8 +1,10 @@
 package com.sparkrooter.contracts.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /** 契约 tool-manifest：领域服务 → Registry。toolId@version 不可变。description 视为不可信文本。 */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record ToolManifest(
     String toolId,
     String version,
@@ -50,6 +52,7 @@ public record ToolManifest(
   }
 
   /** permission 可选：内核不做鉴权，仅供宿主 ToolAccessPolicy 参考；@SparkTool 推导为空对象。 */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   public record Authorization(String permission) {}
 
   public record Execution(int timeoutMs, int maxRetries, Idempotency idempotency) {}

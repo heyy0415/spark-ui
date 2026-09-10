@@ -2,6 +2,7 @@ package com.sparkrooter.runtime.infra.selfcheck;
 
 import com.sparkrooter.contracts.model.ToolSearch;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
+import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.runtime.application.port.LlmClient;
 import com.sparkrooter.runtime.application.port.ToolRegistryClient;
 import com.sparkrooter.runtime.domain.Plan;
@@ -58,11 +59,14 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
   private final LlmClient llm;
   private final ToolRegistryClient registry;
   private final ToolDisplayNames names;
+  private final ToolMetaRegistry meta;
 
-  public PlanSelfCheck(LlmClient llm, ToolRegistryClient registry, ToolDisplayNames names) {
+  public PlanSelfCheck(
+      LlmClient llm, ToolRegistryClient registry, ToolDisplayNames names, ToolMetaRegistry meta) {
     this.llm = llm;
     this.registry = registry;
     this.names = names;
+    this.meta = meta;
   }
 
   @Override
@@ -95,7 +99,7 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
               "rule planner mismatch for domain " + c.domain() + ": " + got + " != " + c.expect());
         }
         Step last = p.steps().get(p.steps().size() - 1);
-        boolean writes = IntentVerbs.PREREQUISITES.containsKey(last.toolId());
+        boolean writes = !meta.prerequisites(last.toolId()).isEmpty();
         if (writes != last.requiresConfirmation()) {
           throw new IllegalStateException("confirmation flag wrong for " + last.toolId());
         }
@@ -113,7 +117,8 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
           "refund",
           refund,
           names,
-          Map.of());
+          Map.of(),
+          meta);
       throw new IllegalStateException("validator accepted a toolId outside candidates");
     } catch (RunFailure expected) {
       log.info("selfcheck: invalid toolId rejected OK");
@@ -125,7 +130,8 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
           "refund",
           refund,
           names,
-          Map.of("order", "10003"));
+          Map.of("order", "10003"),
+          meta);
       throw new IllegalStateException("validator accepted confirmation step without prerequisites");
     } catch (RunFailure expected) {
       log.info("selfcheck: missing prerequisite rejected OK");
@@ -138,7 +144,8 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
           "refund",
           refund,
           names,
-          Map.of("order", "10001"));
+          Map.of("order", "10001"),
+          meta);
       throw new IllegalStateException(
           "validator accepted an entity arg that differs from recognized entity");
     } catch (RunFailure expected) {

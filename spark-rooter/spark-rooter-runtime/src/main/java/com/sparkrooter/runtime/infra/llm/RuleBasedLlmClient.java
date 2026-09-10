@@ -1,8 +1,8 @@
 package com.sparkrooter.runtime.infra.llm;
 
 import com.sparkrooter.contracts.model.ToolSearch;
-import com.sparkrooter.runtime.application.EntityRequirementCheck;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
+import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.runtime.application.port.LlmClient;
 import com.sparkrooter.runtime.domain.Plan;
 import com.sparkrooter.runtime.domain.RunFailure;
@@ -18,9 +18,11 @@ import java.util.Map;
 public final class RuleBasedLlmClient implements LlmClient {
 
   private final ToolDisplayNames displayNames;
+  private final ToolMetaRegistry meta;
 
-  public RuleBasedLlmClient(ToolDisplayNames displayNames) {
+  public RuleBasedLlmClient(ToolDisplayNames displayNames, ToolMetaRegistry meta) {
     this.displayNames = displayNames;
+    this.meta = meta;
   }
 
   @Override
@@ -28,7 +30,8 @@ public final class RuleBasedLlmClient implements LlmClient {
     Map<String, ToolSearch.ToolCandidate> available = new LinkedHashMap<>();
     req.candidates().forEach(c -> available.put(c.toolId(), c));
 
-    ToolSelectionValidator.preflight(req.message(), req.domain(), req.candidates(), req.entities());
+    ToolSelectionValidator.preflight(
+        req.message(), req.domain(), req.candidates(), req.entities(), meta);
     // 目标工具：动词命中优先；否则按「有该领域实体 → detail，无 → list」
     String target =
         IntentVerbs.target(req.message(), req.domain())
@@ -40,7 +43,7 @@ public final class RuleBasedLlmClient implements LlmClient {
       throw new RunFailure("TOOL_SELECTION_INVALID", "target tool not in candidates: " + target);
     }
 
-    List<String> order = new ArrayList<>(IntentVerbs.prerequisites(target));
+    List<String> order = new ArrayList<>(meta.prerequisites(target));
     order.add(target);
     List<LlmPlanDraft.DraftStep> steps = new ArrayList<>();
     for (String toolId : order) {
@@ -48,10 +51,15 @@ public final class RuleBasedLlmClient implements LlmClient {
       if (c == null) {
         throw new RunFailure("TOOL_SELECTION_INVALID", "prerequisite not in candidates: " + toolId);
       }
-      steps.add(new LlmPlanDraft.DraftStep(toolId, argsFor(c, req.entities())));
+      steps.add(new LlmPlanDraft.DraftStep(toolId, argsFor(c, req.entities(), meta)));
     }
     return ToolSelectionValidator.validate(
-        new LlmPlanDraft(steps), req.domain(), req.candidates(), displayNames, req.entities());
+        new LlmPlanDraft(steps),
+        req.domain(),
+        req.candidates(),
+        displayNames,
+        req.entities(),
+        meta);
   }
 
   /**
@@ -60,7 +68,7 @@ public final class RuleBasedLlmClient implements LlmClient {
    * amount / reason）由确认屏 Form 与重校验填，规划器不填。
    */
   private static Map<String, String> argsFor(
-      ToolSearch.ToolCandidate c, Map<String, String> entities) {
+      ToolSearch.ToolCandidate c, Map<String, String> entities, ToolMetaRegistry meta) {
     Map<String, String> args = new LinkedHashMap<>();
     java.util.Set<String> required = new java.util.HashSet<>();
     c.inputSchema().path("required").forEach(n -> required.add(n.asText()));
@@ -69,7 +77,7 @@ public final class RuleBasedLlmClient implements LlmClient {
         .fieldNames()
         .forEachRemaining(
             arg -> {
-              String type = EntityRequirementCheck.ENTITY_ARGS.get(arg);
+              String type = meta.entityTypeOf(arg);
               if (type == null) {
                 return;
               }

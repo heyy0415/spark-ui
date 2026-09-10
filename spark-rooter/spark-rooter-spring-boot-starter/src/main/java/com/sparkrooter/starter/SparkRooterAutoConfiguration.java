@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Import;
   RegistryBeans.class,
   GatewayBeans.class,
   RuntimeBeans.class,
+  ToolBeans.class,
   SelfCheckBeans.class
 })
 public class SparkRooterAutoConfiguration {}

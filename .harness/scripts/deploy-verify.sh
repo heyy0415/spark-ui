@@ -30,7 +30,7 @@ echo "--- 1. 后端启动与健康"
 (JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/spark-rooter/app/target/app.jar" --server.port="$PORT" > "$DEPLOY/backend.log" 2>&1 &)
 for i in $(seq 1 40); do sleep 1; curl -sf "localhost:$PORT/actuator/health" >/dev/null 2>&1 && break; done
 check "health" '{"status":"UP"}' "$(curl -s "localhost:$PORT/actuator/health")"
-check "selfcheck all OK" 7 "$(grep -c 'SelfCheckRunner.*selfcheck: .* OK' "$DEPLOY/backend.log")"
+check "selfcheck all OK" 9 "$(grep -c 'SelfCheckRunner.*selfcheck: .* OK' "$DEPLOY/backend.log")"
 
 echo "--- 2. 前端预览（vite preview :4173，代理到 ${PORT}）"
 (cd "$ROOT/spark-ui/apps/chat" && pnpm exec vite preview --port 4173 --strictPort > "$DEPLOY/preview.log" 2>&1 &)

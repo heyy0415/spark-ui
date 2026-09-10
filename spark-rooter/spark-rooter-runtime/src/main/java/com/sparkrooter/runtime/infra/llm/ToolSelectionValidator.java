@@ -2,8 +2,8 @@ package com.sparkrooter.runtime.infra.llm;
 
 import com.sparkrooter.contracts.model.ToolManifest;
 import com.sparkrooter.contracts.model.ToolSearch;
-import com.sparkrooter.runtime.application.EntityRequirementCheck;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
+import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.runtime.application.port.LlmClient;
 import com.sparkrooter.runtime.domain.Plan;
 import com.sparkrooter.runtime.domain.RunFailure;
@@ -21,7 +21,8 @@ import java.util.stream.Collectors;
  *
  * <p>需确认步骤的金额类参数不允许由模型决定（agent-safety §3：金额在确认后由后端可信来源重算并覆盖）， 模型若填写即视为越权输出而拒绝。
  *
- * <p>需确认步骤的前置只读步骤（IntentVerbs.PREREQUISITES）必须齐全且在它之前；需确认步骤的必填实体参数缺失 → MissingEntity（与规则模式一致）。
+ * <p>需确认步骤的前置只读步骤（ToolMetaRegistry.prerequisites：注解声明或内核默认表）必须齐全且在它之前；需确认步骤的必填实体参数缺失 →
+ * MissingEntity（与规则模式一致）。
  */
 public final class ToolSelectionValidator {
 
@@ -39,7 +40,8 @@ public final class ToolSelectionValidator {
       String message,
       String domain,
       List<ToolSearch.ToolCandidate> candidates,
-      Map<String, String> entities) {
+      Map<String, String> entities,
+      ToolMetaRegistry meta) {
     IntentVerbs.target(message, domain)
         .ifPresent(
             target -> {
@@ -53,7 +55,7 @@ public final class ToolSelectionValidator {
                                   "TOOL_SELECTION_INVALID",
                                   "target tool not in candidates: " + target));
               for (var n : c.inputSchema().path("required")) {
-                String type = EntityRequirementCheck.ENTITY_ARGS.get(n.asText());
+                String type = meta.entityTypeOf(n.asText());
                 if (type != null && !entities.containsKey(type)) {
                   throw new LlmClient.MissingEntity(type);
                 }
@@ -67,7 +69,8 @@ public final class ToolSelectionValidator {
       String domain,
       List<ToolSearch.ToolCandidate> candidates,
       ToolDisplayNames displayNames,
-      Map<String, String> entities) {
+      Map<String, String> entities,
+      ToolMetaRegistry meta) {
     if (draft == null || draft.steps() == null || draft.steps().isEmpty()) {
       throw new RunFailure("TOOL_SELECTION_INVALID", "planner returned no steps");
     }
@@ -88,7 +91,7 @@ public final class ToolSelectionValidator {
           throw new RunFailure(
               "TOOL_SELECTION_INVALID", "arg not in inputSchema of " + d.toolId() + ": " + k);
         }
-        String type = EntityRequirementCheck.ENTITY_ARGS.get(k);
+        String type = meta.entityTypeOf(k);
         if (type != null && !args.get(k).equals(entities.get(type))) {
           throw new RunFailure(
               "TOOL_SELECTION_INVALID",
@@ -99,7 +102,7 @@ public final class ToolSelectionValidator {
           c.confirmation() == ToolManifest.Confirmation.required
               || c.riskLevel() == ToolManifest.RiskLevel.high;
       if (confirm) {
-        for (String pre : IntentVerbs.prerequisites(c.toolId())) {
+        for (String pre : meta.prerequisites(c.toolId())) {
           boolean before = steps.stream().anyMatch(st -> st.toolId().equals(pre));
           if (!before) {
             throw new RunFailure(
@@ -108,7 +111,7 @@ public final class ToolSelectionValidator {
           }
         }
         for (var n : c.inputSchema().path("required")) {
-          String type = EntityRequirementCheck.ENTITY_ARGS.get(n.asText());
+          String type = meta.entityTypeOf(n.asText());
           if (type != null && !args.containsKey(n.asText())) {
             throw new LlmClient.MissingEntity(type);
           }

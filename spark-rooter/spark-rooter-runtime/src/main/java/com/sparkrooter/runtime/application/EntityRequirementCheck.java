@@ -2,6 +2,7 @@ package com.sparkrooter.runtime.application;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sparkrooter.contracts.model.ToolSearch;
+import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -13,7 +14,7 @@ import java.util.Optional;
  */
 public final class EntityRequirementCheck {
 
-  /** 必填参数名 → 满足它所需的实体类型。 */
+  /** 内核默认：必填参数名 → 实体类型。@SparkTool 工具由 @SparkParam.entity 声明，经 ToolMetaRegistry 合并。 */
   public static final Map<String, String> ENTITY_ARGS =
       Map.of("orderId", "order", "productId", "product");
 
@@ -34,11 +35,14 @@ public final class EntityRequirementCheck {
 
   /** 返回提示文案表示应拦截；empty 表示放行。 */
   public static Optional<String> check(
-      String domain, List<ToolSearch.ToolCandidate> candidates, Map<String, String> entities) {
+      String domain,
+      List<ToolSearch.ToolCandidate> candidates,
+      Map<String, String> entities,
+      ToolMetaRegistry meta) {
     if (candidates.isEmpty()) {
       return Optional.empty();
     }
-    for (Map.Entry<String, String> e : ENTITY_ARGS.entrySet()) {
+    for (Map.Entry<String, String> e : meta.entityArgs().entrySet()) {
       String arg = e.getKey();
       String type = e.getValue();
       boolean allRequire = candidates.stream().allMatch(c -> requires(c, arg));

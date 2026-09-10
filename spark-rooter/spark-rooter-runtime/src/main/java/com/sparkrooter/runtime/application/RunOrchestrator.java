@@ -10,6 +10,7 @@ import com.sparkrooter.contracts.model.SseEvent;
 import com.sparkrooter.contracts.model.ToolInvoke;
 import com.sparkrooter.contracts.model.ToolSearch;
 import com.sparkrooter.contracts.model.UiSchema;
+import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.runtime.application.port.LlmClient;
 import com.sparkrooter.runtime.application.port.RunEventSink;
 import com.sparkrooter.runtime.application.port.ToolGatewayClient;
@@ -71,6 +72,7 @@ public class RunOrchestrator {
   private final RecheckRegistry rechecks;
   private final ToolDisplayNames displayNames;
   private final ConfirmationTokenService tokens;
+  private final ToolMetaRegistry meta;
   private final SchemaValidator validator;
   private final ObjectMapper mapper;
   private final Clock clock;
@@ -95,6 +97,7 @@ public class RunOrchestrator {
       RecheckRegistry rechecks,
       ToolDisplayNames displayNames,
       ConfirmationTokenService tokens,
+      ToolMetaRegistry meta,
       SchemaValidator validator,
       Clock clock) {
     this.runs = runs;
@@ -106,6 +109,7 @@ public class RunOrchestrator {
     this.rechecks = rechecks;
     this.displayNames = displayNames;
     this.tokens = tokens;
+    this.meta = meta;
     this.validator = validator;
     this.mapper = validator.mapper();
     this.clock = clock;
@@ -152,7 +156,7 @@ public class RunOrchestrator {
 
       // 规划前拦截：领域内全部候选都需要实体而没有 → 提示并结束，不进规划、不调 Gateway
       Optional<String> needEntity =
-          EntityRequirementCheck.check(domain.get(), found.tools(), entities);
+          EntityRequirementCheck.check(domain.get(), found.tools(), entities, meta);
       if (needEntity.isPresent()) {
         log.info("entity required but missing runId={} domain={}", runId, domain.get());
         emit(sink, SseEvent.MESSAGE_DELTA, new SseEvent.MessageDeltaData(runId, needEntity.get()));

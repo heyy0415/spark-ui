@@ -5,9 +5,11 @@ import com.sparkrooter.gateway.api.ToolInvokePort;
 import com.sparkrooter.registry.api.ToolSearchPort;
 import com.sparkrooter.runtime.application.ConfirmationTokenService;
 import com.sparkrooter.runtime.application.DomainResolver;
+import com.sparkrooter.runtime.application.EntityRequirementCheck;
 import com.sparkrooter.runtime.application.RecheckRegistry;
 import com.sparkrooter.runtime.application.RunOrchestrator;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
+import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.runtime.application.port.IntentClassifier;
 import com.sparkrooter.runtime.application.port.LlmClient;
 import com.sparkrooter.runtime.application.port.ToolGatewayClient;
@@ -19,6 +21,7 @@ import com.sparkrooter.runtime.infra.InMemoryConfirmationTokenStore;
 import com.sparkrooter.runtime.infra.InMemoryRunRepository;
 import com.sparkrooter.runtime.infra.inprocess.InProcessToolGatewayClient;
 import com.sparkrooter.runtime.infra.inprocess.InProcessToolRegistryClient;
+import com.sparkrooter.runtime.infra.llm.IntentVerbs;
 import com.sparkrooter.runtime.infra.llm.LlmFactory;
 import com.sparkrooter.spi.ConfirmationRecheck;
 import com.sparkrooter.spi.RunContextPropagator;
@@ -102,6 +105,14 @@ class RuntimeBeans {
     return new ToolDisplayNames();
   }
 
+  /**
+   * @SparkTool 元数据表；内核默认表供手写 Manifest 工具回落。
+   */
+  @Bean
+  ToolMetaRegistry sparkRooterToolMetaRegistry() {
+    return new ToolMetaRegistry(IntentVerbs.PREREQUISITES, EntityRequirementCheck.ENTITY_ARGS);
+  }
+
   @Bean
   @ConditionalOnMissingBean(ToolRegistryClient.class)
   ToolRegistryClient sparkRooterToolRegistryClient(ToolSearchPort registry) {
@@ -129,9 +140,11 @@ class RuntimeBeans {
   LlmClient sparkRooterLlmClient(
       LlmFactory.SharedChat chat,
       ToolDisplayNames names,
+      ToolMetaRegistry meta,
       SparkRooterProperties props,
       Environment env) {
-    return LlmFactory.llmClient(chat, names, pick(props.llm().model(), env, "SPARK_LLM_MODEL"));
+    return LlmFactory.llmClient(
+        chat, names, meta, pick(props.llm().model(), env, "SPARK_LLM_MODEL"));
   }
 
   @Bean
@@ -181,6 +194,7 @@ class RuntimeBeans {
       RecheckRegistry rechecks,
       ToolDisplayNames displayNames,
       ConfirmationTokenService tokens,
+      ToolMetaRegistry meta,
       SchemaValidator validator,
       Clock sparkRooterClock) {
     return new RunOrchestrator(
@@ -193,6 +207,7 @@ class RuntimeBeans {
         rechecks,
         displayNames,
         tokens,
+        meta,
         validator,
         sparkRooterClock);
   }
