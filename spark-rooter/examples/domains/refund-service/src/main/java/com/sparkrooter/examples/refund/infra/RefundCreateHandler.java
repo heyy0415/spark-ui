@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sparkrooter.examples.refund.application.RefundService;
 import com.sparkrooter.examples.refund.domain.Refund;
+import com.sparkrooter.examples.support.DemoUserContext;
 import com.sparkrooter.spi.ExecutionContext;
 import com.sparkrooter.spi.ToolHandler;
 import java.math.BigDecimal;
@@ -36,7 +37,7 @@ public class RefundCreateHandler implements ToolHandler {
   public JsonNode handle(JsonNode args, ExecutionContext ctx) {
     Refund r =
         service.create(
-            ctx.principal().tenantId(),
+            DemoUserContext.tenantId(),
             args.get("orderId").asText(),
             new BigDecimal(args.get("amount").asText()),
             args.get("reason").asText(),

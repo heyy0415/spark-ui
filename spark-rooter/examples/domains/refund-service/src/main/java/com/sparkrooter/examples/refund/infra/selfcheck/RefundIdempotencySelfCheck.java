@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sparkrooter.examples.refund.infra.RefundCreateHandler;
 import com.sparkrooter.examples.refund.infra.RefundStatusGetHandler;
 import com.sparkrooter.spi.ExecutionContext;
-import com.sparkrooter.spi.Principal;
 import com.sparkrooter.spi.SelfCheck;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,11 +41,7 @@ public class RefundIdempotencySelfCheck implements SelfCheck {
   public void run() {
     ExecutionContext ctx =
         new ExecutionContext(
-            "run_selfcheck",
-            "tc_selfcheck",
-            new Principal("selfcheck", "tenant_001"),
-            "selfcheck-refund-10003",
-            null);
+            "run_selfcheck", "tc_selfcheck", "selfcheck", "selfcheck-refund-10003", null);
     ObjectNode args = mapper.createObjectNode();
     args.put("orderId", ORDER);
     args.put("amount", "1.00");

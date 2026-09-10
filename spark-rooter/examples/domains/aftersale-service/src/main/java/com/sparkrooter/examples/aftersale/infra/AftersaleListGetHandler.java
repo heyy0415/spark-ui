@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sparkrooter.examples.aftersale.application.AftersaleService;
+import com.sparkrooter.examples.support.DemoUserContext;
 import com.sparkrooter.spi.ExecutionContext;
 import com.sparkrooter.spi.ToolHandler;
 import java.util.Optional;
@@ -37,7 +38,7 @@ public class AftersaleListGetHandler implements ToolHandler {
 
   @Override
   public JsonNode handle(JsonNode args, ExecutionContext ctx) {
-    String tenantId = ctx.principal().tenantId();
+    String tenantId = DemoUserContext.tenantId();
     Optional<String> orderId =
         args.hasNonNull("orderId") ? Optional.of(args.get("orderId").asText()) : Optional.empty();
     ObjectNode out = mapper.createObjectNode();

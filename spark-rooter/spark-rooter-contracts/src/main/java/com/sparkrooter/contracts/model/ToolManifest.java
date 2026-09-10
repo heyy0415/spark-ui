@@ -49,6 +49,7 @@ public record ToolManifest(
     required
   }
 
+  /** permission 可选：内核不做鉴权，仅供宿主 ToolAccessPolicy 参考；@SparkTool 推导为空对象。 */
   public record Authorization(String permission) {}
 
   public record Execution(int timeoutMs, int maxRetries, Idempotency idempotency) {}

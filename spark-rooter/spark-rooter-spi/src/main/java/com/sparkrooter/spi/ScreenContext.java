@@ -1,4 +1,4 @@
 package com.sparkrooter.spi;
 
-/** 屏生成上下文：只有标识信息，无业务数据。 */
-public record ScreenContext(String runId, String userId, String tenantId) {}
+/** 屏生成上下文：只有 Run 标识，无业务数据、无用户。 */
+public record ScreenContext(String runId) {}

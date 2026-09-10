@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sparkrooter.examples.refund.application.RefundService;
 import com.sparkrooter.examples.refund.domain.EligibilityPolicy;
+import com.sparkrooter.examples.support.DemoUserContext;
 import com.sparkrooter.spi.ExecutionContext;
 import com.sparkrooter.spi.ToolHandler;
 import java.math.RoundingMode;
@@ -35,7 +36,7 @@ public class RefundEligibilityCheckHandler implements ToolHandler {
   @Override
   public JsonNode handle(JsonNode args, ExecutionContext ctx) {
     String orderId = args.get("orderId").asText();
-    RefundService.Eligibility e = service.eligibility(ctx.principal().tenantId(), orderId);
+    RefundService.Eligibility e = service.eligibility(DemoUserContext.tenantId(), orderId);
     EligibilityPolicy.Result r = e.result();
     ObjectNode n = mapper.createObjectNode();
     n.put("orderId", orderId);

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sparkrooter.examples.order.domain.DeletionPolicy;
 import com.sparkrooter.examples.order.domain.Order;
 import com.sparkrooter.examples.order.domain.OrderRepository;
+import com.sparkrooter.examples.support.DemoUserContext;
 import com.sparkrooter.spi.ExecutionContext;
 import com.sparkrooter.spi.ToolHandler;
 import java.time.Instant;
@@ -42,7 +43,7 @@ public class OrderDeleteHandler implements ToolHandler {
 
   @Override
   public JsonNode handle(JsonNode args, ExecutionContext ctx) {
-    String tenantId = ctx.principal().tenantId();
+    String tenantId = DemoUserContext.tenantId();
     String orderId = args.get("orderId").asText();
     Order o =
         orders

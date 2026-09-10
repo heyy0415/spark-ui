@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sparkrooter.examples.refund.application.RefundService;
+import com.sparkrooter.examples.support.DemoUserContext;
 import com.sparkrooter.spi.ExecutionContext;
 import com.sparkrooter.spi.ToolHandler;
 import java.math.RoundingMode;
@@ -34,7 +35,7 @@ public class RefundPreviewHandler implements ToolHandler {
   @Override
   public JsonNode handle(JsonNode args, ExecutionContext ctx) {
     RefundService.Preview p =
-        service.preview(ctx.principal().tenantId(), args.get("orderId").asText());
+        service.preview(DemoUserContext.tenantId(), args.get("orderId").asText());
     ObjectNode n = mapper.createObjectNode();
     n.put("orderId", p.orderId());
     n.put("amount", p.amount().setScale(2, RoundingMode.HALF_UP).toPlainString());

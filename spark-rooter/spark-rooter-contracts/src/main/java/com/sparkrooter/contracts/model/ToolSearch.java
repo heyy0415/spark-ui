@@ -4,22 +4,15 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
-/** 契约 tool-search：Runtime ↔ Registry。响应项只含六字段（agent-safety §2）。 */
+/** 契约 tool-search：Runtime ↔ Registry。请求不带身份（内核不识别用户）；响应项只含六字段（agent-safety §2）。 */
 public final class ToolSearch {
 
   private ToolSearch() {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record Request(
-      @NotBlank String domain,
-      String intent,
-      @NotNull @Valid Principal principal,
-      @Valid Context context) {}
-
-  public record Principal(@NotBlank String userId, @NotBlank String tenantId) {}
+  public record Request(@NotBlank String domain, String intent, @Valid Context context) {}
 
   public record Context(String entityType) {}
 

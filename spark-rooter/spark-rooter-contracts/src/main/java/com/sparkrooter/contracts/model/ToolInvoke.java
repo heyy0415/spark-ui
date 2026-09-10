@@ -21,8 +21,7 @@ public final class ToolInvoke {
   public record ExecutionContext(
       @NotBlank String runId,
       @NotBlank String toolCallId,
-      @NotBlank String userId,
-      @NotBlank String tenantId,
+      @NotBlank String sessionId,
       @NotBlank String idempotencyKey,
       String traceId) {}
 

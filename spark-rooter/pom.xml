@@ -16,6 +16,7 @@
     <module>spark-rooter-registry</module>
     <module>spark-rooter-gateway</module>
     <module>spark-rooter-runtime</module>
+    <module>examples/demo-support</module>
     <module>examples/domains/order-service</module>
     <module>examples/domains/product-service</module>
     <module>examples/domains/aftersale-service</module>
@@ -55,6 +56,7 @@
       <!-- 内部模块 -->
       <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-spi</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-contracts</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.sparkrooter</groupId><artifactId>demo-support</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-registry</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-gateway</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-runtime</artifactId><version>${project.version}</version></dependency>

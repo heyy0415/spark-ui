@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sparkrooter.examples.refund.application.RefundService;
+import com.sparkrooter.examples.support.DemoUserContext;
 import com.sparkrooter.spi.ExecutionContext;
 import com.sparkrooter.spi.ToolHandler;
 import org.springframework.stereotype.Component;
@@ -36,7 +37,7 @@ public class RefundStatusGetHandler implements ToolHandler {
     String orderId = args.get("orderId").asText();
     ArrayNode arr = mapper.createArrayNode();
     service
-        .status(ctx.principal().tenantId(), orderId)
+        .status(DemoUserContext.tenantId(), orderId)
         .forEach(
             r -> {
               ObjectNode n = arr.addObject();

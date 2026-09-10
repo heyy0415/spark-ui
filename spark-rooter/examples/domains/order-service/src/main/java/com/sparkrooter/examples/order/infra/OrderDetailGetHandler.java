@@ -3,6 +3,7 @@ package com.sparkrooter.examples.order.infra;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sparkrooter.examples.order.domain.Order;
 import com.sparkrooter.examples.order.domain.OrderRepository;
+import com.sparkrooter.examples.support.DemoUserContext;
 import com.sparkrooter.spi.ExecutionContext;
 import com.sparkrooter.spi.ToolHandler;
 import org.springframework.stereotype.Component;
@@ -31,7 +32,7 @@ public class OrderDetailGetHandler implements ToolHandler {
 
   @Override
   public JsonNode handle(JsonNode args, ExecutionContext ctx) {
-    Order o = OrderAccess.require(orders, ctx.principal().tenantId(), args.get("orderId").asText());
+    Order o = OrderAccess.require(orders, DemoUserContext.tenantId(), args.get("orderId").asText());
     return json.detail(o);
   }
 }

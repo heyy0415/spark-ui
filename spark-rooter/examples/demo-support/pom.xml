@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.sparkrooter</groupId>
+    <artifactId>spark-rooter-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+  <artifactId>demo-support</artifactId>
+  <name>demo-support</name>
+  <!-- 示例宿主侧的 mock 用户上下文：纯 JDK，零依赖。spark-rooter 内核对它一无所知；四个示例领域服务从这里读当前用户 / 租户。 -->
+</project>

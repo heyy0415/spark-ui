@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sparkrooter.examples.order.domain.Order;
 import com.sparkrooter.examples.order.domain.OrderRepository;
+import com.sparkrooter.examples.support.DemoUserContext;
 import com.sparkrooter.spi.ExecutionContext;
 import com.sparkrooter.spi.ToolHandler;
 import java.util.List;
@@ -44,7 +45,7 @@ public class OrderListSearchHandler implements ToolHandler {
     String status = args.hasNonNull("status") ? args.get("status").asText() : null;
     int limit = args.hasNonNull("limit") ? args.get("limit").asInt() : DEFAULT_LIMIT;
     List<Order> matched =
-        orders.findByTenant(ctx.principal().tenantId()).stream()
+        orders.findByTenant(DemoUserContext.tenantId()).stream()
             .filter(o -> o.status() != Order.OrderStatus.DELETED)
             .filter(o -> status == null || o.status().name().equals(status))
             .toList();

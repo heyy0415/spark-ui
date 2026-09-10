@@ -3,6 +3,7 @@ package com.sparkrooter.examples.aftersale.infra;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sparkrooter.examples.aftersale.application.AftersaleService;
 import com.sparkrooter.examples.aftersale.domain.Aftersale;
+import com.sparkrooter.examples.support.DemoUserContext;
 import com.sparkrooter.spi.ExecutionContext;
 import com.sparkrooter.spi.ToolHandler;
 import org.springframework.stereotype.Component;
@@ -33,7 +34,7 @@ public class AftersaleCreateHandler implements ToolHandler {
   public JsonNode handle(JsonNode args, ExecutionContext ctx) {
     Aftersale a =
         service.create(
-            ctx.principal().tenantId(),
+            DemoUserContext.tenantId(),
             args.get("orderId").asText(),
             Aftersale.Type.valueOf(args.get("type").asText()),
             args.get("reason").asText(),
