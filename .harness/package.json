@@ -12,6 +12,7 @@
     "new-change": "node scripts/new-change.mjs",
     "check-contracts": "node scripts/check-contracts.mjs",
     "check-module-deps": "node scripts/check-module-deps.mjs",
+    "check-rename": "node scripts/check-rename.mjs",
     "ci": "node scripts/ci.mjs",
     "e2e-backend": "bash scripts/e2e-backend.sh",
     "e2e-frontend": "node scripts/e2e-frontend.mjs",

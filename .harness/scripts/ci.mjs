@@ -3,6 +3,7 @@
  * pnpm -C .harness run ci
  *
  * 全仓单一质量门禁（在仓库根或 .harness/ 下执行均可）。按顺序：
+  *   0. check-rename         —— 旧项目名 / 旧顶层目录名残留（见脚本头注释）
  *   1. check-contracts      —— .harness/contracts/ Schema 与示例
  *   2. check-module-deps    —— 后端模块依赖红线
  *   3. spark-ui              —— pnpm -C spark-ui run ci（typecheck + lint + format:check + build）
@@ -20,6 +21,7 @@ const harness = join(__dirname, '..');
 const root = join(harness, '..');
 
 const steps = [
+  { name: 'check-rename', cmd: 'node', args: [join(harness, 'scripts', 'check-rename.mjs')] },
   { name: 'check-contracts', cmd: 'node', args: [join(harness, 'scripts', 'check-contracts.mjs')] },
   { name: 'check-module-deps', cmd: 'node', args: [join(harness, 'scripts', 'check-module-deps.mjs')] },
   { name: 'check-seed', cmd: 'node', args: [join(harness, 'scripts', 'check-seed.mjs')] },

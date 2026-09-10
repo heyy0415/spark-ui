@@ -53,6 +53,7 @@ const required = [
   'scripts/check-seed.mjs',
   'scripts/gen-seed.mjs',
   'scripts/mvn.mjs',
+  'scripts/check-rename.mjs',
   'scripts/ci.mjs',
   'scripts/sse-parse.mjs',
   'scripts/e2e-backend.sh',
