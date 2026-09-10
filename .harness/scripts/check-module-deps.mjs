@@ -142,6 +142,20 @@ for (const [mod, others] of Object.entries(peers)) {
   }
 }
 
+// 示例领域模块只依赖 spi / contracts（+ demo-support），不得依赖任何平台模块（spec refactor-spark-embedded-starter §2.2）
+{
+  const domainsDir = join(sparkRooterDir, 'examples', 'domains');
+  const platform = ['spark-rooter-runtime', 'spark-rooter-registry', 'spark-rooter-gateway', 'spark-rooter-web-mvc', 'spark-rooter-spring-boot-starter'];
+  for (const mod of existsSync(domainsDir) ? await readdir(domainsDir) : []) {
+    const pom = join(domainsDir, mod, 'pom.xml');
+    if (!existsSync(pom)) continue;
+    const depsBlock = ((await readFile(pom, 'utf-8')).match(/<dependencies>([\s\S]*?)<\/dependencies>/g) ?? []).join('\n');
+    for (const id of platform) {
+      if (depsBlock.includes(`<artifactId>${id}</artifactId>`)) fail(`examples/domains/${mod}/pom.xml must not depend on platform module "${id}" (domains only see spi / contracts)`);
+    }
+  }
+}
+
 // 领域模块互不依赖（project-structure §2）：domains/<a> 源码不得引用 com.sparkrooter.examples.<b>（b ≠ a），也不得在 pom 里依赖其他领域 artifact。
 // 跨领域读数据只能经 spark-rooter-spi 端口（如 OrderSnapshotProvider）。
 {

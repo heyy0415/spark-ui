@@ -66,10 +66,15 @@ public final class ManifestParitySelfCheck implements SelfCheck {
     log.info("selfcheck: manifest parity OK ({} manifests)", files.size());
   }
 
-  private static JsonNode strip(JsonNode n) {
+  /** 去掉不同源字段，并经字符串往返归一化数字节点类型（IntNode / LongNode）。 */
+  private JsonNode strip(JsonNode n) {
     ObjectNode copy = n.deepCopy();
     IGNORED.forEach(copy::remove);
-    return copy;
+    try {
+      return validator.mapper().readTree(validator.mapper().writeValueAsString(copy));
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   private List<String> index() {

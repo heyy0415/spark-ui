@@ -1,0 +1,12 @@
+aftersale.create.json
+aftersale.list.get.json
+order.delete.json
+order.detail.get.json
+order.list.search.json
+order.logistics.get.json
+product.detail.get.json
+product.list.search.json
+refund.create.json
+refund.eligibility.check.json
+refund.preview.json
+refund.status.get.json

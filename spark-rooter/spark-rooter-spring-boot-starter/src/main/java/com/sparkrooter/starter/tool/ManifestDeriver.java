@@ -187,10 +187,10 @@ public final class ManifestDeriver {
     } else if (c == int.class || c == Integer.class || c == long.class || c == Long.class) {
       n.put("type", "integer");
       if (p != null && p.min() != Long.MIN_VALUE) {
-        n.put("minimum", p.min());
+        n.set("minimum", number(p.min()));
       }
       if (p != null && p.max() != Long.MAX_VALUE) {
-        n.put("maximum", p.max());
+        n.set("maximum", number(p.max()));
       }
     } else if (c == boolean.class || c == Boolean.class) {
       n.put("type", "boolean");
@@ -279,12 +279,19 @@ public final class ManifestDeriver {
 
   private JsonNode literal(String value, Type t) {
     if (t == int.class || t == Integer.class || t == long.class || t == Long.class) {
-      return mapper.getNodeFactory().numberNode(Long.parseLong(value));
+      return number(Long.parseLong(value));
     }
     if (t == boolean.class || t == Boolean.class) {
       return mapper.getNodeFactory().booleanNode(Boolean.parseBoolean(value));
     }
     return mapper.getNodeFactory().textNode(value);
+  }
+
+  /** 整数节点：能放进 int 就用 IntNode（与 JSON 解析结果一致，避免 IntNode / LongNode 不等）。 */
+  private JsonNode number(long v) {
+    return v >= Integer.MIN_VALUE && v <= Integer.MAX_VALUE
+        ? mapper.getNodeFactory().numberNode((int) v)
+        : mapper.getNodeFactory().numberNode(v);
   }
 
   /** Optional&lt;T&gt; → T。 */
