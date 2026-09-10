@@ -5,7 +5,7 @@ pnpm workspace，两个包：
 | 包               | 路径            | 说明                                                                                                                                                               |
 | ---------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `@spark-ui/core` | `packages/core` | **Spark UI 渲染引擎**，可 npm 发包。把后端下发的 UI Schema 渲染为白名单组件（antd 桌面 / antd-mobile 移动）。见 [packages/core/README.md](packages/core/README.md) |
-| `spark-chat`     | `apps/chat`     | 唯一应用：一个 chat 页面（路由 `/`），把用户意图发给 Agent Runtime、消费 SSE、用 core 渲染确认屏 / 结果屏                                                          |
+| `spark-chat`     | `apps/chat`     | 唯一应用：一个聊天页（路由 `/`）。每条用户消息一个回合：右侧用户气泡，左侧助手气泡内是 core 的 `RunStatus` → 骨架 → 屏；历史回合只读保留，会话只在内存             |
 
 React 19 / TypeScript 7 strict / Vite 8 / TanStack Query / Zod 4 / antd 6 / antd-mobile 5 / oxlint / prettier。版本由 `pnpm-workspace.yaml` 的 `catalog` 统一。
 

@@ -5,11 +5,21 @@
 export { SchemaRenderer } from './renderer/SchemaRenderer';
 export type { SchemaRendererProps } from './renderer/SchemaRenderer';
 export { ActionBar } from './renderer/ActionBar';
+export { RunStatus } from './renderer/RunStatus';
+export { SchemaSkeleton } from './renderer/SchemaSkeleton';
 export { UnknownComponent } from './renderer/UnknownComponent';
 
 export { desktopRegistry, mobileRegistry, REGISTRY_KEYS } from './registry/componentRegistry';
 export { PROPS_SCHEMAS } from './registry/types';
-export type { FormValues, ActionBarProps, ComponentHandlers } from './registry/types';
+export type {
+  FormValues,
+  ActionBarProps,
+  ComponentHandlers,
+  RunStatusProps,
+  RunStatusKind,
+  ToolStep,
+  SchemaSkeletonProps,
+} from './registry/types';
 
 export {
   UiSchemaSchema,

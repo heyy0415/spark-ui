@@ -53,7 +53,13 @@ const ui = parseUiSchema(payloadFromBackend); // 不要写 payload as UiSchema
 
 运行时：`SchemaRenderer`、`ActionBar`、`UnknownComponent`、`desktopRegistry`、`mobileRegistry`、`REGISTRY_KEYS`、`PROPS_SCHEMAS`、`UiSchemaSchema`、`UiComponentSchema`、`UiActionSchema`、`FormPropsSchema`、`COMPONENT_TYPES`、`parseUiSchema`、`SparkThemeProvider`、`SparkDeviceProvider`、`useDevice`、`MOBILE_MAX_WIDTH`。
 
-类型：`UiSchema`、`UiComponent`、`UiAction`、`ComponentType`、`FormProps`、`CardProps`、`TableProps`、`TableRow`、`ResultProps`、`TimelineProps`、`LabelValue`、`InlineAction`、`FormValues`、`ComponentHandlers`、`DeviceKind`、`SchemaRendererProps`、`ActionBarProps`、`SparkThemeTokens`、`SparkThemeProviderProps`。
+类型：`UiSchema`、`UiComponent`、`UiAction`、`ComponentType`、`FormProps`、`CardProps`、`TableProps`、`TableRow`、`ResultProps`、`TimelineProps`、`LabelValue`、`InlineAction`、`FormValues`、`ComponentHandlers`、`DeviceKind`、`SchemaRendererProps`、`ActionBarProps`、`RunStatusProps`、`RunStatusKind`、`ToolStep`、`SchemaSkeletonProps`、`SparkThemeTokens`、`SparkThemeProviderProps`。
+
+运行时另有两个与 SSE 阶段配套的组件（不在契约 `componentType` 里，是 antd `Spin` / `Skeleton` 的映射）：
+
+- `RunStatus({ status, tools, text? })`：一行状态条。`streaming` 时 Spin + 当前步骤文案（「正在搜索订单…」，取最后一个未完成工具；没有工具时「正在理解你的问题…」），`completed` 显示「完成 · N 步」，`failed` 显示 `text`。进度明细在 `<ol aria-label="工具进度">`。宿主把 SSE 事件归约成 `status` + `tools` 交给它即可。
+- `SchemaSkeleton({ variant })`：屏到达前的骨架，`variant ∈ table / card / form / generic` 只影响形状。根节点 `data-testid="spark-skeleton"`。
+- `SchemaRenderer` 增可选 `readOnly`：历史回合的 Form 禁用（令牌已失效）。
 
 `SparkThemeTokens`（默认值）：`colorPrimary #3370ff`、`colorText #1f2329`、`colorTextSecondary #646a73`、`colorBorder #dee0e3`、`colorBgLayout #f7f8fa`、`colorBgContainer #ffffff`、`borderRadius 6`。
 

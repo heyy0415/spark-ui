@@ -10,7 +10,7 @@
  *   == packages/core/src/schema/uiSchema.ts 的 COMPONENT_TYPES（整体校验白名单 / clientCapabilities）
  * 并检查 components/desktop/ 与 components/mobile/ 下每个 type 都有对应实现文件。
  * 红线（coding-standard §4，spec feat-commerce-domains v3.2）：core 组件只能是 antd / antd-mobile 官方组件的直接映射——
- *   components/{desktop,mobile}/*.tsx 文件名 ∈ 契约 enum ∪ {ActionBar}（禁止业务命名组件）；
+ *   components/{desktop,mobile}/*.tsx 文件名 ∈ 契约 enum ∪ {ActionBar, RunStatus, SchemaSkeleton}（禁止业务命名组件）；
  *   这些文件只允许 import 'antd' / 'antd-mobile' / 'react' / '../../registry/*' / '../../schema/*'（不许引第三方或业务模块）。
  * 纯文本解析，不执行 TS；退出码 0 = 一致。
  */
@@ -99,7 +99,8 @@ for (const t of contractTypes) {
 }
 
 // 官方组件映射红线：文件名白名单 + import 白名单
-const ALLOWED_FILES = new Set([...contractTypes, 'ActionBar']);
+// ActionBar / RunStatus / SchemaSkeleton 不是契约组件，但都是官方组件（Button / Spin / Skeleton）的直接映射
+const ALLOWED_FILES = new Set([...contractTypes, 'ActionBar', 'RunStatus', 'SchemaSkeleton']);
 const ALLOWED_IMPORT =
   /^(antd|antd-mobile|react|\.\.\/\.\.\/registry\/[a-zA-Z]+|\.\.\/\.\.\/schema\/[a-zA-Z]+)$/;
 for (const side of ['desktop', 'mobile']) {
@@ -108,7 +109,7 @@ for (const side of ['desktop', 'mobile']) {
     const name = f.replace(/\.tsx$/, '');
     if (!f.endsWith('.tsx') || !ALLOWED_FILES.has(name)) {
       fail(
-        `components/${side}/${f}: 组件文件名必须是契约 type（官方组件名）或 ActionBar，禁止业务命名组件`,
+        `components/${side}/${f}: 组件文件名必须是契约 type（官方组件名）或 ActionBar / RunStatus / SchemaSkeleton，禁止业务命名组件`,
       );
     }
     if (statSync(join(dir, f)).isDirectory()) {

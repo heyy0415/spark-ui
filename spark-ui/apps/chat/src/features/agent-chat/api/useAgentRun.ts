@@ -12,7 +12,15 @@ import {
 } from '@entities/agent-run';
 import { consumeSse } from '@shared/api';
 import type { AgentRunView } from '../model/runView';
-import { beginTurn, emptyView, reduceEvent } from '../model/runView';
+import {
+  beginConfirm,
+  beginTurn,
+  cancelConfirm,
+  emptyView,
+  failIfStillStreaming,
+  lastTurn,
+  reduceEvent,
+} from '../model/runView';
 
 /** 服务端状态走 TanStack Query（coding-standard §4）；SSE 事件逐帧归约后写入 cache。 */
 const viewKey = (conversationId: string) => ['agent-run', conversationId] as const;
@@ -49,23 +57,6 @@ export function missingRequiredFields(ui: UiSchema | null, values: FormValues): 
     }
   }
   return missing;
-}
-
-/** 流结束但没有终态事件（连接中断 / 服务端异常退出）→ 显式失败，避免 UI 永久停留在 streaming。 */
-function failIfStillStreaming(
-  view: AgentRunView | undefined,
-  conversationId: string,
-): AgentRunView {
-  const v = view ?? emptyView(conversationId);
-  if (v.phase !== 'streaming') {
-    return v;
-  }
-  return {
-    ...v,
-    phase: 'failed',
-    pendingActionId: null,
-    failure: { code: 'INTERNAL_ERROR', message: '连接中断，请重试' },
-  };
 }
 
 export interface UseAgentRunOptions {
@@ -120,7 +111,7 @@ export function useAgentRun({ conversationId, transport }: UseAgentRunOptions) {
       );
       if (!ac.signal.aborted) {
         qc.setQueryData<AgentRunView>(viewKey(conversationId), (prev) =>
-          failIfStillStreaming(prev, conversationId),
+          failIfStillStreaming(prev ?? emptyView(conversationId)),
         );
       }
     },
@@ -140,22 +131,19 @@ export function useAgentRun({ conversationId, transport }: UseAgentRunOptions) {
   const submitAction = useMutation({
     mutationFn: async (action: UiAction) => {
       const current = qc.getQueryData<AgentRunView>(viewKey(conversationId));
-      if (!current?.runId) {
+      const turn = current ? lastTurn(current) : null;
+      if (!current || !turn?.runId) {
         throw new Error('no active run');
       }
       if (action.type === 'cancel') {
-        qc.setQueryData(viewKey(conversationId), {
-          ...current,
-          phase: 'completed',
-          pendingActionId: null,
-        });
+        qc.setQueryData(viewKey(conversationId), cancelConfirm(current));
         return;
       }
       if (!action.confirmationToken) {
         throw new Error('action has no confirmationToken');
       }
       // 提交前本地校验必填项：缺失则不发请求，避免白白消耗一次性令牌
-      const missing = missingRequiredFields(current.ui, formRef.current);
+      const missing = missingRequiredFields(turn.ui, formRef.current);
       if (missing.length > 0) {
         throw new FormIncompleteError(missing);
       }
@@ -163,12 +151,8 @@ export function useAgentRun({ conversationId, transport }: UseAgentRunOptions) {
         confirmationToken: action.confirmationToken,
         formData: formRef.current,
       });
-      qc.setQueryData(viewKey(conversationId), {
-        ...current,
-        phase: 'streaming',
-        pendingActionId: null,
-      });
-      await stream(actionPath(current.runId, action.id), body);
+      qc.setQueryData(viewKey(conversationId), beginConfirm(current));
+      await stream(actionPath(turn.runId, action.id), body);
     },
   });
 

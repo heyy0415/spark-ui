@@ -15,7 +15,13 @@ export function FormDesktop({ id, props, handlers }: RenderedComponentProps<Form
     [handlers],
   );
   return (
-    <AntForm form={form} layout="vertical" data-component-id={id} onValuesChange={onValuesChange}>
+    <AntForm
+      form={form}
+      layout="vertical"
+      data-component-id={id}
+      onValuesChange={onValuesChange}
+      disabled={handlers?.readOnly === true}
+    >
       {props.fields.map((f) => (
         <AntForm.Item
           key={f.name}

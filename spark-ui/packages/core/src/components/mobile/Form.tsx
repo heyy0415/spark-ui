@@ -17,7 +17,13 @@ export function FormMobile({ id, props, handlers }: RenderedComponentProps<FormP
     [handlers],
   );
   return (
-    <AdmForm form={form} layout="vertical" data-component-id={id} onValuesChange={onValuesChange}>
+    <AdmForm
+      form={form}
+      layout="vertical"
+      data-component-id={id}
+      onValuesChange={onValuesChange}
+      disabled={handlers?.readOnly === true}
+    >
       {props.fields.map((f) => (
         <AdmForm.Item
           key={f.name}

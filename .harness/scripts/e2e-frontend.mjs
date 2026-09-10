@@ -107,6 +107,10 @@ try {
     await page.close();
   }
 
+  // 聊天流里每个回合都保留：断言只看最后一个助手气泡（change feat-chat-conversation-ui）
+  const LAST = '[aria-label="对话消息"] li[data-role="assistant"]:last-of-type';
+  const inLast = (sel) => `${LAST} ${sel}`;
+
   // ---- step 5: agent main flow
   console.log('--- §6.3.4 step 5: / (chat) main flow @1280');
   {
@@ -114,12 +118,26 @@ try {
     // change 5：无 URL 参数，消息带订单号（前端只发自然语言）
     await page.goto(`${BASE}/`, { waitUntil: 'networkidle0' });
     await page.waitForSelector('#agent-input');
+    // 本机后端几十毫秒就回屏，骨架 / streaming 状态只存在一瞬：用 MutationObserver 在发送前就开始记录，事后断言「曾出现过」
+    await page.evaluate(() => {
+      window.__sparkSeen = { skeleton: false, streaming: false };
+      new MutationObserver(() => {
+        if (document.querySelector('[data-testid="spark-skeleton"]')) window.__sparkSeen.skeleton = true;
+        if (document.querySelector('[data-run-status="streaming"]')) window.__sparkSeen.streaming = true;
+      }).observe(document.body, { subtree: true, childList: true, attributes: true });
+    });
     await page.type('#agent-input', '帮我把订单 10001 退款');
     await page.keyboard.press('Enter');
     await page.waitForSelector('[data-screen-id="refund-confirmation"]', { timeout: 15000 });
     await sleep(800);
-    check('tool progress items', 2, await page.$$eval('[aria-label="工具进度"] li', (e) => e.length));
-    check('tools all succeeded', 2, await page.$$eval('[aria-label="工具进度"] li[data-status="succeeded"]', (e) => e.length));
+    const seen = await page.evaluate(() => window.__sparkSeen);
+    check('skeleton shown while streaming', true, seen.skeleton);
+    check('run status streaming shown', true, seen.streaming);
+    check('user bubble shown', 1, await page.$$eval('[aria-label="对话消息"] li[data-role="user"]', (e) => e.length));
+    check('skeleton gone after ui.replace', 0, await page.$$eval('[data-testid="spark-skeleton"]', (e) => e.length));
+    check('run status waiting_confirmation', 1, await page.$$eval(inLast('[data-run-status="waiting_confirmation"]'), (e) => e.length));
+    check('tool progress items', 2, await page.$$eval(inLast('[aria-label="工具进度"] li'), (e) => e.length));
+    check('tools all succeeded', 2, await page.$$eval(inLast('[aria-label="工具进度"] li[data-status="succeeded"]'), (e) => e.length));
     check('confirmation screen components', ['Card', 'Card', 'Form'].length, await page.$$eval('[data-screen-id="refund-confirmation"] [data-component-id]', (e) => e.length));
     check('confirm action button present', 1, await page.$$eval('[data-action-id="confirm-refund"]', (e) => e.length));
     await page.screenshot({ path: join(DEPLOY, 'ui-desktop-confirm.png'), fullPage: true });
@@ -136,7 +154,12 @@ try {
     await page.waitForSelector('[data-screen-id="refund-result"]', { timeout: 15000 });
     await sleep(800);
     check('result screen components', 1, await page.$$eval('[data-screen-id="refund-result"] [data-component-id="result"]', (e) => e.length));
-    check('tool progress items after confirm', 4, await page.$$eval('[aria-label="工具进度"] li', (e) => e.length));
+    // 确认在同一回合内完成：仍只有 1 个用户气泡，结果屏替换了确认屏，ActionBar 消失，状态 completed
+    check('confirm stays in the same turn', 1, await page.$$eval('[aria-label="对话消息"] li[data-role="user"]', (e) => e.length));
+    check('confirmation screen replaced', 0, await page.$$eval('[data-screen-id="refund-confirmation"]', (e) => e.length));
+    check('no action bar after confirm', 0, await page.$$eval('[data-action-id]', (e) => e.length));
+    check('run status completed', 1, await page.$$eval(inLast('[data-run-status="completed"]'), (e) => e.length));
+    check('tool progress items after confirm', 4, await page.$$eval(inLast('[aria-label="工具进度"] li'), (e) => e.length));
     check('console errors', 0, errors.length);
     if (errors.length) console.log('    errors:', errors.slice(0, 3));
     await page.screenshot({ path: join(DEPLOY, 'ui-desktop-flow.png'), fullPage: true });
@@ -188,24 +211,29 @@ try {
     await sleep(600);
     check('intent text became user message', true, await page.$$eval('[aria-label="对话消息"] li[data-role="user"]', (e) => e.some((li) => li.textContent.includes('查看订单 10030 的物流'))));
     check('logistics card present', 1, await page.$$eval('[data-component-id="logistics"]', (e) => e.length));
+    // 聊天流：上一回合的订单表仍在页面上（历史回合只读保留），两个屏同时在 DOM
+    check('two turns visible', 2, await page.$$eval('[aria-label="对话消息"] li[data-role="user"]', (e) => e.length));
+    check('previous order table still in DOM', 1, await page.$$eval('[data-component-id="orders"]', (e) => e.length));
+    check('two screens in DOM', 2, await page.$$eval('[data-screen-id]', (e) => e.length));
     checkTrue('timeline items ≥ 3', (await page.$$eval('[data-component-id="logistics-events"] .ant-timeline-item', (e) => e.length)) >= 3);
     await page.screenshot({ path: join(DEPLOY, 'ui-logistics.png'), fullPage: true });
     await page.type('#agent-input', '有什么商品');
     await page.keyboard.press('Enter');
     await page.waitForSelector('[data-component-id="products"]', { timeout: 15000 });
     await sleep(600);
-    check('product table rows', 20, await page.$$eval('[data-component-id="products"] tbody tr', (e) => e.length));
+    check('product table rows', 20, await page.$$eval(inLast('[data-component-id="products"] tbody tr'), (e) => e.length));
     await page.screenshot({ path: join(DEPLOY, 'ui-product-table.png'), fullPage: true });
-    await page.click('[data-intent="查看商品 P-1003 的详情"]');
+    await page.click(inLast('[data-intent="查看商品 P-1003 的详情"]'));
     await page.waitForSelector('[data-component-id="product"]', { timeout: 15000 });
     await sleep(600);
     check('product card title', true, await page.$eval('[data-component-id="product"]', (e) => e.textContent.includes('无线耳机 Pro')));
     // change 5：Card.actions —— 详情卡「返回列表」→ 发「有什么商品」→ 回到商品表
     check('product card has 返回列表 intent', 1, await page.$$eval('[data-component-id="product"] [data-intent="有什么商品"]', (e) => e.length));
     await page.click('[data-component-id="product"] [data-intent="有什么商品"]');
-    await page.waitForSelector('[data-component-id="products"]', { timeout: 15000 });
+    await page.waitForSelector(inLast('[data-component-id="products"]'), { timeout: 15000 });
     await sleep(600);
-    check('返回列表 → product table again', 20, await page.$$eval('[data-component-id="products"] tbody tr', (e) => e.length));
+    check('返回列表 → product table again (new turn)', 20, await page.$$eval(inLast('[data-component-id="products"] tbody tr'), (e) => e.length));
+    check('five turns total', 5, await page.$$eval('[aria-label="对话消息"] li[data-role="user"]', (e) => e.length));
     check('console errors', 0, errors.length);
     if (errors.length) console.log('    errors:', errors.slice(0, 3));
     await page.close();

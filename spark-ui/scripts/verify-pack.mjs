@@ -37,6 +37,8 @@ const baselinePath = join(__dirname, 'verify-pack.baseline.json');
 const RUNTIME_EXPORTS = [
   'SchemaRenderer',
   'ActionBar',
+  'RunStatus',
+  'SchemaSkeleton',
   'UnknownComponent',
   'desktopRegistry',
   'mobileRegistry',
@@ -71,6 +73,10 @@ const TYPE_EXPORTS = [
   'DeviceKind',
   'SchemaRendererProps',
   'ActionBarProps',
+  'RunStatusProps',
+  'RunStatusKind',
+  'ToolStep',
+  'SchemaSkeletonProps',
   'SparkThemeTokens',
   'SparkThemeProviderProps',
 ];

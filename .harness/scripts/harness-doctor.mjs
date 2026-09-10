@@ -81,6 +81,18 @@ for (const forbidden of ['package.json', 'pnpm-lock.yaml', 'node_modules', 'tsco
   if (existsSync(join(root, forbidden))) err(`repo root must not contain ${forbidden} (sparkUiDir/ and sparkRooterDir/ are separate projects)`);
 }
 ok('repo root: no project files');
+
+// 根 README 用词门禁（change feat-chat-conversation-ui）：口号式 / AI 味词不进工程说明
+{
+  const readme = join(root, 'README.md');
+  if (existsSync(readme)) {
+    const text = await readFile(readme, 'utf-8');
+    const banned = ['一句话', '赋能', '全面', '极致', '赋予', '开箱即用', '无缝', '革命性', '重新定义'];
+    const hit = banned.filter((w) => text.includes(w));
+    if (hit.length) err(`README.md contains slogan-style words: ${hit.join(' / ')}`);
+    else ok('README.md free of slogan-style words');
+  }
+}
 for (const rel of sparkUiRequired) {
   if (existsSync(join(root, 'spark-ui', rel))) ok(`sparkUiDir: ${rel}`);
   else err(`missing sparkUiDir workspace file: sparkUiDir/${rel}`);

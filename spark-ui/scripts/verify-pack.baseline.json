@@ -1,5 +1,5 @@
 {
-  "distKb": 39,
-  "recordedAt": "2026-09-10T00:00:00.000Z",
-  "note": "change 5 T13: Card.actions 渲染 +1 KB（38 → 39）"
+  "distKb": 47,
+  "recordedAt": "2026-09-10T09:13:55.615Z",
+  "note": "change feat-chat-conversation-ui: RunStatus + SchemaSkeleton 两端实现（39 → 47 KB）"
 }

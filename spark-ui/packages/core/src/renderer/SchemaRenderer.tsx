@@ -19,17 +19,20 @@ export interface SchemaRendererProps {
   onFormChange?: (values: FormValues) => void;
   /** Table 行内指令 / Card.actions 点击：回调 intent 原文；宿主应把它当用户输入原样提交，不拼接、不改写。 */
   onIntent?: (intent: string) => void;
+  /** 历史回合只读：Form 禁用（令牌已失效，不该再填）。 */
+  readOnly?: boolean;
 }
 
-export function SchemaRenderer({ ui, onFormChange, onIntent }: SchemaRendererProps) {
+export function SchemaRenderer({ ui, onFormChange, onIntent, readOnly }: SchemaRendererProps) {
   const device = useDevice();
   const registry = device === 'mobile' ? mobileRegistry : desktopRegistry;
   const handlers = useMemo<ComponentHandlers>(
     () => ({
       ...(onFormChange ? { onChange: onFormChange } : {}),
       ...(onIntent ? { onIntent } : {}),
+      ...(readOnly ? { readOnly } : {}),
     }),
-    [onFormChange, onIntent],
+    [onFormChange, onIntent, readOnly],
   );
 
   return (
