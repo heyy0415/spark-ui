@@ -37,7 +37,7 @@ description: 阶段 2 / 4 评审循环。触发场景："评审 spec"、"评审�
 - [ ] 「非目标」章节存在且非空
 - [ ] 每条验收标准都可被命令或断言校验
 - [ ] 风险章节列出 ≥1 个失败模式与缓解措施
-- [ ] 每个 task 标注所属端（contracts / backed / fronted），且 contracts task 排在依赖它的 task 之前
+- [ ] 每个 task 标注所属端（contracts / spark-rooter / spark-ui），且 contracts task 排在依赖它的 task 之前
 - [ ] 涉及跨端结构的 task 列出对应契约文件
 - [ ] 每个 task 工作量 ≤ 0.5 天
 

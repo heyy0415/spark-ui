@@ -1,7 +1,7 @@
-# Spec: 后端模块（backed/）
+# Spec: 后端模块（spark-rooter/）
 
 ## 职责
-- 每个 Maven 模块闭合一个平台职责：`platform-spi` / `contracts-java` / `agent-runtime` / `tool-registry` / `tool-gateway` / `domains/*` / `app`。依赖方向以 `project-structure.md` §2 为准。
+- 每个 Maven 模块闭合一个平台职责：`spark-rooter-spi` / `spark-rooter-contracts` / `agent-runtime` / `tool-registry` / `tool-gateway` / `domains/*` / `app`。依赖方向以 `project-structure.md` §2 为准。
 - 包结构：`api`（controller、DTO）/ `application`（用例、端口接口）/ `domain`（实体、规则、状态机）/ `infra`（适配器、持久化、外部调用）。
 
 ## 模块模板
@@ -9,7 +9,7 @@
 ```
 {module}/
 ├── pom.xml
-└── src/main/java/com/strato/{module}/
+└── src/main/java/com/spark/{module}/
     ├── api/            # @RestController、request/response record
     ├── application/    # UseCase 类 + 出向端口接口（XxxPort）
     ├── domain/         # 纯 Java：实体、值对象、DomainException、状态机
@@ -59,7 +59,7 @@ public class ToolRegistryController {
 - ❌ Controller 内写 if/else 业务分支。
 - ❌ Runtime 模块 pom 依赖 `domains/*`。
 - ❌ runtime 内出现领域词汇的屏 / 策略（`refundConfirmation`、`DeletionPolicy` 之类）；领域模块 `infra/screen/` 调 `OrderSnapshotProvider`（屏只用 Gateway 输出）。
-- ❌ `domains/<a>` import `com.strato.domain.<b>`。
+- ❌ `domains/<a>` import `com.sparkrooter.examples.<b>`。
 - ❌ `catch (Exception e) { log.warn(...) }` 然后继续。
 - ❌ 用 `Map<String,Object>` 承载对外 DTO。
 

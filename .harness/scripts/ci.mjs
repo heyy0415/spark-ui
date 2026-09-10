@@ -5,8 +5,8 @@
  * 全仓单一质量门禁（在仓库根或 .harness/ 下执行均可）。按顺序：
  *   1. check-contracts      —— .harness/contracts/ Schema 与示例
  *   2. check-module-deps    —— 后端模块依赖红线
- *   3. fronted              —— pnpm -C fronted run ci（typecheck + lint + format:check + build）
- *   4. backed               —— ./mvnw -q -B verify（pom.xml 不存在时跳过）
+ *   3. spark-ui              —— pnpm -C spark-ui run ci（typecheck + lint + format:check + build）
+ *   4. spark-rooter               —— ./mvnw -q -B verify（pom.xml 不存在时跳过）
  *
  * 任一步骤非 0 立即停止并以该退出码退出。最后打印每步退出码摘要。
  */
@@ -23,12 +23,12 @@ const steps = [
   { name: 'check-contracts', cmd: 'node', args: [join(harness, 'scripts', 'check-contracts.mjs')] },
   { name: 'check-module-deps', cmd: 'node', args: [join(harness, 'scripts', 'check-module-deps.mjs')] },
   { name: 'check-seed', cmd: 'node', args: [join(harness, 'scripts', 'check-seed.mjs')] },
-  { name: 'fronted', cmd: 'pnpm', args: ['-C', join(root, 'fronted'), 'run', 'ci'] },
+  { name: 'spark-ui', cmd: 'pnpm', args: ['-C', join(root, 'spark-ui'), 'run', 'ci'] },
   {
-    name: 'backed',
+    name: 'spark-rooter',
     cmd: 'node',
     args: [join(harness, 'scripts', 'mvn.mjs'), '-q', '-B', 'verify'],
-    skipIf: () => !existsSync(join(root, 'backed', 'pom.xml')),
+    skipIf: () => !existsSync(join(root, 'spark-rooter', 'pom.xml')),
   },
 ];
 

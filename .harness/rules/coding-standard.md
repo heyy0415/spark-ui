@@ -14,7 +14,7 @@
 
 - 所有从外部进入应用的数据（API、URL 参数、localStorage、postMessage）**必须** Zod 校验。
 - 校验失败应抛出 `HttpError` 或显式错误，**不允许** `as Foo` 强转外部数据。
-- 契约投影真源分工：ui-schema 在 `@strato-ui/core`（`fronted/packages/core/src/schema/uiSchema.ts`），其余契约在 `apps/chat` 的 `entities/{x}/model/types.ts`；其他模块只 import，不重复定义。
+- 契约投影真源分工：ui-schema 在 `@spark-ui/core`（`spark-ui/packages/core/src/schema/uiSchema.ts`），其余契约在 `apps/chat` 的 `entities/{x}/model/types.ts`；其他模块只 import，不重复定义。
 
 ## 3. 数值与单位约束
 
@@ -31,8 +31,8 @@
   - **同页面 UI 状态** → `useState` / `useReducer`。
 - **禁止**在组件渲染期间执行副作用（log、读 localStorage、router push）。
 - 避免在依赖数组中放对象字面量；必要时用 `useMemo`。
-- **组件库**：桌面端 antd 6，移动端 antd-mobile 5。只允许在 `fronted/packages/core/src/components/**` 与 `fronted/packages/core/src/theme/**` 内 import 这两个库；`apps/chat` 任何文件不得 import antd / antd-mobile / @ant-design，只能使用 `@strato-ui/core` 包入口导出（禁止 `@strato-ui/core/src/*` 深路径）。oxlint `no-restricted-imports` 守护。
-- **core 组件 = 官方组件映射**：`fronted/packages/core/src/components/{desktop,mobile}/*.tsx` 文件名必须等于契约 `componentType`（`ActionBar` 例外），即 antd / antd-mobile 官方组件名；禁止业务命名组件（`OrderCard` / `RefundConfirmCard` 之类）；这些文件只能 import `antd` / `antd-mobile` / `react` / 本包 `registry` / `schema`。新增 type 前先回答「能否用现有五个组件的 props 表达」。`check-registry` 机械守护。
+- **组件库**：桌面端 antd 6，移动端 antd-mobile 5。只允许在 `spark-ui/packages/core/src/components/**` 与 `spark-ui/packages/core/src/theme/**` 内 import 这两个库；`apps/chat` 任何文件不得 import antd / antd-mobile / @ant-design，只能使用 `@spark-ui/core` 包入口导出（禁止 `@spark-ui/core/src/*` 深路径）。oxlint `no-restricted-imports` 守护。
+- **core 组件 = 官方组件映射**：`spark-ui/packages/core/src/components/{desktop,mobile}/*.tsx` 文件名必须等于契约 `componentType`（`ActionBar` 例外），即 antd / antd-mobile 官方组件名；禁止业务命名组件（`OrderCard` / `RefundConfirmCard` 之类）；这些文件只能 import `antd` / `antd-mobile` / `react` / 本包 `registry` / `schema`。新增 type 前先回答「能否用现有五个组件的 props 表达」。`check-registry` 机械守护。
 - antd 主题只通过 `ConfigProvider` 的 `theme.token` 配置，与 `app/styles/global.css` 的 CSS 变量保持同一套色值；禁止覆盖 antd 内部类名。
 
 ## 5. Hook 规则

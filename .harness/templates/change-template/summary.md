@@ -6,7 +6,7 @@
 | 类型 | {{TYPE}} |
 | 状态 | DRAFT |
 | 负责人 | Platform Owner Agent |
-| 涉及端 | contracts / backed / fronted（按需删减） |
+| 涉及端 | contracts / spark-rooter / spark-ui（按需删减） |
 | 起止时间 | {{DATE}} ~ — |
 | Spec | [request_analysis/spec.md](request_analysis/spec.md) |
 | Tasks | [request_analysis/tasks.md](request_analysis/tasks.md) |

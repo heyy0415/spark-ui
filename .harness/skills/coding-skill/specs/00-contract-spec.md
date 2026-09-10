@@ -9,7 +9,7 @@
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://strato.local/contracts/v1/{name}.schema.json",
+  "$id": "https://spark-rooter.local/contracts/v1/{name}.schema.json",
   "title": "{Name}",
   "description": "一句话说明用途与方向（谁 → 谁）",
   "type": "object",

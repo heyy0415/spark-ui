@@ -17,7 +17,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const dataDir = (svc) => join(root, 'backed', 'domains', `${svc}-service`, 'src', 'main', 'resources', 'data');
+const dataDir = (svc) => join(root, 'spark-rooter', 'examples', 'domains', `${svc}-service`, 'src', 'main', 'resources', 'data');
 let errors = 0;
 const fail = (m) => {
   console.error(`✗ ${m}`);

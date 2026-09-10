@@ -1,9 +1,9 @@
 {
-  "name": "strato-harness",
+  "name": "spark-harness",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Harness 自用脚本的依赖。不是业务工程；fronted/ 与 backed/ 各自独立。",
+  "description": "Harness 自用脚本的依赖。不是业务工程；spark-ui/ 与 spark-rooter/ 各自独立。",
   "engines": {
     "node": ">=20.19.0"
   },

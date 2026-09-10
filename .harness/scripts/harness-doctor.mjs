@@ -63,29 +63,29 @@ const required = [
   'scripts/lib/change-dir.sh',
   'package.json',
 ];
-// fronted 是 pnpm workspace：根 + packages/core + apps/chat（spec feat-strato-ui-monorepo §2.1）
-const frontedRequired = [
+// sparkUiDir 是 pnpm workspace：根 + packages/core + apps/chat（spec feat-spark-ui-monorepo §2.1）
+const sparkUiRequired = [
   'pnpm-workspace.yaml',
   '.npmrc',
   'packages/core/package.json',
   'apps/chat/package.json',
 ];
-for (const rel of ['fronted', 'backed']) {
+for (const rel of ['spark-ui', 'spark-rooter']) {
   if (existsSync(join(root, rel))) ok(`dir: ${rel}/`);
   else err(`missing top-level dir: ${rel}/`);
 }
 if (existsSync(join(H, 'contracts'))) ok('dir: .harness/contracts/');
 else err('missing .harness/contracts/');
 for (const forbidden of ['package.json', 'pnpm-lock.yaml', 'node_modules', 'tsconfig.json', 'pom.xml']) {
-  if (existsSync(join(root, forbidden))) err(`repo root must not contain ${forbidden} (fronted/ and backed/ are separate projects)`);
+  if (existsSync(join(root, forbidden))) err(`repo root must not contain ${forbidden} (sparkUiDir/ and sparkRooterDir/ are separate projects)`);
 }
 ok('repo root: no project files');
-for (const rel of frontedRequired) {
-  if (existsSync(join(root, 'fronted', rel))) ok(`fronted: ${rel}`);
-  else err(`missing fronted workspace file: fronted/${rel}`);
+for (const rel of sparkUiRequired) {
+  if (existsSync(join(root, 'spark-ui', rel))) ok(`sparkUiDir: ${rel}`);
+  else err(`missing sparkUiDir workspace file: sparkUiDir/${rel}`);
 }
-if (existsSync(join(root, 'fronted', 'src'))) err('fronted/src must not exist (old single-app layout; code lives in fronted/apps/chat/src and fronted/packages/core/src)');
-else ok('fronted: no legacy src/');
+if (existsSync(join(root, 'spark-ui', 'src'))) err('sparkUiDir/src must not exist (old single-app layout; code lives in sparkUiDir/apps/chat/src and sparkUiDir/packages/core/src)');
+else ok('sparkUiDir: no legacy src/');
 for (const rel of required) {
   if (existsSync(join(H, rel))) ok(`required: ${rel}`);
   else err(`missing required file: .harness/${rel}`);
@@ -151,9 +151,9 @@ for (const name of skillNames) {
   if (hits === 0) ok('pnpm command form: all use "pnpm -C .harness run <script>"');
 }
 
-// 文档路径存在检查（Hashimoto：文档引用的 fronted/ 路径必须真实存在，防止布局迁移后规则指向不存在的文件）
-// 规则（spec feat-strato-ui-monorepo §2.5）：扫描 rules / skills / wiki / agents / CLAUDE.md / AGENTS.md（不含 changes/）；
-// 只取反引号内以 `fronted/` 开头且不含空格的 token；含 * 或 { 时取第一个通配符之前的目录前缀；跳过 node_modules / dist。
+// 文档路径存在检查（Hashimoto：文档引用的 sparkUiDir/ 路径必须真实存在，防止布局迁移后规则指向不存在的文件）
+// 规则（spec feat-spark-ui-monorepo §2.5）：扫描 rules / skills / wiki / agents / CLAUDE.md / AGENTS.md（不含 changes/）；
+// 只取反引号内以 `spark-ui/` 开头且不含空格的 token；含 * 或 { 时取第一个通配符之前的目录前缀；跳过 node_modules / dist。
 {
   const { readdir: rd } = await import('node:fs/promises');
   const scanMd = async (dir) => {
@@ -173,7 +173,7 @@ for (const name of skillNames) {
   for (const doc of docs) {
     if (!existsSync(doc)) continue;
     const text = await readFile(doc, 'utf-8');
-    for (const m of text.matchAll(/`(fronted\/[^`\s]+)`/g)) {
+    for (const m of text.matchAll(/`(sparkUiDir\/[^`\s]+)`/g)) {
       const token = m[1];
       if (token.includes('node_modules') || token.includes('dist')) continue;
       const wild = token.search(/[*{]/);
@@ -184,7 +184,7 @@ for (const name of skillNames) {
       }
     }
   }
-  if (missing === 0) ok('doc paths: every `fronted/...` reference exists');
+  if (missing === 0) ok('doc paths: every `sparkUiDir/...` reference exists');
 }
 
 // 脚本不得硬编码某个 change 的目录；统一经 scripts/lib/change-dir 定位

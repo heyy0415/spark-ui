@@ -45,9 +45,9 @@
 | 项 | 内容 |
 |---|---|
 | 入场 | 阶段 2 通过 + 用户确认 |
-| Skill | `coding-skill`（分层 Spec：契约 1 + 后端 1 + 前端 5；编码顺序 contracts → backed → fronted） |
+| Skill | `coding-skill`（分层 Spec：契约 1 + 后端 1 + 前端 5；编码顺序 contracts → spark-rooter → spark-ui） |
 | 产出 | 代码变更 + `coding/coding_report_v{n}.md`（含改动文件列表、所属端、关键决策记录） |
-| 门禁 | `pnpm -C .harness run check-contracts` 通过；`pnpm -C fronted typecheck` 通过；`node .harness/scripts/mvn.mjs -q -B compile` 通过；改动符合 `project-structure.md` 红线 |
+| 门禁 | `pnpm -C .harness run check-contracts` 通过；`pnpm -C spark-ui typecheck` 通过；`node .harness/scripts/mvn.mjs -q -B compile` 通过；改动符合 `project-structure.md` 红线 |
 
 ---
 
@@ -95,7 +95,7 @@
 |---|---|
 | 入场 | 阶段 6 通过 |
 | Skill | `deploy-verify` |
-| 产出 | `deployment/preview_report.md`（前端截图 + console.error 数、后端 `/actuator/health` 结果、端到端一条 Run 的 SSE 事件序列）。`deployment/` 由 `scripts/lib/change-dir` 定位；并行多个 change 时必须显式 `STRATO_CHANGE=<change-id>` |
+| 产出 | `deployment/preview_report.md`（前端截图 + console.error 数、后端 `/actuator/health` 结果、端到端一条 Run 的 SSE 事件序列）。`deployment/` 由 `scripts/lib/change-dir` 定位；并行多个 change 时必须显式 `SPARK_CHANGE=<change-id>` |
 | 门禁 | 前端 bundle 未恶化（< +10%）；预览页面 console.error == 0；后端 health UP；示例 Run 走通至 `run.completed` |
 | **HITL 确认点 ④** | 部署参数（环境、域名、灰度比例）由人工最终确认 |
 

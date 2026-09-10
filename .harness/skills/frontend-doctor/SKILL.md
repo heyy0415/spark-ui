@@ -24,15 +24,15 @@ description: 任意阶段卡死、CI 失败、构建报错、运行时异常、R
 
 ### 2. 二分查找
 - `git bisect` 定位首个引入失败的提交。
-- 关 cache：`rm -rf fronted/node_modules/.vite`；`node .harness/scripts/mvn.mjs clean`。
+- 关 cache：`rm -rf spark-ui/node_modules/.vite`；`node .harness/scripts/mvn.mjs clean`。
 
 ### 3. 收集证据
 | 现象 | 收集物 |
 |---|---|
 | 契约校验失败 | `pnpm -C .harness run check-contracts` 全文，定位 Schema 与示例的差异字段 |
-| 前端 typecheck / lint 失败 | `pnpm -C fronted typecheck 2>&1 \| head -50`、`pnpm -C fronted lint` |
+| 前端 typecheck / lint 失败 | `pnpm -C spark-ui typecheck 2>&1 \| head -50`、`pnpm -C spark-ui lint` |
 | 后端编译 / 格式失败 | `node .harness/scripts/mvn.mjs -e verify` 完整日志 |
-| 构建失败 | `pnpm -C fronted build --mode=development`；`node .harness/scripts/mvn.mjs -X package` |
+| 构建失败 | `pnpm -C spark-ui build --mode=development`；`node .harness/scripts/mvn.mjs -X package` |
 | 前端运行时错误 | 浏览器 console、network、source map 栈 |
 | 后端运行时错误 | 按 `runId` grep 日志；`/actuator/health`；审计记录 |
 | Run 卡住 | 该 Run 的状态机迁移日志、最后一条 SSE 事件、Gateway 审计中对应 `toolCallId` |

@@ -197,7 +197,7 @@ pnpm -C .harness run new-change chore add-audit-step
    - 只能写成文字？→ 加到 Skill Checklist
    - 当前 change 特有？→ 留在 summary.md，不升级
 4. 修改后在 `chore-harness-evolve-YYYYMM/` change 提交。
-5. 跑 `pnpm -C .harness run doctor` + `pnpm -C fronted lint` 自检。
+5. 跑 `pnpm -C .harness run doctor` + `pnpm -C spark-ui lint` 自检。
 
 **写作要点**：
 - Rule 必须**指向一个真实失败案例**（"金额必须用 string 单位分" 背后是某次精度 bug）。

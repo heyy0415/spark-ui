@@ -2,31 +2,31 @@
 
 ## 一句话
 
-> Strato UI 负责交互，Agent Runtime 负责理解与规划，Tool Registry 负责能力发现与治理（控制面），Tool Gateway 负责安全执行（执行面），领域服务负责确定性业务执行。
+> Spark UI 负责交互，Agent Runtime 负责理解与规划，Tool Registry 负责能力发现与治理（控制面），Tool Gateway 负责安全执行（执行面），领域服务负责确定性业务执行。
 
 ## 四层总览
 
 ```
-┌──────── fronted/ apps/chat + @strato-ui/core（Strato UI） ─┐
+┌──────── spark-ui/ apps/chat + @spark-ui/core（Spark UI） ─┐
 │ chat 应用壳 + 引擎包：Schema Renderer + Registry（白名单）   │
 │ 输入采集、动态表单、确认卡片、结果展示、SSE 流式更新        │
 └───────────────────────┬───────────────────────────────────┘
                         │ IntentRequest / ActionRequest（HTTP）
                         │ SSE 事件流
 ┌───────────────────────▼───────────────────────────────────┐
-│               backed/agent-runtime                        │
+│               spark-rooter/spark-rooter-runtime                        │
 │ 领域路由（规则 → 模型分类）→ 工具发现 → 实体检查 → 规划   │
 │ Policy / Permission → Run 状态机 → SSE 输出               │
 └──────────────┬────────────────────────────┬──────────────┘
                │ 查询能力（控制面）          │ 执行调用（执行面）
 ┌──────────────▼──────────────┐   ┌─────────▼──────────────┐
-│   backed/tool-registry      │   │   backed/tool-gateway  │
+│   spark-rooter/spark-rooter-registry      │   │   spark-rooter/spark-rooter-gateway  │
 │ Manifest、版本、权限、风险、  │   │ 鉴权、Schema 校验、寻址、│
 │ 状态、Owner；不转发调用       │   │ 超时/重试、幂等、审计    │
 └──────────────┬──────────────┘   └─────────┬──────────────┘
                │ 注册（CI/CD）                │ 调用
 ┌──────────────▼─────────────────────────────▼──────────────┐
-│               backed/domains/*  领域服务                   │
+│               spark-rooter/examples/domains/*  领域服务                   │
 │         order-service │ refund-service │ …                 │
 └───────────────────────────────────────────────────────────┘
 ```
@@ -45,16 +45,16 @@
 
 ## 前端 FSD 分层
 
-`fronted/` 是 pnpm workspace：`packages/core`（`@strato-ui/core`，Strato UI 渲染引擎，可发包）+ `apps/chat`（唯一应用，FSD `app → pages → features → entities → shared` 单向）。Renderer、ComponentRegistry 与全部白名单封装位于 `fronted/packages/core/src/`，按端型分 `components/desktop/`（antd）与 `components/mobile/`（antd-mobile）；端型由宿主挂载的 `StratoDeviceProvider` 一次性决定；ui-schema 的 Zod 投影真源也在 core，chat 的其余契约投影组合引用它。
+`spark-ui/` 是 pnpm workspace：`packages/core`（`@spark-ui/core`，Spark UI 渲染引擎，可发包）+ `apps/chat`（唯一应用，FSD `app → pages → features → entities → shared` 单向）。Renderer、ComponentRegistry 与全部白名单封装位于 `spark-ui/packages/core/src/`，按端型分 `components/desktop/`（antd）与 `components/mobile/`（antd-mobile）；端型由宿主挂载的 `SparkDeviceProvider` 一次性决定；ui-schema 的 Zod 投影真源也在 core，chat 的其余契约投影组合引用它。
 
 ## 后端模块依赖
 
 ```
 app → 全部模块（唯一可依赖 domains/* 的非领域模块）
 agent-runtime → { tool-registry(api), tool-gateway(api) }
-tool-gateway → tool-registry(ToolResolver) ；通过 platform-spi 的 ToolHandler SPI 调用领域实现，pom 不依赖 domains/*
-domains/* → platform-spi , contracts-java（实现 ToolHandler、ToolManifestSource、ScreenBuilder、ConfirmationRecheck；互不 import，跨领域读订单经 spi OrderSnapshotProvider）
-所有模块 → contracts-java , platform-spi
+tool-gateway → tool-registry(ToolResolver) ；通过 spark-rooter-spi 的 ToolHandler SPI 调用领域实现，pom 不依赖 domains/*
+domains/* → spark-rooter-spi , spark-rooter-contracts（实现 ToolHandler、ToolManifestSource、ScreenBuilder、ConfirmationRecheck；互不 import，跨领域读订单经 spi OrderSnapshotProvider）
+所有模块 → spark-rooter-contracts , spark-rooter-spi
 ```
 
 ## 状态管理边界（前端）

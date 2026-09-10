@@ -1,6 +1,6 @@
 ---
 name: coding-skill
-description: 阶段 3 — 编码实现。触发场景："写代码"、"实现 feature"、"开发组件"、"新增端点"、"实现工具"。基于 spec/tasks 按分层 Spec 完成代码变更，顺序 contracts → backed → fronted，产出 coding_report 并通过编译门禁。
+description: 阶段 3 — 编码实现。触发场景："写代码"、"实现 feature"、"开发组件"、"新增端点"、"实现工具"。基于 spec/tasks 按分层 Spec 完成代码变更，顺序 contracts → spark-rooter → spark-ui，产出 coding_report 并通过编译门禁。
 ---
 
 # Skill: coding-skill
@@ -25,12 +25,12 @@ plan minimal diff
 write code following spec
 run 门禁：
   contracts → pnpm -C .harness run check-contracts
-  backed    → node .harness/scripts/mvn.mjs -q -B compile
-  fronted   → pnpm -C fronted typecheck
+  spark-rooter    → node .harness/scripts/mvn.mjs -q -B compile
+  spark-ui   → pnpm -C spark-ui typecheck
 write coding_report entry
 ```
 
-编码顺序固定：**contracts → backed → fronted**。前端不得在契约未落地时先写 Zod 投影。
+编码顺序固定：**contracts → spark-rooter → spark-ui**。前端不得在契约未落地时先写 Zod 投影。
 
 ## 输出
 - 代码变更（最小必要 diff）

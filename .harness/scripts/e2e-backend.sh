@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 # 端到端验收脚本（spec §6.2 第 5–15 条 + 阶段 4 评审补充的反例）。用法：bash .harness/scripts/e2e-backend.sh
-# 前置：backed/app/target/app.jar 已构建；JDK 21 在 ~/.jenv/versions/21。
+# 前置：spark-rooter/app/target/app.jar 已构建；JDK 21 在 ~/.jenv/versions/21。
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$ROOT/.harness/scripts/lib/change-dir.sh"
 P="$ROOT/.harness/scripts/sse-parse.mjs"
 JAVA="$HOME/.jenv/versions/21/bin/java"
-# 端口可用 STRATO_PORT 覆盖（默认 8080；本机另有实例时用 8091 等，脚本会自己起一个）
-PORT="${STRATO_PORT:-8080}"
+# 端口可用 SPARK_PORT 覆盖（默认 8080；本机另有实例时用 8091 等，脚本会自己起一个）
+PORT="${SPARK_PORT:-8080}"
 BASE="http://localhost:$PORT"
 HDR=(-H 'Content-Type: application/json' -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' -H 'X-Trace-Id: trace_e2e')
 pass=0; fail=0
 # 规则规划器毫秒级；接真实模型时规划 5–15s，SSE 读取超时随之放大
 # 真模型单次规划实测 5–70s（含网关抖动重试），SSE 读取超时给到 90s
-if [ -n "${STRATO_LLM_API_KEY:-}" ]; then SSE_T=90; LIVE_LLM=1; else SSE_T=8; LIVE_LLM=0; fi
+if [ -n "${SPARK_LLM_API_KEY:-}" ]; then SSE_T=90; LIVE_LLM=1; else SSE_T=8; LIVE_LLM=0; fi
 check() { # $1 name  $2 expected  $3 actual
   if [ "$2" = "$3" ]; then echo "  ✓ $1: $3"; pass=$((pass+1)); else echo "  ✗ $1: expected [$2] got [$3]"; fail=$((fail+1)); fi
 }
@@ -26,10 +26,10 @@ pkill -f "app/target/app.jar --server.port=$PORT" 2>/dev/null; sleep 1
 owner=$(lsof -tnP -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | head -1)
 if [ -n "${owner}" ]; then
   echo "port $PORT is held by PID ${owner}: $(ps -o command= -p "${owner}" | cut -c1-80)"
-  echo "e2e-backend needs exclusive port $PORT; stop that process or set STRATO_PORT, and rerun."
+  echo "e2e-backend needs exclusive port $PORT; stop that process or set SPARK_PORT, and rerun."
   exit 2
 fi
-(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/backed/app/target/app.jar" --server.port="$PORT" > "$DEPLOY/backend.log" 2>&1 &)
+(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/spark-rooter/app/target/app.jar" --server.port="$PORT" > "$DEPLOY/backend.log" 2>&1 &)
 for i in $(seq 1 40); do sleep 1; grep -q "selfcheck: running" "$DEPLOY/backend.log" 2>/dev/null && break; grep -q "Application run failed" "$DEPLOY/backend.log" 2>/dev/null && break; done; sleep 2
 if grep -q "Application run failed" "$DEPLOY/backend.log"; then echo "BOOT FAILED"; grep -m1 -A2 "Application run failed" "$DEPLOY/backend.log"; exit 1; fi
 echo "boot: ready after ${i}s"
@@ -277,17 +277,17 @@ check "§6.2.14 audit fields" 9 "$(grep -m1 'audit runId=' "$DEPLOY/backend.log"
 check "§6.2.15 user text in log" 0 "$(grep -c '帮我把这个订单退款' "$DEPLOY/backend.log")"
 check "ERROR lines" 0 "$(grep -c ' ERROR ' "$DEPLOY/backend.log")"
 # 冻结产物红线：变更目录内（含报告 / 评审）不得出现 LLM 网关主机名或密钥字面量（只允许写环境变量名）
-if [ -n "${STRATO_LLM_BASE_URL:-}" ]; then
-  LLM_HOST2=$(printf '%s' "$STRATO_LLM_BASE_URL" | sed -E 's#^[a-z]+://##; s#[/:].*$##')
+if [ -n "${SPARK_LLM_BASE_URL:-}" ]; then
+  LLM_HOST2=$(printf '%s' "$SPARK_LLM_BASE_URL" | sed -E 's#^[a-z]+://##; s#[/:].*$##')
   check "LIVE: LLM host not in change dir" 0 "$(grep -rl -- "$LLM_HOST2" "$DEPLOY/.." | wc -l | tr -d ' ')"
-  check "LIVE: LLM key not in change dir" 0 "$(grep -rl -- "$STRATO_LLM_API_KEY" "$DEPLOY/.." | wc -l | tr -d ' ')"
-  check "LIVE: LLM model not in change dir" 0 "$(grep -rl -- "$STRATO_LLM_MODEL" "$DEPLOY/.." | wc -l | tr -d ' ')"
+  check "LIVE: LLM key not in change dir" 0 "$(grep -rl -- "$SPARK_LLM_API_KEY" "$DEPLOY/.." | wc -l | tr -d ' ')"
+  check "LIVE: LLM model not in change dir" 0 "$(grep -rl -- "$SPARK_LLM_MODEL" "$DEPLOY/.." | wc -l | tr -d ' ')"
 fi
 if [ "$LIVE_LLM" = 1 ]; then
   # 冻结产物红线：LLM 网关地址与密钥不得出现在日志（Spring 异常消息会带完整 URL，靠 RetryTemplate 监听器与规划器包装拦住）
-  LLM_HOST=$(printf '%s' "${STRATO_LLM_BASE_URL:-}" | sed -E 's#^[a-z]+://##; s#[/:].*$##')
+  LLM_HOST=$(printf '%s' "${SPARK_LLM_BASE_URL:-}" | sed -E 's#^[a-z]+://##; s#[/:].*$##')
   check "LIVE: LLM host not in log" 0 "$(grep -c -- "$LLM_HOST" "$DEPLOY/backend.log")"
-  check "LIVE: LLM key not in log" 0 "$(grep -c -- "$STRATO_LLM_API_KEY" "$DEPLOY/backend.log")"
+  check "LIVE: LLM key not in log" 0 "$(grep -c -- "$SPARK_LLM_API_KEY" "$DEPLOY/backend.log")"
 fi
 check "⑤ route decisions logged" 1 "$([ "$(grep -c 'route runId=.* source=' "$DEPLOY/backend.log")" -ge 3 ] && echo 1 || echo 0)"
 

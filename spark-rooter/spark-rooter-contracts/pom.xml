@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.sparkrooter</groupId>
+    <artifactId>spark-rooter-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>spark-rooter-contracts</artifactId>
+  <name>spark-rooter-contracts</name>
+
+  <dependencies>
+    <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-spi</artifactId></dependency>
+    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId></dependency>
+    <dependency><groupId>com.networknt</groupId><artifactId>json-schema-validator</artifactId></dependency>
+    <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-api</artifactId></dependency>
+    <dependency><groupId>jakarta.validation</groupId><artifactId>jakarta.validation-api</artifactId></dependency>
+    <!-- 仅 infra/selfcheck 用到 @Component；domain / model 包不得 import Spring（check-module-deps 守护） -->
+    <dependency><groupId>org.springframework</groupId><artifactId>spring-context</artifactId></dependency>
+  </dependencies>
+
+  <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <!-- 契约真源在 .harness/contracts/，构建时复制进 jar；契约先改、两端后改 -->
+      <resource>
+        <directory>${project.basedir}/../../.harness/contracts</directory>
+        <targetPath>contracts</targetPath>
+        <includes>
+          <include>*.schema.json</include>
+          <include>examples/*.example.json</include>
+        </includes>
+      </resource>
+    </resources>
+    <plugins>
+      <!-- jar 内无法列目录：把 examples 文件名写成 INDEX，供 ContractsSelfCheck 遍历 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>3.2.0</version>
+        <executions>
+          <execution>
+            <id>examples-index</id>
+            <phase>generate-resources</phase>
+            <goals><goal>run</goal></goals>
+            <configuration>
+              <target>
+                <mkdir dir="${project.build.outputDirectory}/contracts/examples"/>
+                <fileset id="ex" dir="${project.basedir}/../../.harness/contracts/examples" includes="*.example.json"/>
+                <pathconvert property="examples.index" refid="ex" pathsep="${line.separator}">
+                  <mapper type="flatten"/>
+                </pathconvert>
+                <echo file="${project.build.outputDirectory}/contracts/examples/INDEX" message="${examples.index}${line.separator}"/>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -9,21 +9,21 @@ description: 阶段 7 — 部署 / 预览验证。触发场景："部署验证"�
 阶段 6 CI 通过后，进入阶段 7。
 
 ## 输入
-- 前端 `fronted/apps/chat/dist/` 与 `fronted/packages/core/dist/`，后端 `backed/app/target/*.jar`
+- 前端 `spark-ui/apps/chat/dist/` 与 `spark-ui/packages/core/dist/`，后端 `spark-rooter/app/target/*.jar`
 - `deployment/` 目录（落产出）
 
 ## 步骤
 
-全部步骤已脚本化：`pnpm -C .harness run deploy-verify`（= `scripts/deploy-verify.sh`，一次性生成并冻结 `deployment/` 全部产物；要求 8080 / 4173 未被其他进程占用，否则退出码 2）。`deployment/` 由 `scripts/lib/change-dir` 定位：默认取唯一非 DONE / DELIVERED 的 change，**并行多个 change 时必须显式 `STRATO_CHANGE=<change-id>`**。以下为脚本做的事：
+全部步骤已脚本化：`pnpm -C .harness run deploy-verify`（= `scripts/deploy-verify.sh`，一次性生成并冻结 `deployment/` 全部产物；要求 8080 / 4173 未被其他进程占用，否则退出码 2）。`deployment/` 由 `scripts/lib/change-dir` 定位：默认取唯一非 DONE / DELIVERED 的 change，**并行多个 change 时必须显式 `SPARK_CHANGE=<change-id>`**。以下为脚本做的事：
 
 ```bash
 # 1. 后端启动与健康
-STRATO_LLM_BASE_URL=... STRATO_LLM_API_KEY=... java -jar backed/app/target/app.jar &
+SPARK_LLM_BASE_URL=... SPARK_LLM_API_KEY=... java -jar spark-rooter/app/target/app.jar &
 BE=$!
 for i in $(seq 1 30); do curl -sf http://localhost:8080/actuator/health && break; sleep 1; done
 
 # 2. 前端预览
-pnpm -C fronted run preview &   # = apps/chat 的 vite preview :4173
+pnpm -C spark-ui run preview &   # = apps/chat 的 vite preview :4173
 FE=$!
 sleep 3
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:4173/
@@ -39,9 +39,9 @@ grep -q "run.completed\|confirmation.required" deployment/run_events.log
 kill $FE $BE
 
 # 5. 体积报告
-ls -la fronted/apps/chat/dist/assets/*.js | awk '{print $5, $9}' > deployment/bundle_size.txt
-find fronted/packages/core/dist -name '*.js' -exec ls -la {} + | awk '{print $5, $9}' >> deployment/bundle_size.txt
-ls -la backed/app/target/*.jar   | awk '{print $5, $9}' >> deployment/bundle_size.txt
+ls -la spark-ui/apps/chat/dist/assets/*.js | awk '{print $5, $9}' > deployment/bundle_size.txt
+find spark-ui/packages/core/dist -name '*.js' -exec ls -la {} + | awk '{print $5, $9}' >> deployment/bundle_size.txt
+ls -la spark-rooter/app/target/*.jar   | awk '{print $5, $9}' >> deployment/bundle_size.txt
 ```
 
 ## 产出
@@ -53,7 +53,7 @@ ls -la backed/app/target/*.jar   | awk '{print $5, $9}' >> deployment/bundle_siz
 - bundle 单 chunk > 250KB gzip 且未记录 → 回阶段 3
 
 ## Checklist
-- [ ] `pnpm -C fronted run build` 与 `node .harness/scripts/mvn.mjs package` 退出码 0
+- [ ] `pnpm -C spark-ui run build` 与 `node .harness/scripts/mvn.mjs package` 退出码 0
 - [ ] `/actuator/health` 返回 `"status":"UP"`
 - [ ] 预览首页 console.error == 0
 - [ ] 示例 Run SSE 事件序列含 `run.started` 与终态事件

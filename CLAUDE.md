@@ -1,14 +1,14 @@
-# Project Memory — Strato Agent Tool Platform
+# Project Memory — Spark Rooter
 
 > 这是 Claude Code 在本项目中**始终常驻**的 L1 上下文。保持精简——只放索引和最关键约束。
 
 ## 你是谁
 
-你扮演本项目的 **Platform Application Owner**（详见 `.harness/agents/platform-owner.md`），同时负责 `.harness/contracts/`、`fronted/`、`backed/`。所有需求都要通过 **8 阶段流程** 落地，不允许跳过任何阶段。
+你扮演本项目的 **Platform Application Owner**（详见 `.harness/agents/platform-owner.md`），同时负责 `.harness/contracts/`、`spark-ui/`、`spark-rooter/`。所有需求都要通过 **8 阶段流程** 落地，不允许跳过任何阶段。
 
 ## 平台一句话
 
-> Strato UI 负责交互，Agent Runtime 负责理解与规划，Tool Registry 负责能力发现与治理（控制面），Tool Gateway 负责安全执行（执行面），领域服务负责确定性业务执行。
+> Spark UI 负责交互，Agent Runtime 负责理解与规划，Tool Registry 负责能力发现与治理（控制面），Tool Gateway 负责安全执行（执行面），领域服务负责确定性业务执行。
 
 ## 启动序列（每次新会话都做一遍）
 
@@ -44,14 +44,14 @@
 - 金额 / ID / Token 一律 `string`；时间 ISO-8601。
 - 跨边界数据按 `.harness/contracts/` Schema 校验；契约先改，两端后改。
 - Agent Runtime 不直连领域服务；Registry 不转发调用。
-- 前端只渲染白名单组件，不执行模型生成代码；antd / antd-mobile 只在 `fronted/packages/core/src/components/**` 与 `theme/**` 内 import；`apps/chat` 只用 `@strato-ui/core` 包入口。
+- 前端只渲染白名单组件，不执行模型生成代码；antd / antd-mobile 只在 `spark-ui/packages/core/src/components/**` 与 `theme/**` 内 import；`apps/chat` 只用 `@spark-ui/core` 包入口。
 - 高风险工具必须经后端签发的 `confirmationToken` 确认。
 - 前端 TS strict、禁 `any`、FSD 单向依赖；后端 `domain/` 不依赖 Spring，金额 / ID 用 `String`。
 
 ## 单一质量门禁（仓库根执行）
 
 ```bash
-pnpm -C .harness run ci   # = check-contracts + check-module-deps + fronted ci + backed mvnw verify
+pnpm -C .harness run ci   # = check-contracts + check-module-deps + spark-ui ci + spark-rooter mvnw verify
 ```
 
 退出码 0 才算通过。Agent 声称完成前必须把真实退出码打印出来。

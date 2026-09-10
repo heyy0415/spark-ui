@@ -26,7 +26,7 @@ description: 阶段 1 — 需求分析。触发场景："新需求"、"需求分
    - **风险与权衡**：至少覆盖 `agent-safety.md` 相关的一项
 4. **写 tasks.md**（每个 task 六要素）：
    - 目标（Goal）
-   - 所属端（Side）：contracts / backed / fronted / harness
+   - 所属端（Side）：contracts / spark-rooter / spark-ui / harness
    - 输入（Inputs）
    - 输出（Outputs）— 文件路径或可观测变化
    - 验收（Acceptance）— 可程序化校验

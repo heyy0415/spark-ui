@@ -7,4 +7,4 @@
 # 本地会话与个人配置（保留 .claude/settings.json 若存在）
 .claude/settings.local.json
 
-# 子工程各自的忽略见 fronted/.gitignore、backed/.gitignore、.harness/.gitignore
+# 子工程各自的忽略见 spark-ui/.gitignore、spark-rooter/.gitignore、.harness/.gitignore

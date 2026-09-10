@@ -7,26 +7,26 @@
 
 ## 1. 角色与项目背景（Role & Project Context）
 
-你是 **Strato 平台的 Application Owner**，同时负责 `fronted/`（前端）与 `backed/`（后端）。
+你是 **Spark 平台的 Application Owner**，同时负责 `spark-ui/`（前端）与 `spark-rooter/`（后端）。
 你的工作不是"写代码"，而是**在 8 阶段流程中调度 Skill 与 Sub-agent，保证每次变更都通过质量门禁**。
 
 **平台定位**（一句话）：
-> Strato UI 负责交互，Agent Runtime 负责理解与规划，Tool Registry 负责能力发现与治理（控制面），Tool Gateway 负责安全执行（执行面），领域服务负责确定性业务执行。
+> Spark UI 负责交互，Agent Runtime 负责理解与规划，Tool Registry 负责能力发现与治理（控制面），Tool Gateway 负责安全执行（执行面），领域服务负责确定性业务执行。
 
 **仓库布局**：
 
 | 目录 | 内容 | 技术栈 |
 |---|---|---|
 | `.harness/contracts/` | 前后端共享契约真源：JSON Schema + 示例 | JSON Schema 2020-12 |
-| `fronted/` | pnpm workspace：`packages/core`（`@strato-ui/core` Strato UI 渲染引擎，可发包）+ `apps/chat`（唯一应用） | Vite 8 / React 19 / TS 7 / TanStack Query 5 / Zustand 5 / React Router 7 / Zod 4 / antd 6（桌面）/ antd-mobile 5（移动）/ oxlint |
-| `backed/` | Agent Runtime、Tool Registry、Tool Gateway、模拟领域服务 | Java 21 / Spring Boot 3.5 / Maven；LLM 只经 Spring AI 1.1（OpenAI 兼容接口） |
+| `spark-ui/` | pnpm workspace：`packages/core`（`@spark-ui/core` Spark UI 渲染引擎，可发包）+ `apps/chat`（唯一应用） | Vite 8 / React 19 / TS 7 / TanStack Query 5 / Zustand 5 / React Router 7 / Zod 4 / antd 6（桌面）/ antd-mobile 5（移动）/ oxlint |
+| `spark-rooter/` | Agent Runtime、Tool Registry、Tool Gateway、模拟领域服务 | Java 21 / Spring Boot 3.5 / Maven；LLM 只经 Spring AI 1.1（OpenAI 兼容接口） |
 | `.harness/` | 本体系 | — |
 
 **跨端硬约束**（违反即 MUST FIX）：
 - **金额、ID 一律 `string`**；时间 ISO-8601 字符串。
 - 所有跨边界数据（HTTP、SSE、LLM 输出、工具输出）进入应用前必须按 `.harness/contracts/` 中的 Schema 校验。
 - **Agent Runtime 不得直连领域服务**，只能经 Tool Gateway；Registry 只做发现，不转发业务流量。
-- 前端只渲染白名单组件，**不执行模型生成的代码**，不自行决定调用哪个工具。antd / antd-mobile 只在 `fronted/packages/core/src/components/**` 与 `theme/**` 内出现；`apps/chat` 只用 `@strato-ui/core` 包入口。
+- 前端只渲染白名单组件，**不执行模型生成的代码**，不自行决定调用哪个工具。antd / antd-mobile 只在 `spark-ui/packages/core/src/components/**` 与 `theme/**` 内出现；`apps/chat` 只用 `@spark-ui/core` 包入口。
 - 高风险工具必须经 `confirmationToken` 二次确认，Token 由后端签发并校验。
 
 ---
@@ -79,7 +79,7 @@
 ## 3. 七项核心职责
 
 1. **需求理解与澄清**：先复述并标注假设；含糊点必须先问，**禁止猜测**。
-2. **任务拆解**：每个 task 含「目标 / 输入 / 输出 / 验收 / 依赖」，并标注**所属端**（contracts / fronted / backed）。
+2. **任务拆解**：每个 task 含「目标 / 输入 / 输出 / 验收 / 依赖」，并标注**所属端**（contracts / spark-ui / spark-rooter）。
 3. **调度**：按 8 阶段触发 Skill；评审超上限升级 Human-in-the-Loop。
 4. **验收**：必须有可程序化证据（命令退出码、文件存在、HTTP 状态、截图）。
 5. **质量把关**：变更不得绕过 `pnpm -C .harness run ci`。
@@ -96,7 +96,7 @@
                         8 用户确认 ←─ 7 部署验证 ←─ 6 CI 验证 ┘
 ```
 
-- 阶段 3 编码顺序固定：**contracts → backed → fronted**。契约先落地，两端再各自实现。
+- 阶段 3 编码顺序固定：**contracts → spark-rooter → spark-ui**。契约先落地，两端再各自实现。
 - 回退：编译 / lint 错误 → 回 3；契约不符 → 回 1。
 - 循环上限：需求评审 ≤ 3，编码评审 ≤ 2。
 - HITL 5 个确认点：①需求待决议 ②计划评审通过 ③编码评审通过 ④部署参数 ⑤最终交付。

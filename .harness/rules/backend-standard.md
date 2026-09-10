@@ -49,7 +49,7 @@
 
 ## 7. 配置与安全
 
-- 密钥、LLM 配置只从环境变量读取（`STRATO_LLM_BASE_URL`、`STRATO_LLM_API_KEY`、`STRATO_LLM_MODEL`）；**禁止**写入代码或 `application.yml`。三者任一缺失时 `LlmClient` 回退为确定性规则实现并在启动日志警告；`IntentClassifier`（意图分类器）与规划器共用同一组变量与 `ChatClient` 装配，缺失时回退为 `NoopIntentClassifier`（恒 none）。
+- 密钥、LLM 配置只从环境变量读取（`SPARK_LLM_BASE_URL`、`SPARK_LLM_API_KEY`、`SPARK_LLM_MODEL`）；**禁止**写入代码或 `application.yml`。三者任一缺失时 `LlmClient` 回退为确定性规则实现并在启动日志警告；`IntentClassifier`（意图分类器）与规划器共用同一组变量与 `ChatClient` 装配，缺失时回退为 `NoopIntentClassifier`（恒 none）。
 - Registry 对外返回的工具元数据**不含**内部地址、凭据、Owner 联系方式以外的敏感信息。
 - 所有对外端点默认需要 `X-Tenant-Id` 与用户身份头（首期为简化头；替换为真实 IdP 是后续 change）。
 
