@@ -1,0 +1,21 @@
+event:tool.selected
+data:{"runId":"run_a8b647f547854446","toolCallId":"tc_000025","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
+
+event:tool.started
+data:{"runId":"run_a8b647f547854446","toolCallId":"tc_000025","at":"2026-09-10T07:29:31.479256Z"}
+
+event:tool.completed
+data:{"runId":"run_a8b647f547854446","toolCallId":"tc_000025","status":"succeeded","durationMs":0,"summary":"订单 10010 COMPLETED"}
+
+event:tool.selected
+data:{"runId":"run_a8b647f547854446","toolCallId":"tc_000026","toolId":"order.delete","version":"1.0.0","displayName":"删除订单"}
+
+event:tool.started
+data:{"runId":"run_a8b647f547854446","toolCallId":"tc_000026","at":"2026-09-10T07:29:31.480447Z"}
+
+event:tool.completed
+data:{"runId":"run_a8b647f547854446","toolCallId":"tc_000026","status":"failed","durationMs":1}
+
+event:run.failed
+data:{"runId":"run_a8b647f547854446","code":"TOOL_EXECUTION_FAILED","message":"执行过程中工具调用失败，请稍后重试","at":"2026-09-10T07:29:31.481933Z"}
+

@@ -39,9 +39,9 @@ pnpm run verify-pack      # pnpm pack 解包后断言：文件清单 / exports /
 | 层                        | 内容                                                                                                                                                                                          |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `app`                     | 路由（`/` = chat、DEV-only `/dev/schema`）、Providers（QueryClient → `SparkDeviceProvider` → `SparkThemeProvider tokens`）、`global.css`（首行 import core 的 style.css）、`styles/tokens.ts` |
-| `pages/chat`              | 生成 `conversationId`，挂 `AgentChatPanel`；无 URL 参数、无页面上下文                                                                                                                       |
+| `pages/chat`              | 生成 `conversationId`，挂 `AgentChatPanel`；无 URL 参数、无页面上下文                                                                                                                         |
 | `pages/schema-playground` | 开发用：直接渲染契约示例（`?example=` 取 `confirm` / `result` / `unknown`）                                                                                                                   |
-| `features/agent-chat`     | `useAgentRun`（发起 / 确认、SSE 归约为 `AgentRunView`）、`AgentChatPanel({conversationId, baseUrl?, fetch?})`——宿主要带登录态就注入自己的 `fetch`                                          |
+| `features/agent-chat`     | `useAgentRun`（发起 / 确认、SSE 归约为 `AgentRunView`）、`AgentChatPanel({conversationId, baseUrl?, fetch?})`——宿主要带登录态就注入自己的 `fetch`                                             |
 | `entities/agent-run`      | intent / action / run-summary / sse-events / error 的 Zod 投影（ui-schema 投影来自 core）                                                                                                     |
 | `shared/api`              | `httpClient`（`HttpError`）、`sseClient`（fetch + ReadableStream 分帧）                                                                                                                       |
 | `shared/ui/Button`        | 纯 CSS 按钮                                                                                                                                                                                   |
