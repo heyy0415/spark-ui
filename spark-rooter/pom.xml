@@ -23,7 +23,6 @@
     <module>examples/domains/product-service</module>
     <module>examples/domains/aftersale-service</module>
     <module>examples/domains/refund-service</module>
-    <module>app</module>
   </modules>
 
   <properties>

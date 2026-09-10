@@ -9,7 +9,7 @@ description: 阶段 7 — 部署 / 预览验证。触发场景："部署验证"�
 阶段 6 CI 通过后，进入阶段 7。
 
 ## 输入
-- 前端 `spark-ui/apps/chat/dist/` 与 `spark-ui/packages/core/dist/`，后端 `spark-rooter/app/target/*.jar`
+- 前端 `spark-ui/apps/chat/dist/` 与 `spark-ui/packages/core/dist/`，后端 `spark-rooter/examples/host-demo/target/host-demo.jar`（根 `./mvnw install` 后在 `examples/host-demo` `mvn -o package`）
 - `deployment/` 目录（落产出）
 
 ## 步骤
@@ -18,7 +18,7 @@ description: 阶段 7 — 部署 / 预览验证。触发场景："部署验证"�
 
 ```bash
 # 1. 后端启动与健康
-SPARK_LLM_BASE_URL=... SPARK_LLM_API_KEY=... java -jar spark-rooter/app/target/app.jar &
+SPARK_LLM_BASE_URL=... SPARK_LLM_API_KEY=... java -jar spark-rooter/examples/host-demo/target/host-demo.jar &
 BE=$!
 for i in $(seq 1 30); do curl -sf http://localhost:8080/actuator/health && break; sleep 1; done
 
@@ -41,7 +41,7 @@ kill $FE $BE
 # 5. 体积报告
 ls -la spark-ui/apps/chat/dist/assets/*.js | awk '{print $5, $9}' > deployment/bundle_size.txt
 find spark-ui/packages/core/dist -name '*.js' -exec ls -la {} + | awk '{print $5, $9}' >> deployment/bundle_size.txt
-ls -la spark-rooter/app/target/*.jar   | awk '{print $5, $9}' >> deployment/bundle_size.txt
+ls -la spark-rooter/examples/host-demo/target/host-demo.jar | awk '{print $5, $9}' >> deployment/bundle_size.txt
 ```
 
 ## 产出

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 阶段 7 deploy-verify（deploy-verify Skill 脚本化）：一次性生成并冻结 deployment/ 全部产物。
-# 前置：pnpm -C .harness run ci 已通过（dist 与 app.jar 为最新）。用法：bash .harness/scripts/deploy-verify.sh
+# 前置：pnpm -C .harness run ci 已通过（dist 与 host-demo.jar 为最新）。用法：bash .harness/scripts/deploy-verify.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$ROOT/.harness/scripts/lib/change-dir.sh"
@@ -11,7 +11,7 @@ check() { if [ "$2" = "$3" ]; then echo "  ✓ $1: $3"; pass=$((pass+1)); else e
 # 后端端口可用 SPARK_PORT 覆盖（默认 8080）；vite preview 经 SPARK_BACKEND 代理到它
 PORT="${SPARK_PORT:-8080}"
 # 只清理本脚本自己起的实例（带 --server.port=$PORT）与 4173 预览，不碰 IDE 里手动启动的
-cleanup() { pkill -f "app/target/app.jar --server.port=$PORT" 2>/dev/null; pkill -f "vite preview --port 4173 --strictPort" 2>/dev/null; }
+cleanup() { pkill -f "examples/host-demo/target/host-demo.jar --server.port=$PORT" 2>/dev/null; pkill -f "vite preview --port 4173 --strictPort" 2>/dev/null; }
 trap cleanup EXIT
 cleanup; sleep 1
 export SPARK_BACKEND="http://localhost:$PORT"
@@ -27,7 +27,7 @@ for port in "$PORT" 4173; do
 done
 
 echo "--- 1. 后端启动与健康"
-(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/spark-rooter/app/target/app.jar" --server.port="$PORT" > "$DEPLOY/backend.log" 2>&1 &)
+(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar" --server.port="$PORT" > "$DEPLOY/backend.log" 2>&1 &)
 for i in $(seq 1 40); do sleep 1; curl -sf "localhost:$PORT/actuator/health" >/dev/null 2>&1 && break; done
 check "health" '{"status":"UP"}' "$(curl -s "localhost:$PORT/actuator/health")"
 check "selfcheck all OK" 9 "$(grep -c 'SelfCheckRunner.*selfcheck: .* OK' "$DEPLOY/backend.log")"
@@ -56,7 +56,7 @@ check "preview pages console.error == 0" 0 "$rc"
 check "preview chat page renders #agent-input" "agent-input=1" "$(grep -o 'agent-input=[01]' "$DEPLOY/preview-console.log" | head -1)"
 
 echo "--- 5. 体积报告"
-{ echo "# bundle_size (bytes  path)"; echo "## apps/chat"; ls -la "$ROOT"/spark-ui/apps/chat/dist/assets/*.js | awk '{print $5, $9}' | sort -n | tail -8; echo "## packages/core"; find "$ROOT/spark-ui/packages/core/dist" -name '*.js' -exec ls -la {} + | awk '{print $5, $9}' | sort -n | tail -4; echo "## spark-rooter"; ls -la "$ROOT"/spark-rooter/app/target/app.jar | awk '{print $5, $9}'; } > "$DEPLOY/bundle_size.txt"
+{ echo "# bundle_size (bytes  path)"; echo "## apps/chat"; ls -la "$ROOT"/spark-ui/apps/chat/dist/assets/*.js | awk '{print $5, $9}' | sort -n | tail -8; echo "## packages/core"; find "$ROOT/spark-ui/packages/core/dist" -name '*.js' -exec ls -la {} + | awk '{print $5, $9}' | sort -n | tail -4; echo "## spark-rooter"; ls -la "$ROOT"/spark-rooter/examples/host-demo/target/host-demo.jar | awk '{print $5, $9}'; } > "$DEPLOY/bundle_size.txt"
 check "bundle_size.txt written" 1 "$([ -s "$DEPLOY/bundle_size.txt" ] && echo 1 || echo 0)"
 
 echo; echo "deploy-verify: $pass passed, $fail failed"

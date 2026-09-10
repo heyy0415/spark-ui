@@ -1,0 +1,24 @@
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+spark:
+  selfcheck:
+    enabled: true          # 示例宿主打开启动自检（生产建议关）
+  web:
+    internal-endpoints: true   # 开 /internal/** 供 e2e 直调 Registry / Gateway
+  # llm.base-url / api-key / model 缺省从环境变量 SPARK_LLM_* 取；任一缺失 → 规则规划器
+
+---
+spring:
+  config:
+    activate:
+      on-profile: e2e-ttl
+spark:
+  runtime:
+    memory-ttl: 1s         # e2e ㉓：会话记忆 1s 过期

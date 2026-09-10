@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 端到端验收脚本（spec §6.2 第 5–15 条 + 阶段 4 评审补充的反例）。用法：bash .harness/scripts/e2e-backend.sh
-# 前置：spark-rooter/app/target/app.jar 已构建；JDK 21 在 ~/.jenv/versions/21。
+# 前置：spark-rooter/examples/host-demo/target/host-demo.jar 已构建（根 ./mvnw install 后在 examples/host-demo mvn -o package）；JDK 21 在 ~/.jenv/versions/21。
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$ROOT/.harness/scripts/lib/change-dir.sh"
@@ -23,18 +23,19 @@ events() { node "$P" "$1" --events; }
 data() { node "$P" "$1" --data "$2"; }
 
 # 只清理本脚本自己起的实例（带 --server.port=$PORT），不碰 IDE 里手动启动的
-pkill -f "app/target/app.jar --server.port=$PORT" 2>/dev/null; sleep 1
+pkill -f "examples/host-demo/target/host-demo.jar --server.port=$PORT" 2>/dev/null; sleep 1
 owner=$(lsof -tnP -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | head -1)
 if [ -n "${owner}" ]; then
   echo "port $PORT is held by PID ${owner}: $(ps -o command= -p "${owner}" | cut -c1-80)"
   echo "e2e-backend needs exclusive port $PORT; stop that process or set SPARK_PORT, and rerun."
   exit 2
 fi
-(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/spark-rooter/app/target/app.jar" --server.port="$PORT" > "$DEPLOY/backend.log" 2>&1 &)
+(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar" --server.port="$PORT" > "$DEPLOY/backend.log" 2>&1 &)
 for i in $(seq 1 40); do sleep 1; grep -q "selfcheck: running" "$DEPLOY/backend.log" 2>/dev/null && break; grep -q "Application run failed" "$DEPLOY/backend.log" 2>/dev/null && break; done; sleep 2
 if grep -q "Application run failed" "$DEPLOY/backend.log"; then echo "BOOT FAILED"; grep -m1 -A2 "Application run failed" "$DEPLOY/backend.log"; exit 1; fi
 echo "boot: ready after ${i}s"
 
+check "tools registered (12 domain + demo.whoami + selfcheck echo)" 1 "$(grep -c "spark-rooter: 14 tools registered from 6 beans" "$DEPLOY/backend.log")"
 echo "--- selfchecks"
 PLAN_CHECK="plan 6 messages OK"; [ "$LIVE_LLM" = 1 ] && PLAN_CHECK="plan skipped (live LLM"
 for s in "contracts 9 schemas, 27 examples OK" "refund.create idempotent OK" "$PLAN_CHECK" "invalid toolId rejected OK" "missing prerequisite rejected OK" "foreign entity arg rejected OK" "intent verbs reference registered tools OK" "token expired/replayed/digest-mismatch/extra-key/session-mismatch rejected OK" "gateway idempotency claim OK" "confirmation coverage OK" "inline actions OK" "proxy invocation OK (aspect fired once)" "manifest parity"; do
@@ -239,7 +240,24 @@ code=$(gwc order.delete 1.0.0 '{"orderId":"10001"}'); check "⑬' http" 502 "$co
 check "⑬' audit failed:HANDLER_ERROR" 1 "$([ "$(grep -c 'runId=run_e2e_gw .*toolId=order.delete .*status=failed' "$DEPLOY/backend.log")" -ge 1 ] && echo 1 || echo 0)"
 gwc order.list.search 1.1.0 '{"status":"PAID"}' >/dev/null; check "⑬ 10001 still listed" 1 "$(json "sum(1 for i in d['output']['items'] if i['orderId']=='10001')" < /tmp/gwc.json)"
 
-# ⑭（user_002 无权限）已删除：内核不再识别用户；宿主权限用例改为 host-demo 切面（T10 / T14 ⑭'）
+echo "--- ⑭ 宿主方法级切面：X-Demo-User: guest 删除订单 10010 → 确认后 → 切面拒 → TOOL_EXECUTION_FAILED"
+GUEST=(-H 'Content-Type: application/json' -H 'X-Demo-User: guest')
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${GUEST[@]}" -d "{\"conversationId\":\"c14\",\"message\":\"删除订单 10010\",$CAP}" > "$DEPLOY/c14.log"
+check "⑭ events" "run.started tool.selected tool.started tool.completed ui.replace confirmation.required" "$(events "$DEPLOY/c14.log")"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$(runid_of c14)/actions/$(submit_id c14)" "${GUEST[@]}" -d "{\"confirmationToken\":\"$(token_of c14)\",\"formData\":{}}" > "$DEPLOY/c14b.log"
+check "⑭ confirm code" TOOL_EXECUTION_FAILED "$(data "$DEPLOY/c14b.log" run.failed | json "d['code']")"
+check "⑭ aspect denied logged" 1 "$([ "$(grep -c 'denied user=guest .*OrderTools.delete' "$DEPLOY/backend.log")" -ge 1 ] && echo 1 || echo 0)"
+check "⑭ order.delete audit failed" 1 "$([ "$(grep -c "audit runId=$(runid_of c14) .*toolId=order.delete .*status=failed" "$DEPLOY/backend.log")" -ge 1 ] && echo 1 || echo 0)"
+gwc order.list.search 1.1.0 '{"status":"COMPLETED","limit":50}' >/dev/null; check "⑭ 10010 still listed" 1 "$(json "sum(1 for i in d['output']['items'] if i['orderId']=='10010')" < /tmp/gwc.json)"
+
+echo "--- ⑭' 反面路径：Controller 级拦截器对 spark 无效（教学断言）"
+check "⑭' guest GET /demo/whoami" 403 "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/demo/whoami" -H 'X-Demo-User: guest')"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${GUEST[@]}" -d "{\"conversationId\":\"c14g\",\"message\":\"看看我的订单\",$CAP}" > "$DEPLOY/c14g.log"
+check "⑭' guest via spark bypasses interceptor" "run.started tool.selected tool.started tool.completed ui.replace run.completed" "$(events "$DEPLOY/c14g.log")"
+
+echo "--- ㉖ 上下文传播：工作线程里的用户 == X-Demo-User"
+curl -s -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -H 'X-Demo-User: guest' -d '{"toolId":"demo.whoami","toolVersion":"1.0.0","arguments":{},"executionContext":{"runId":"run_e2e_gw","toolCallId":"tc_whoami","sessionId":"e2e","idempotencyKey":"whoami-guest"}}' > "$DEPLOY/whoami_guest.json"
+check "㉖ viewer" guest "$(json "d['output']['viewer']" < "$DEPLOY/whoami_guest.json")"
 
 echo "--- ⑮ 订单 10006 退款（无 pageContext）→ 三步 + 确认 → Result"
 run_msg c15 "订单 10006 退款"
@@ -288,6 +306,6 @@ if [ "$LIVE_LLM" = 1 ]; then
 fi
 check "⑤ route decisions logged" 1 "$([ "$(grep -c 'route runId=.* source=' "$DEPLOY/backend.log")" -ge 3 ] && echo 1 || echo 0)"
 
-pkill -f "app/target/app.jar --server.port=$PORT"
+pkill -f "examples/host-demo/target/host-demo.jar --server.port=$PORT"
 echo; echo "e2e-backend: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

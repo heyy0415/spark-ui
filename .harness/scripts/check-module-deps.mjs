@@ -3,7 +3,7 @@
  * pnpm -C .harness run check-module-deps
  *
  * 后端模块依赖红线（project-structure.md §2 / §4）：
- *   - spark-rooter-runtime、spark-rooter-registry、spark-rooter-gateway、spark-rooter-spi、spark-rooter-contracts 的 pom.xml 不得依赖任何 domains/* 模块（只有 app 可以）
+ *   - spark-rooter-runtime、spark-rooter-registry、spark-rooter-gateway、spark-rooter-spi、spark-rooter-contracts 的 pom.xml 不得依赖任何 examples/domains/* 模块（只有 examples/host-demo 可以）
  *   - 平台模块（spi / contracts / runtime / registry / gateway）pom 不得依赖 spring-boot-starter-web / starter-validation（Web 绑定只在 spark-rooter-web-mvc，spec refactor-spark-embedded-starter §2.2）
  *   - 平台模块（runtime / registry / gateway / web-mvc / contracts）源码禁 @Component / @Service / @Repository / @Configuration / @ComponentScan：Bean 全部由 starter @Bean 装配，不依赖包扫描
  *   - 任何模块 DDD 分层 domain/ 包（文件直接父目录为 domain）下的 .java 不得 import org.springframework.* 或 com.fasterxml.*

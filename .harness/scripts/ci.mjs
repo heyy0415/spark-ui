@@ -7,7 +7,8 @@
  *   1. check-contracts      —— .harness/contracts/ Schema 与示例
  *   2. check-module-deps    —— 后端模块依赖红线
  *   3. spark-ui              —— pnpm -C spark-ui run ci（typecheck + lint + format:check + build）
- *   4. spark-rooter               —— ./mvnw -q -B verify（pom.xml 不存在时跳过）
+ *   4. spark-rooter          —— ./mvnw -q -B install -DskipTests（verify + 进本地仓；pom.xml 不存在时跳过）
+ *   5. host-demo             —— examples/host-demo mvn -q -o package（离线，只依赖本地仓）
  *
  * 任一步骤非 0 立即停止并以该退出码退出。最后打印每步退出码摘要。
  */
@@ -29,8 +30,16 @@ const steps = [
   {
     name: 'spark-rooter',
     cmd: 'node',
-    args: [join(harness, 'scripts', 'mvn.mjs'), '-q', '-B', 'verify'],
+    args: [join(harness, 'scripts', 'mvn.mjs'), '-q', '-B', 'install', '-DskipTests'],
     skipIf: () => !existsSync(join(root, 'spark-rooter', 'pom.xml')),
+  },
+  {
+    // 独立示例宿主：-o 离线证明只依赖本地仓（spec §6.4）
+    name: 'host-demo',
+    cmd: 'mvn',
+    args: ['-q', '-B', '-o', 'package', '-DskipTests'],
+    cwd: join(root, 'spark-rooter', 'examples', 'host-demo'),
+    skipIf: () => !existsSync(join(root, 'spark-rooter', 'examples', 'host-demo', 'pom.xml')),
   },
 ];
 
@@ -42,7 +51,7 @@ for (const s of steps) {
     continue;
   }
   console.log(`\n=== ${s.name} ===`);
-  const r = spawnSync(s.cmd, s.args, { stdio: 'inherit', cwd: root });
+  const r = spawnSync(s.cmd, s.args, { stdio: 'inherit', cwd: s.cwd ?? root });
   const code = r.status ?? 1;
   results.push([s.name, code]);
   if (code !== 0) {

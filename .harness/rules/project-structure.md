@@ -109,8 +109,8 @@ spark-rooter-spi ↛ 任何 com.sparkrooter artifact；spark-rooter-contracts �
 2. 前端在 `spark-ui/packages/core/src/registry/componentRegistry.ts` 之外声明可被 UI Schema 引用的组件；`apps/chat` import antd / antd-mobile 或 `@spark-ui/core/src/*` 深路径。
 3. 前端在 `spark-ui/apps/chat/src/app/router/` 与 `pages/` 之外声明路由或使用路由 hook 拼装路由表（页面组件内用 `useParams` / `Link` 允许）。
 4. FSD 反向依赖或穿透 `index.ts`。
-5. `agent-runtime`、`tool-registry`、`tool-gateway` 的 pom 依赖任何 `domains/*` 模块（只有 `app` 可以）。
-6. `tool-registry` 的 pom 依赖任何 `domains/*` 模块，或暴露转发调用的端点。
+5. `spark-rooter-runtime`、`spark-rooter-registry`、`spark-rooter-gateway` 的 pom 依赖任何 `examples/domains/*` 模块（只有 `examples/host-demo` 可以）；平台模块 pom 出现 `spring-boot-starter-web`；平台模块源码出现 `@Component / @Service / @Repository / @Configuration`；`examples/domains/*` 依赖任何平台模块。
+6. `spark-rooter-registry` 暴露转发调用的端点。
 7. 后端 `domain/` 包 import `org.springframework.*`。
 8. 跨端数据结构在 `.harness/contracts/` 中无对应 Schema。
 9. `domains/<a>` 引用 `com.sparkrooter.examples.<b>` 或依赖兄弟领域 artifact；领域屏（`infra/screen/`）直读领域数据而不是用 Gateway 输出。
