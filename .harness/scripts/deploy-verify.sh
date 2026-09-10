@@ -39,13 +39,13 @@ check "preview /" 200 "$(curl -s -o /dev/null -w '%{http_code}' localhost:4173/)
 check "preview proxies /actuator/health" 200 "$(curl -s -o /dev/null -w '%{http_code}' localhost:4173/actuator/health)"
 
 echo "--- 3. 端到端一条 Run（经预览代理）"
-curl -s -N --max-time 8 -X POST localhost:4173/agent/runs -H 'Content-Type: application/json' -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' -H 'X-Trace-Id: trace_deploy' --data @"$ROOT/.harness/contracts/examples/intent-request.example.json" > "$DEPLOY/run_events.log"
+curl -s -N --max-time 8 -X POST localhost:4173/agent/runs -H 'Content-Type: application/json' -H 'X-Trace-Id: trace_deploy' --data @"$ROOT/.harness/contracts/examples/intent-request.example.json" > "$DEPLOY/run_events.log"
 check "event sequence" "run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required" "$(node "$P" "$DEPLOY/run_events.log" --events)"
 RUNID=$(node "$P" "$DEPLOY/run_events.log" --data run.started | python3 -c "import sys,json;print(json.load(sys.stdin)['runId'])")
 TOKEN=$(node "$P" "$DEPLOY/run_events.log" --data ui.replace | python3 -c "import sys,json;d=json.load(sys.stdin);print([a for a in d['ui']['actions'] if a['id']=='confirm-refund'][0]['confirmationToken'])")
-curl -s -N --max-time 8 -X POST "localhost:4173/agent/runs/$RUNID/actions/confirm-refund" -H 'Content-Type: application/json' -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' -H 'X-Trace-Id: trace_deploy' -d "{\"confirmationToken\":\"$TOKEN\",\"formData\":{\"reason\":\"DAMAGED\"}}" > "$DEPLOY/confirm_events.log"
+curl -s -N --max-time 8 -X POST "localhost:4173/agent/runs/$RUNID/actions/confirm-refund" -H 'Content-Type: application/json' -H 'X-Trace-Id: trace_deploy' -d "{\"confirmationToken\":\"$TOKEN\",\"formData\":{\"reason\":\"DAMAGED\"}}" > "$DEPLOY/confirm_events.log"
 check "confirm reaches run.completed" 1 "$(node "$P" "$DEPLOY/confirm_events.log" --events | grep -c 'run.completed$')"
-curl -s "localhost:4173/agent/runs/$RUNID" -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' > "$DEPLOY/run_summary_done.json"
+curl -s "localhost:4173/agent/runs/$RUNID" > "$DEPLOY/run_summary_done.json"
 check "run-summary state" COMPLETED "$(python3 -c "import json;print(json.load(open('$DEPLOY/run_summary_done.json'))['state'])")"
 check "backend.log has this run" 1 "$(grep -c "plan attached runId=$RUNID" "$DEPLOY/backend.log")"
 check "user text in log" 0 "$(grep -c '帮我把这个订单退款' "$DEPLOY/backend.log")"

@@ -31,8 +31,7 @@ public final class SpringAiIntentClassifier implements IntentClassifier {
   }
 
   @Override
-  public Optional<String> classify(
-      String message, Optional<String> entityType, Set<String> knownDomains) {
+  public Optional<String> classify(String message, Set<String> knownDomains) {
     if (knownDomains.isEmpty()) {
       return Optional.empty();
     }
@@ -46,7 +45,7 @@ public final class SpringAiIntentClassifier implements IntentClassifier {
                       .temperature(0.0)
                       .build())
               .system(systemPrompt(knownDomains))
-              .user(userPrompt(message, entityType))
+              .user(userPrompt(message))
               .call()
               .entity(IntentDraft.class);
       String d = draft == null || draft.domain() == null ? NONE : draft.domain().trim();
@@ -80,13 +79,11 @@ public final class SpringAiIntentClassifier implements IntentClassifier {
         .formatted(domains);
   }
 
-  static String userPrompt(String message, Optional<String> entityType) {
-    String hint = entityType.map(t -> "用户正在查看一个 " + PromptBuilder.sanitize(t) + "。").orElse("");
+  static String userPrompt(String message) {
     return """
-        %s
         用户请求：%s
         """
-        .formatted(hint, PromptBuilder.sanitize(message));
+        .formatted(PromptBuilder.sanitize(message));
   }
 
   @Override

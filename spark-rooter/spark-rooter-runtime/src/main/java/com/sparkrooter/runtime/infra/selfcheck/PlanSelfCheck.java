@@ -26,8 +26,6 @@ import org.springframework.stereotype.Component;
 public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
 
   private static final Logger log = LoggerFactory.getLogger(PlanSelfCheck.class);
-  private static final ToolSearch.Principal PRINCIPAL =
-      new ToolSearch.Principal("user_001", "tenant_001");
 
   /** 一条核心消息：领域、消息、已识别实体、期望 toolId 序列。 */
   record Case(String domain, String message, Map<String, String> entities, List<String> expect) {}
@@ -77,7 +75,7 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
   @Override
   public void run() {
     Set<String> registered = new HashSet<>();
-    for (String d : registry.domains(PRINCIPAL)) {
+    for (String d : registry.domains()) {
       candidates(d).forEach(c -> registered.add(c.toolId()));
     }
     for (String id : IntentVerbs.referencedToolIds()) {
@@ -151,6 +149,6 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
   }
 
   private List<ToolSearch.ToolCandidate> candidates(String domain) {
-    return registry.search(new ToolSearch.Request(domain, null, PRINCIPAL, null)).tools();
+    return registry.search(new ToolSearch.Request(domain, null, null)).tools();
   }
 }

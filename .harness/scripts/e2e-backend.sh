@@ -9,7 +9,8 @@ JAVA="$HOME/.jenv/versions/21/bin/java"
 # 端口可用 SPARK_PORT 覆盖（默认 8080；本机另有实例时用 8091 等，脚本会自己起一个）
 PORT="${SPARK_PORT:-8080}"
 BASE="http://localhost:$PORT"
-HDR=(-H 'Content-Type: application/json' -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' -H 'X-Trace-Id: trace_e2e')
+# 内核不识别身份：无身份头（change 5）；X-Trace-Id 可选
+HDR=(-H 'Content-Type: application/json' -H 'X-Trace-Id: trace_e2e')
 pass=0; fail=0
 # 规则规划器毫秒级；接真实模型时规划 5–15s，SSE 读取超时随之放大
 # 真模型单次规划实测 5–70s（含网关抖动重试），SSE 读取超时给到 90s
@@ -36,31 +37,30 @@ echo "boot: ready after ${i}s"
 
 echo "--- selfchecks"
 PLAN_CHECK="plan 6 messages OK"; [ "$LIVE_LLM" = 1 ] && PLAN_CHECK="plan skipped (live LLM"
-for s in "contracts 9 schemas, 26 examples OK" "refund.create idempotent OK" "$PLAN_CHECK" "invalid toolId rejected OK" "missing prerequisite rejected OK" "foreign entity arg rejected OK" "intent verbs reference registered tools OK" "token expired/replayed/digest-mismatch/extra-key rejected OK" "gateway idempotency claim OK" "confirmation coverage OK" "inline actions OK"; do
+for s in "contracts 9 schemas, 27 examples OK" "refund.create idempotent OK" "$PLAN_CHECK" "invalid toolId rejected OK" "missing prerequisite rejected OK" "foreign entity arg rejected OK" "intent verbs reference registered tools OK" "token expired/replayed/digest-mismatch/extra-key/session-mismatch rejected OK" "gateway idempotency claim OK" "confirmation coverage OK" "inline actions OK"; do
   check "selfcheck: $s" 1 "$(grep -v SelfCheckRunner "$DEPLOY/backend.log" | grep -c "selfcheck: $s")"
 done
 
-echo "--- §6.2.5 Registry search 按权限过滤"
-srch() { curl -s -X POST "$BASE/internal/tool-registry/search" -H 'Content-Type: application/json' -d "{\"domain\":\"refund\",\"principal\":{\"userId\":\"$1\",\"tenantId\":\"tenant_001\"}}"; }
-srch user_001 > "$DEPLOY/search_user_001.json"
-check "user_001 tools" 4 "$(json "len(d['tools'])" < "$DEPLOY/search_user_001.json")"
-check "user_002 tools" 3 "$(srch user_002 | json "len(d['tools'])")"
-check "candidate has exactly 6 fields" 6 "$(json "len(d['tools'][0])" < "$DEPLOY/search_user_001.json")"
+echo "--- §6.2.5 Registry search（无身份；按 status 过滤，权限归宿主）"
+srch() { curl -s -X POST "$BASE/internal/tool-registry/search" -H 'Content-Type: application/json' -d "{\"domain\":\"$1\"}"; }
+srch refund > "$DEPLOY/search_refund.json"
+check "refund tools" 4 "$(json "len(d['tools'])" < "$DEPLOY/search_refund.json")"
+check "candidate has exactly 6 fields" 6 "$(json "len(d['tools'][0])" < "$DEPLOY/search_refund.json")"
+code=$(curl -s -o /tmp/sp.json -w '%{http_code}' -X POST "$BASE/internal/tool-registry/search" -H 'Content-Type: application/json' -d '{"domain":"refund","principal":{"sessionId":"e2e"}}')
+check "search with principal → 400 (contract additionalProperties)" 400 "$code"
 check "search response passes tool-search contract" OK "$(node -e "
 const Ajv=require('$ROOT/.harness/node_modules/ajv/dist/2020.js').default;const fs=require('fs');const ajv=new Ajv({strict:true});require('$ROOT/.harness/node_modules/ajv-formats')(ajv);
 const s=JSON.parse(fs.readFileSync('$ROOT/.harness/contracts/tool-search.schema.json'));ajv.addSchema(s);
-const v=ajv.getSchema(s.\$id+'#/\$defs/response');const d=JSON.parse(fs.readFileSync('$DEPLOY/search_user_001.json'));console.log(v(d)?'OK':JSON.stringify(v.errors))")"
+const v=ajv.getSchema(s.\$id+'#/\$defs/response');const d=JSON.parse(fs.readFileSync('$DEPLOY/search_refund.json'));console.log(v(d)?'OK':JSON.stringify(v.errors))")"
 
 echo "--- §6.2.6 重复注册 → 409"
 code=$(curl -s -o /tmp/dup.json -w '%{http_code}' -X POST "$BASE/internal/tool-registry/tools" -H 'Content-Type: application/json' --data @"$ROOT/.harness/contracts/examples/tool-manifest.refund-create.example.json")
 check "http" 409 "$code"; check "code" TOOL_VERSION_CONFLICT "$(json "d['code']" < /tmp/dup.json)"
 
-echo "--- §6.2.7 Gateway 缺参 → 400；无权限 → 403"
+echo "--- §6.2.7 Gateway 缺参 → 400"
 gwraw() { curl -s -o /tmp/gw.json -w '%{http_code}' -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -d "$1"; }
-code=$(gwraw '{"toolId":"refund.eligibility.check","toolVersion":"1.3.0","arguments":{},"executionContext":{"runId":"run_probe","toolCallId":"tc_p1","userId":"user_001","tenantId":"tenant_001","idempotencyKey":"probe-p1"}}')
+code=$(gwraw '{"toolId":"refund.eligibility.check","toolVersion":"1.3.0","arguments":{},"executionContext":{"runId":"run_probe","toolCallId":"tc_p1","sessionId":"e2e","idempotencyKey":"probe-p1"}}')
 check "missing orderId http" 400 "$code"; check "code" REQUEST_INVALID "$(json "d['code']" < /tmp/gw.json)"
-code=$(gwraw '{"toolId":"refund.create","toolVersion":"2.1.0","arguments":{"orderId":"10002","amount":"1.00","reason":"DAMAGED"},"executionContext":{"runId":"run_probe","toolCallId":"tc_p2","userId":"user_002","tenantId":"tenant_001","idempotencyKey":"probe-p2"}}')
-check "user_002 refund.create http" 403 "$code"; check "code" FORBIDDEN "$(json "d['code']" < /tmp/gw.json)"
 
 echo "--- 评审 M1：入站请求体按契约校验"
 code=$(curl -s -o /tmp/m1.json -w '%{http_code}' -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_m1","message":"退款","extra":1,"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Card"]}}')
@@ -69,14 +69,14 @@ code=$(curl -s -o /tmp/m1b.json -w '%{http_code}' -X POST "$BASE/agent/runs" "${
 check "uiSchemaVersion const → 400" 400 "$code"
 code=$(curl -s -o /tmp/m1c.json -w '%{http_code}' -X POST "$BASE/agent/runs/run_nope/actions/confirm-refund" "${HDR[@]}" -d '{"confirmationToken":"ct_xxxxxxxxxxxxxxxx","formData":{"reason":{"nested":1}}}')
 check "formData nested object → 400 (before 404)" 400 "$code"
-code=$(curl -s -o /tmp/m1d.json -w '%{http_code}' -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -d '{"toolId":"refund.status.get","toolVersion":"1.0.0","arguments":{"orderId":"10001"},"executionContext":{"runId":"bad id","toolCallId":"tc_x","userId":"u","tenantId":"t","idempotencyKey":"k"}}')
+code=$(curl -s -o /tmp/m1d.json -w '%{http_code}' -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -d '{"toolId":"refund.status.get","toolVersion":"1.0.0","arguments":{"orderId":"10001"},"executionContext":{"runId":"bad id","toolCallId":"tc_x","sessionId":"e2e","idempotencyKey":"k"}}')
 check "tool-invoke runId pattern → 400" 400 "$code"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{not json')
 check "malformed JSON → 400" 400 "$code"
 
-echo "--- §6.2.11 缺身份头 → 401"
-code=$(curl -s -o /tmp/u.json -w '%{http_code}' -X POST "$BASE/agent/runs" -H 'Content-Type: application/json' --data @"$ROOT/.harness/contracts/examples/intent-request.example.json")
-check "http" 401 "$code"; check "code" UNAUTHENTICATED "$(json "d['code']" < /tmp/u.json)"
+echo "--- §6.2.11 请求体带 pageContext → 400（前端只发自然语言）"
+code=$(curl -s -o /tmp/u.json -w '%{http_code}' -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_pc","message":"退款","pageContext":{"page":"x"},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Card"]}}')
+check "http" 400 "$code"; check "code" REQUEST_INVALID "$(json "d['code']" < /tmp/u.json)"
 
 echo "--- §6.2.8 POST /agent/runs"
 curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" --data @"$ROOT/.harness/contracts/examples/intent-request.example.json" > "$DEPLOY/run_events.log"
@@ -87,7 +87,7 @@ check "ui.replace components" "['Card', 'Card', 'Form']" "$(data "$DEPLOY/run_ev
 echo "  runId=$RUNID token=${TOKEN:0:14}…"
 
 echo "--- §6.2.10a GET run-summary（等待确认中）"
-curl -s "$BASE/agent/runs/$RUNID" -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' > "$DEPLOY/run_summary_waiting.json"
+curl -s "$BASE/agent/runs/$RUNID" > "$DEPLOY/run_summary_waiting.json"
 check "state" WAITING_CONFIRMATION "$(json "d['state']" < "$DEPLOY/run_summary_waiting.json")"
 
 echo "--- §6.2.9 confirm"
@@ -96,7 +96,7 @@ check "event sequence" "tool.selected tool.started tool.completed tool.selected 
 check "result components" "['Result']" "$(data "$DEPLOY/confirm_events.log" ui.replace | json "[c['type'] for c in d['ui']['components']]")"
 
 echo "--- §6.2.10b GET run-summary（完成后）"
-curl -s "$BASE/agent/runs/$RUNID" -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' > "$DEPLOY/run_summary_done.json"
+curl -s "$BASE/agent/runs/$RUNID" > "$DEPLOY/run_summary_done.json"
 check "state" COMPLETED "$(json "d['state']" < "$DEPLOY/run_summary_done.json")"
 
 echo "--- §6.2.12 令牌重放"
@@ -106,20 +106,20 @@ check "code" CONFIRMATION_REJECTED "$(data "$DEPLOY/replay_events.log" run.faile
 check "refund.create succeeded audit lines" 1 "$(grep -c 'toolId=refund.create .*status=succeeded' "$DEPLOY/backend.log")"
 
 echo "--- §6.2.12b formData 注入白名单外键（amount）"
-curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_002","message":"这个订单退款","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10002"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","Result","Timeline"]}}' > "$DEPLOY/run2_events.log"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_002","message":"订单 10002 退款","clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","Result","Timeline"]}}' > "$DEPLOY/run2_events.log"
 R2=$(data "$DEPLOY/run2_events.log" run.started | json "d['runId']"); T2=$(data "$DEPLOY/run2_events.log" ui.replace | json "[a for a in d['ui']['actions'] if a['id']=='confirm-refund'][0]['confirmationToken']")
 curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$R2/actions/confirm-refund" "${HDR[@]}" -d "{\"confirmationToken\":\"$T2\",\"formData\":{\"reason\":\"DAMAGED\",\"amount\":\"0.01\"}}" > "$DEPLOY/inject_events.log"
 check "code" CONFIRMATION_REJECTED "$(data "$DEPLOY/inject_events.log" run.failed | json "d['code']")"
 # 评审 M-1：确认屏订单 Card 必须显示真实状态（10002 种子为 SHIPPED），不得出现猜测的默认值
 check "confirm screen shows real order status" SHIPPED "$(data "$DEPLOY/run2_events.log" ui.replace | json "[i for i in [c for c in d['ui']['components'] if c['id']=='order'][0]['props']['items'] if i['label']=='状态'][0]['value']")"
-gw() { curl -s -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -d "{\"toolId\":\"refund.status.get\",\"toolVersion\":\"1.0.0\",\"arguments\":{\"orderId\":\"$1\"},\"executionContext\":{\"runId\":\"run_probe\",\"toolCallId\":\"tc_$1\",\"userId\":\"user_001\",\"tenantId\":\"tenant_001\",\"idempotencyKey\":\"probe-$1\"}}" | json "len(d['output']['refunds'])"; }
+gw() { curl -s -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -d "{\"toolId\":\"refund.status.get\",\"toolVersion\":\"1.0.0\",\"arguments\":{\"orderId\":\"$1\"},\"executionContext\":{\"runId\":\"run_probe\",\"toolCallId\":\"tc_$1\",\"sessionId\":\"e2e\",\"idempotencyKey\":\"probe-$1\"}}" | json "len(d['output']['refunds'])"; }
 check "refunds for 10002 (injection must not create)" 0 "$(gw 10002)"
 
 echo "--- §6.2.13 refunds for 10001"
 check "refunds.length" 1 "$(gw 10001)"
 
 echo "--- 评审 M2：并发两次确认，Run 仍 COMPLETED 且只有 1 笔退款（订单 10002）"
-curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_m2","message":"这个订单退款","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10002"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","Result","Timeline"]}}' > "$DEPLOY/run3_events.log"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_m2","message":"订单 10002 退款","clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","Result","Timeline"]}}' > "$DEPLOY/run3_events.log"
 R3=$(data "$DEPLOY/run3_events.log" run.started | json "d['runId']"); T3=$(data "$DEPLOY/run3_events.log" ui.replace | json "[a for a in d['ui']['actions'] if a['id']=='confirm-refund'][0]['confirmationToken']")
 BODY3="{\"confirmationToken\":\"$T3\",\"formData\":{\"reason\":\"DAMAGED\"}}"
 curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$R3/actions/confirm-refund" "${HDR[@]}" -d "$BODY3" > "$DEPLOY/m2_a.log" &
@@ -128,7 +128,7 @@ wait
 OUT_A=$(events "$DEPLOY/m2_a.log"); OUT_B=$(events "$DEPLOY/m2_b.log")
 check "exactly one stream completed" 1 "$(printf '%s\n%s\n' "$OUT_A" "$OUT_B" | grep -c 'run.completed')"
 check "the other stream rejected" 1 "$(printf '%s\n%s\n' "$OUT_A" "$OUT_B" | grep -c '^run.failed$')"
-check "run-summary state" COMPLETED "$(curl -s "$BASE/agent/runs/$R3" -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' | json "d['state']")"
+check "run-summary state" COMPLETED "$(curl -s "$BASE/agent/runs/$R3" | json "d['state']")"
 check "refunds for 10002" 1 "$(gw 10002)"
 
 echo "--- 评审 M3：执行金额 == 确认屏展示金额"
@@ -144,16 +144,16 @@ T1=$(data "$DEPLOY/route1_events.log" message.delta | json "d['text']")
 check "① text mentions selecting an order" 1 "$(echo "$T1" | grep -c '选择一个订单')"
 check "① text does not echo user message" 0 "$(echo "$T1" | grep -c '退钱')"
 check "① no gateway audit for this run" 0 "$(grep -c "audit runId=$R1" "$DEPLOY/backend.log")"
-curl -s "$BASE/agent/runs/$R1" -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' > "$DEPLOY/route1_summary.json"
+curl -s "$BASE/agent/runs/$R1" > "$DEPLOY/route1_summary.json"
 check "① state COMPLETED without failureCode" "COMPLETED-none" "$(json "d['state']+'-'+str(d.get('failureCode','none'))" < "$DEPLOY/route1_summary.json")"
 
-echo "--- 意图路由 ②：entityType=order 但闲聊 → 无能力路径（规则不误路由）"
-curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_r2","message":"今天天气怎么样","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10001"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Card"]}}' > "$DEPLOY/route2_events.log"
+echo "--- 意图路由 ②：闲聊 → 无能力路径（规则不误路由）"
+curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_r2","message":"今天天气怎么样","clientCapabilities":{"uiSchemaVersion":"1.0","components":["Card"]}}' > "$DEPLOY/route2_events.log"
 check "② events" "run.started message.delta run.completed" "$(events "$DEPLOY/route2_events.log")"
 
 echo "--- 意图路由 ③：模型补位（仅 LIVE）"
 if [ "$LIVE_LLM" = 1 ]; then
-  curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_r3","message":"我想把钱要回来","pageContext":{"page":"order-detail","selectedEntity":{"type":"order","id":"10002"}},"clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","Result","Timeline"]}}' > "$DEPLOY/route3_events.log"
+  curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_r3","message":"我想把订单 10002 的钱要回来","clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","Result","Timeline"]}}' > "$DEPLOY/route3_events.log"
   R3=$(data "$DEPLOY/route3_events.log" run.started | json "d['runId']")
   check "③a route by model" 1 "$(grep -c "route runId=$R3 domain=refund source=model" "$DEPLOY/backend.log")"
   check "③b event sequence" "run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required" "$(events "$DEPLOY/route3_events.log")"
@@ -162,7 +162,7 @@ else
 fi
 
 echo "--- 幂等 ④：同 idempotencyKey 两次 refund.create（订单 10004）"
-idem() { curl -s -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -d "{\"toolId\":\"refund.create\",\"toolVersion\":\"2.1.0\",\"arguments\":{\"orderId\":\"10004\",\"amount\":\"59.00\",\"reason\":\"DAMAGED\"},\"executionContext\":{\"runId\":\"run_e2eidem\",\"toolCallId\":\"$1\",\"userId\":\"user_001\",\"tenantId\":\"tenant_001\",\"idempotencyKey\":\"e2e-idem-10004\"}}"; }
+idem() { curl -s -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -d "{\"toolId\":\"refund.create\",\"toolVersion\":\"2.1.0\",\"arguments\":{\"orderId\":\"10004\",\"amount\":\"59.00\",\"reason\":\"DAMAGED\"},\"executionContext\":{\"runId\":\"run_e2eidem\",\"toolCallId\":\"$1\",\"sessionId\":\"e2e\",\"idempotencyKey\":\"e2e-idem-10004\"}}"; }
 ID1=$(idem tc_idem1 | json "d['output']['refundId']"); ID2=$(idem tc_idem2 | json "d['output']['refundId']")
 check "④ same refundId" "$ID1" "$ID2"
 check "④ refundId non-empty" 1 "$([ -n "$ID1" ] && echo 1 || echo 0)"
@@ -180,7 +180,7 @@ runid_of() { data "$DEPLOY/$1.log" run.started | json "d['runId']"; }
 confirm_run() { # $1 case  $2 formData json  $3 out-name
   curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs/$(runid_of "$1")/actions/$(submit_id "$1")" "${HDR[@]}" -d "{\"confirmationToken\":\"$(token_of "$1")\",\"formData\":$2}" > "$DEPLOY/$3.log"; }
 gwc() { # $1 toolId $2 version $3 args $4 userId
-  curl -s -o /tmp/gwc.json -w '%{http_code}' -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -d "{\"toolId\":\"$1\",\"toolVersion\":\"$2\",\"arguments\":$3,\"executionContext\":{\"runId\":\"run_e2e_gw\",\"toolCallId\":\"tc_$RANDOM\",\"userId\":\"${4:-user_001}\",\"tenantId\":\"tenant_001\",\"idempotencyKey\":\"e2e-$RANDOM$RANDOM\"}}"; }
+  curl -s -o /tmp/gwc.json -w '%{http_code}' -X POST "$BASE/internal/tool-gateway/invoke" -H 'Content-Type: application/json' -d "{\"toolId\":\"$1\",\"toolVersion\":\"$2\",\"arguments\":$3,\"executionContext\":{\"runId\":\"run_e2e_gw\",\"toolCallId\":\"tc_$RANDOM\",\"sessionId\":\"e2e\",\"idempotencyKey\":\"e2e-$RANDOM$RANDOM\"}}"; }
 
 echo "--- ⑦ 看看我的订单 → Table 20 / 30"
 run_msg c7 "看看我的订单"
@@ -239,10 +239,7 @@ code=$(gwc order.delete 1.0.0 '{"orderId":"10001"}'); check "⑬' http" 502 "$co
 check "⑬' audit failed:HANDLER_ERROR" 1 "$([ "$(grep -c 'runId=run_e2e_gw .*toolId=order.delete .*status=failed' "$DEPLOY/backend.log")" -ge 1 ] && echo 1 || echo 0)"
 gwc order.list.search 1.1.0 '{"status":"PAID"}' >/dev/null; check "⑬ 10001 still listed" 1 "$(json "sum(1 for i in d['output']['items'] if i['orderId']=='10001')" < /tmp/gwc.json)"
 
-echo "--- ⑭ user_002 删除订单 10005 → TOOL_SELECTION_INVALID"
-curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" -H 'Content-Type: application/json' -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_002' -d "{\"conversationId\":\"c14\",\"message\":\"删除订单 10005\",$CAP}" > "$DEPLOY/c14.log"
-check "⑭ events" "run.started run.failed" "$(events "$DEPLOY/c14.log")"
-check "⑭ code" TOOL_SELECTION_INVALID "$(data "$DEPLOY/c14.log" run.failed | json "d['code']")"
+# ⑭（user_002 无权限）已删除：内核不再识别用户；宿主权限用例改为 host-demo 切面（T10 / T14 ⑭'）
 
 echo "--- ⑮ 订单 10006 退款（无 pageContext）→ 三步 + 确认 → Result"
 run_msg c15 "订单 10006 退款"

@@ -7,6 +7,6 @@ import java.util.Set;
 public interface ToolRegistryClient {
   ToolSearch.Response search(ToolSearch.Request request);
 
-  /** 该 principal 可见的领域集合；意图分类输出必须落在其中，否则视为 none。 */
-  Set<String> domains(ToolSearch.Principal principal);
+  /** 可发现工具所属领域集合；意图分类输出必须落在其中，否则视为 none。 */
+  Set<String> domains();
 }

@@ -1,6 +1,5 @@
 package com.sparkrooter.runtime.domain;
 
-import com.sparkrooter.spi.Principal;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -9,7 +8,7 @@ public final class Run {
 
   private final String runId;
   private final String conversationId;
-  private final Principal principal;
+  private final String sessionId;
   private final String message;
   private final Instant createdAt;
   private RunState state = RunState.CREATED;
@@ -18,11 +17,10 @@ public final class Run {
   private String failureCode;
   private Instant updatedAt;
 
-  public Run(
-      String runId, String conversationId, Principal principal, String message, Instant now) {
+  public Run(String runId, String conversationId, String sessionId, String message, Instant now) {
     this.runId = runId;
     this.conversationId = conversationId;
-    this.principal = principal;
+    this.sessionId = sessionId;
     this.message = message;
     this.createdAt = now;
     this.updatedAt = now;
@@ -78,8 +76,9 @@ public final class Run {
     return conversationId;
   }
 
-  public Principal principal() {
-    return principal;
+  /** 宿主 SessionIdResolver 产出的会话键；Run 查询与确认都按它隔离。 */
+  public String sessionId() {
+    return sessionId;
   }
 
   public String message() {

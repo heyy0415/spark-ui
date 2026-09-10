@@ -11,11 +11,10 @@ public interface IntentClassifier {
 
   /**
    * @param message 用户原文（实现负责 sanitize 后进 prompt，禁止落日志）
-   * @param entityType 页面选中实体类型（已经白名单过滤）；仅作提示
-   * @param knownDomains 该 principal 可见的领域集合；返回值必须是其子集
+   * @param knownDomains 可发现的领域集合；返回值必须是其子集
    * @return 领域名；empty = none / 无法判定 / 未配置模型
    */
-  Optional<String> classify(String message, Optional<String> entityType, Set<String> knownDomains);
+  Optional<String> classify(String message, Set<String> knownDomains);
 
   String name();
 }

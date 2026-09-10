@@ -62,16 +62,13 @@ public class InlineActionSelfCheck implements com.sparkrooter.spi.SelfCheck {
                 new ToolInvoke.ExecutionContext(
                     "run_selfcheck",
                     "tc_inline_" + componentId,
-                    "user_001",
-                    "tenant_001",
+                    "selfcheck",
                     "selfcheck-inline-" + componentId,
                     null)));
     if (resp.output() == null) {
       throw new IllegalStateException(toolId + " returned no output for selfcheck");
     }
-    UiSchema ui =
-        screens.result(
-            toolId, resp.output(), new ScreenContext("run_selfcheck", "user_001", "tenant_001"));
+    UiSchema ui = screens.result(toolId, resp.output(), new ScreenContext("run_selfcheck"));
     int count = 0;
     for (UiSchema.Component c : ui.components()) {
       if (!componentId.equals(c.id())) {

@@ -8,8 +8,7 @@ import java.util.Set;
 public final class NoopIntentClassifier implements IntentClassifier {
 
   @Override
-  public Optional<String> classify(
-      String message, Optional<String> entityType, Set<String> knownDomains) {
+  public Optional<String> classify(String message, Set<String> knownDomains) {
     return Optional.empty();
   }
 

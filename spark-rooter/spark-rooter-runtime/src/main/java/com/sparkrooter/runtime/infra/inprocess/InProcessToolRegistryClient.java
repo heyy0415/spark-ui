@@ -21,7 +21,7 @@ public class InProcessToolRegistryClient implements ToolRegistryClient {
   }
 
   @Override
-  public Set<String> domains(ToolSearch.Principal principal) {
-    return registry.domains(principal);
+  public Set<String> domains() {
+    return registry.domains();
   }
 }

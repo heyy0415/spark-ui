@@ -13,8 +13,8 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 
 /**
- * 确认令牌服务（agent-safety §3）：随机不透明 token；绑定 runId / actionId / 步骤 / argsDigest / formData 键白名单；10
- * 分钟过期；一次性（consume 即删）。 任一校验失败抛 CONFIRMATION_REJECTED，且不泄露具体哪一项失败给前端。
+ * 确认令牌服务（agent-safety §3）：随机不透明 token；绑定 runId / actionId / 步骤 / argsDigest / conversationId /
+ * sessionId / formData 键白名单；10 分钟过期；一次性（consume 即删）。 任一校验失败抛 CONFIRMATION_REJECTED，且不泄露具体哪一项失败给前端。
  */
 @Service
 public class ConfirmationTokenService {
@@ -31,7 +31,13 @@ public class ConfirmationTokenService {
   }
 
   public ConfirmationToken issue(
-      String runId, String actionId, int stepSeq, String argsDigest, Set<String> allowedFormKeys) {
+      String runId,
+      String actionId,
+      int stepSeq,
+      String argsDigest,
+      String conversationId,
+      String sessionId,
+      Set<String> allowedFormKeys) {
     byte[] bytes = new byte[24];
     RANDOM.nextBytes(bytes);
     String token = "ct_" + Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
@@ -42,6 +48,8 @@ public class ConfirmationTokenService {
             actionId,
             stepSeq,
             argsDigest,
+            conversationId,
+            sessionId,
             allowedFormKeys,
             Instant.now(clock).plus(TTL));
     store.put(t);
@@ -49,13 +57,16 @@ public class ConfirmationTokenService {
   }
 
   /**
-   * 取出并校验；成功返回令牌（已从存储移除，不可再用）。 校验项：存在、未过期、runId 与 actionId 匹配、argsDigest 与当前计划一致、formData 键全部在白名单内。
+   * 取出并校验；成功返回令牌（已从存储移除，不可再用）。 校验项：存在、未过期、runId 与 actionId 匹配、argsDigest 与当前计划一致、conversationId 与
+   * sessionId 都与签发时一致、formData 键全部在白名单内。
    */
   public ConfirmationToken consume(
       String rawToken,
       String runId,
       String actionId,
       String expectedArgsDigest,
+      String conversationId,
+      String sessionId,
       Map<String, Object> formData) {
     ConfirmationToken t =
         store
@@ -70,6 +81,10 @@ public class ConfirmationTokenService {
     }
     if (!t.argsDigest().equals(expectedArgsDigest)) {
       throw reject("plan arguments changed since token issued");
+    }
+    // 双绑定：会话号可被前端伪造，sessionId 来自宿主；任一不一致都拒绝
+    if (!t.conversationId().equals(conversationId) || !t.sessionId().equals(sessionId)) {
+      throw reject("token bound to different conversation/session");
     }
     for (String k : formData.keySet()) {
       if (!t.allowedFormKeys().contains(k)) {

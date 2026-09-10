@@ -70,6 +70,8 @@ export const CardPropsSchema = z
     title: z.string().max(80).optional(),
     description: z.string().max(500).optional(),
     items: z.array(LabelValueSchema).max(32).optional(),
+    // 卡片底部行内指令（如「返回列表」），与 Table 行内 actions 同语义：点击后 intent 原样作为新消息发送
+    actions: z.array(InlineActionSchema).max(6).optional(),
   })
   .strict();
 export type CardProps = z.infer<typeof CardPropsSchema>;

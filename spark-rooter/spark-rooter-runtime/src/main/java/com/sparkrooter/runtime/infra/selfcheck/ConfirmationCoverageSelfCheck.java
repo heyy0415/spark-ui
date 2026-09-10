@@ -26,10 +26,6 @@ public class ConfirmationCoverageSelfCheck implements com.sparkrooter.spi.SelfCh
 
   private static final Logger log = LoggerFactory.getLogger(ConfirmationCoverageSelfCheck.class);
 
-  /** 自检主体：与 PlanSelfCheck 一致，user_001 持有全部权限，能看到全部工具。 */
-  private static final ToolSearch.Principal PRINCIPAL =
-      new ToolSearch.Principal("user_001", "tenant_001");
-
   /** 生成试探确认屏用的参数；当前三个需确认工具都以 orderId 为主键，用自检专用订单 10003。 */
   private static final Map<String, String> PROBE_ARGS = Map.of("orderId", "10003");
 
@@ -57,9 +53,8 @@ public class ConfirmationCoverageSelfCheck implements com.sparkrooter.spi.SelfCh
   @Override
   public void run() {
     int count = 0;
-    for (String domain : registry.domains(PRINCIPAL)) {
-      ToolSearch.Response found =
-          registry.search(new ToolSearch.Request(domain, null, PRINCIPAL, null));
+    for (String domain : registry.domains()) {
+      ToolSearch.Response found = registry.search(new ToolSearch.Request(domain, null, null));
       for (ToolSearch.ToolCandidate c : found.tools()) {
         boolean confirm =
             c.confirmation() == ToolManifest.Confirmation.required
@@ -88,7 +83,7 @@ public class ConfirmationCoverageSelfCheck implements com.sparkrooter.spi.SelfCh
             PROBE_ARGS,
             screens.probeOutputs(toolId),
             ScreenRegistry.PLACEHOLDER_TOKEN,
-            new ScreenContext("run_selfcheck", PRINCIPAL.userId(), PRINCIPAL.tenantId()));
+            new ScreenContext("run_selfcheck"));
     ScreenRegistry.submitActionId(ui);
     Set<String> overlap = new HashSet<>(ScreenRegistry.formKeys(ui));
     overlap.retainAll(rc.trustedArgKeys());

@@ -22,12 +22,6 @@ public class RuntimeExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(RuntimeExceptionHandler.class);
 
-  @ExceptionHandler(AgentRunController.UnauthenticatedException.class)
-  public ResponseEntity<ErrorResponse> unauthenticated(
-      AgentRunController.UnauthenticatedException e) {
-    return build(HttpStatus.UNAUTHORIZED, ErrorResponse.Code.UNAUTHENTICATED, e.getMessage(), null);
-  }
-
   @ExceptionHandler(RunOrchestrator.RunNotFound.class)
   public ResponseEntity<ErrorResponse> notFound(RunOrchestrator.RunNotFound e) {
     return build(HttpStatus.NOT_FOUND, ErrorResponse.Code.NOT_FOUND, e.getMessage(), null);

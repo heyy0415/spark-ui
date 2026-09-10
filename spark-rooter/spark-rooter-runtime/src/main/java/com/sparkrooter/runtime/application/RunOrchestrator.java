@@ -23,7 +23,6 @@ import com.sparkrooter.runtime.domain.RunRepository;
 import com.sparkrooter.runtime.domain.RunState;
 import com.sparkrooter.runtime.domain.Step;
 import com.sparkrooter.spi.ConfirmationRecheck;
-import com.sparkrooter.spi.Principal;
 import com.sparkrooter.spi.ScreenContext;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -116,10 +115,12 @@ public class RunOrchestrator {
 
   // ------------------------------------------------------------------ 入口 1：新 Run
 
-  public String start(
-      IntentRequest intent, Principal principal, String traceId, RunEventSink sink) {
+  /**
+   * @param sessionId 宿主 SessionIdResolver 在请求线程解析出的会话键；Run 查询、确认令牌都按它隔离
+   */
+  public String start(IntentRequest intent, String sessionId, String traceId, RunEventSink sink) {
     String runId = "run_" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
-    Run run = new Run(runId, intent.conversationId(), principal, intent.message(), now());
+    Run run = new Run(runId, intent.conversationId(), sessionId, intent.message(), now());
     runs.save(run);
     MDC.put("runId", runId);
     try {
@@ -129,13 +130,7 @@ public class RunOrchestrator {
           new SseEvent.RunStartedData(runId, intent.conversationId(), now()));
       run.transition(RunState.PLANNING, now());
 
-      IntentRequest.SelectedEntity selected =
-          intent.pageContext() == null ? null : intent.pageContext().selectedEntity();
-      DomainResolver.RouteDecision route =
-          resolver.resolve(
-              intent.message(),
-              Optional.ofNullable(selected).map(IntentRequest.SelectedEntity::type),
-              principal);
+      DomainResolver.RouteDecision route = resolver.resolve(intent.message());
       Optional<String> domain = route.domain();
       log.info("route runId={} domain={} source={}", runId, domain.orElse("-"), route.source());
       if (domain.isEmpty()) {
@@ -145,15 +140,7 @@ public class RunOrchestrator {
         return runId;
       }
 
-      ToolSearch.Response found =
-          registry.search(
-              new ToolSearch.Request(
-                  domain.get(),
-                  null,
-                  new ToolSearch.Principal(principal.userId(), principal.tenantId()),
-                  intent.pageContext() != null && intent.pageContext().selectedEntity() != null
-                      ? new ToolSearch.Context(intent.pageContext().selectedEntity().type())
-                      : null));
+      ToolSearch.Response found = registry.search(new ToolSearch.Request(domain.get(), null, null));
       if (found.tools().isEmpty()) {
         emit(
             sink, SseEvent.MESSAGE_DELTA, new SseEvent.MessageDeltaData(runId, NO_CAPABILITY_TEXT));
@@ -161,8 +148,8 @@ public class RunOrchestrator {
         return runId;
       }
 
-      // 实体抽取（消息正则优先，页面实体补位）；日志只记类型与 ID，不记原文
-      Map<String, String> entities = EntityExtractor.extract(intent.message(), selected);
+      // 实体抽取（只从消息正则）；日志只记类型与 ID，不记原文
+      Map<String, String> entities = EntityExtractor.extract(intent.message());
       log.info("entities runId={} {}", runId, entities);
 
       // 规划前拦截：领域内全部候选都需要实体而没有 → 提示并结束，不进规划、不调 Gateway
@@ -224,7 +211,7 @@ public class RunOrchestrator {
       String actionId,
       String rawToken,
       Map<String, Object> formData,
-      Principal principal,
+      String sessionId,
       String traceId,
       RunEventSink sink) {
     Run run = runs.find(runId).orElseThrow(() -> new RunNotFound(runId));
@@ -246,8 +233,8 @@ public class RunOrchestrator {
           rejectRequest(run, "run not waiting for confirmation: " + run.state(), sink);
           return;
         }
-        if (!run.principal().equals(principal)) {
-          rejectRequest(run, "principal mismatch", sink);
+        if (!run.sessionId().equals(sessionId)) {
+          rejectRequest(run, "session mismatch", sink);
           return;
         }
         Step step =
@@ -256,7 +243,15 @@ public class RunOrchestrator {
                     () -> new RunFailure(RunFailureCode.INTERNAL_ERROR.name(), "no pending step"));
         ConfirmationToken token;
         try {
-          token = tokens.consume(rawToken, runId, actionId, argsDigest(step.fixedArgs()), formData);
+          token =
+              tokens.consume(
+                  rawToken,
+                  runId,
+                  actionId,
+                  argsDigest(step.fixedArgs()),
+                  run.conversationId(),
+                  sessionId,
+                  formData);
         } catch (ConfirmationTokenService.TokenUnknown e) {
           rejectRequest(run, e.getMessage(), sink);
           return;
@@ -451,7 +446,14 @@ public class RunOrchestrator {
     String actionId = ScreenRegistry.submitActionId(probe);
     Set<String> formKeys = ScreenRegistry.formKeys(probe);
     ConfirmationToken token =
-        tokens.issue(run.runId(), actionId, step.seq(), argsDigest(step.fixedArgs()), formKeys);
+        tokens.issue(
+            run.runId(),
+            actionId,
+            step.seq(),
+            argsDigest(step.fixedArgs()),
+            run.conversationId(),
+            run.sessionId(),
+            formKeys);
     UiSchema ui = screens.confirmation(step.toolId(), step.fixedArgs(), cache, token.token(), ctx);
     if (!ScreenRegistry.formKeys(ui).equals(token.allowedFormKeys())
         || !ScreenRegistry.submitActionId(ui).equals(actionId)) {
@@ -471,7 +473,7 @@ public class RunOrchestrator {
   }
 
   private static ScreenContext screenContext(Run run) {
-    return new ScreenContext(run.runId(), run.principal().userId(), run.principal().tenantId());
+    return new ScreenContext(run.runId());
   }
 
   /** 计划中最后一个已执行的步骤（nextSeq - 1）。 */
@@ -510,12 +512,7 @@ public class RunOrchestrator {
             version,
             argNode,
             new ToolInvoke.ExecutionContext(
-                run.runId(),
-                toolCallId,
-                run.principal().userId(),
-                run.principal().tenantId(),
-                idem,
-                traceId));
+                run.runId(), toolCallId, run.sessionId(), idem, traceId));
     long t0 = System.nanoTime();
     ToolInvoke.Response resp;
     try {

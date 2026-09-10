@@ -9,7 +9,8 @@ import com.sparkrooter.contracts.model.RunSummary;
 import com.sparkrooter.contracts.model.UiSchema;
 import com.sparkrooter.runtime.application.RunOrchestrator;
 import com.sparkrooter.runtime.domain.Run;
-import com.sparkrooter.spi.Principal;
+import com.sparkrooter.spi.RunContextPropagator;
+import com.sparkrooter.spi.SessionIdResolver;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
@@ -26,8 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * 前端 ↔ Runtime 三个端点。principal 只来自请求头（agent-safety §4：pageContext 不可信）。 Controller 只做绑定与分发；编排在
- * RunOrchestrator，在独立线程执行以便 SSE 立即返回。
+ * 前端 ↔ Runtime 三个端点。请求体只有自然语言；身份不进内核：宿主 SessionIdResolver 在请求线程把请求映射为 sessionId（Run 隔离键）， 宿主
+ * RunContextPropagator 把宿主 ThreadLocal 带到 agent-run-* 线程。Controller 只做绑定与分发；编排在 RunOrchestrator。
  */
 @RestController
 @RequestMapping("/agent/runs")
@@ -41,37 +42,37 @@ public class AgentRunController {
   private final ObjectMapper mapper;
   private final ExecutorService runExecutor;
   private final ScheduledExecutorService pingScheduler;
+  private final SessionIdResolver sessions;
+  private final RunContextPropagator propagator;
 
   public AgentRunController(
       RunOrchestrator orchestrator,
       SchemaValidator validator,
       ObjectMapper mapper,
       ExecutorService runExecutor,
-      ScheduledExecutorService pingScheduler) {
+      ScheduledExecutorService pingScheduler,
+      SessionIdResolver sessions,
+      RunContextPropagator propagator) {
     this.orchestrator = orchestrator;
     this.validator = validator;
     this.mapper = mapper;
     this.runExecutor = runExecutor;
     this.pingScheduler = pingScheduler;
+    this.sessions = sessions;
+    this.propagator = propagator;
   }
 
   @PostMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter start(
       @RequestBody JsonNode body,
-      @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
-      @RequestHeader(value = "X-User-Id", required = false) String userId,
       @RequestHeader(value = "X-Trace-Id", required = false) String traceId) {
-    Principal principal = principal(userId, tenantId);
     // 先按 intent-request 契约校验原始 JSON（additionalProperties / pattern / const），再绑定 record
     IntentRequest intent = validator.bind("intent-request", null, body, IntentRequest.class);
-    log.info(
-        "start_run, conversationId={} userId={} tenantId={}",
-        intent.conversationId(),
-        userId,
-        tenantId);
+    String sessionId = sessions.resolve(intent.conversationId());
+    log.info("start_run, conversationId={}", intent.conversationId());
     SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
     SseRunEventSink sink = new SseRunEventSink(emitter, mapper, pingScheduler);
-    runExecutor.submit(() -> orchestrator.start(intent, principal, traceId, sink));
+    submit(() -> orchestrator.start(intent, sessionId, traceId, sink));
     return emitter;
   }
 
@@ -80,32 +81,26 @@ public class AgentRunController {
       @PathVariable String runId,
       @PathVariable String actionId,
       @RequestBody JsonNode body,
-      @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
-      @RequestHeader(value = "X-User-Id", required = false) String userId,
       @RequestHeader(value = "X-Trace-Id", required = false) String traceId) {
-    Principal principal = principal(userId, tenantId);
     ActionRequest action = validator.bind("action-request", null, body, ActionRequest.class);
-    log.info("confirm_action, runId={} actionId={} userId={}", runId, actionId, userId);
+    log.info("confirm_action, runId={} actionId={}", runId, actionId);
     // runId 不存在必须同步 404，而不是在 SSE 里失败
-    orchestrator.find(runId).orElseThrow(() -> new RunOrchestrator.RunNotFound(runId));
+    Run run = orchestrator.find(runId).orElseThrow(() -> new RunOrchestrator.RunNotFound(runId));
+    String sessionId = sessions.resolve(run.conversationId());
     SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
     SseRunEventSink sink = new SseRunEventSink(emitter, mapper, pingScheduler);
     Map<String, Object> formData = action.formData();
-    runExecutor.submit(
+    submit(
         () ->
             orchestrator.confirm(
-                runId, actionId, action.confirmationToken(), formData, principal, traceId, sink));
+                runId, actionId, action.confirmationToken(), formData, sessionId, traceId, sink));
     return emitter;
   }
 
   @GetMapping("/{runId}")
-  public RunSummary get(
-      @PathVariable String runId,
-      @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
-      @RequestHeader(value = "X-User-Id", required = false) String userId) {
-    Principal principal = principal(userId, tenantId);
+  public RunSummary get(@PathVariable String runId) {
     Run run = orchestrator.find(runId).orElseThrow(() -> new RunOrchestrator.RunNotFound(runId));
-    if (!run.principal().equals(principal)) {
+    if (!run.sessionId().equals(sessions.resolve(run.conversationId()))) {
       throw new RunOrchestrator.RunNotFound(runId); // 不泄露他人 Run 的存在
     }
     UiSchema ui = orchestrator.lastUi(runId).orElse(null);
@@ -119,19 +114,17 @@ public class AgentRunController {
         run.updatedAt());
   }
 
-  private static Principal principal(String userId, String tenantId) {
-    if (userId == null || userId.isBlank() || tenantId == null || tenantId.isBlank()) {
-      throw new UnauthenticatedException();
-    }
-    return new Principal(userId, tenantId);
-  }
-
-  /** 缺 X-Tenant-Id / X-User-Id → 401。 */
-  public static class UnauthenticatedException extends RuntimeException {
-    private static final long serialVersionUID = 1L;
-
-    public UnauthenticatedException() {
-      super("missing X-Tenant-Id or X-User-Id");
-    }
+  /** 切到 agent-run-* 线程前捕获宿主上下文，工作线程 restore / clear（finally）。 */
+  private void submit(Runnable task) {
+    Object hostCtx = propagator.capture();
+    runExecutor.submit(
+        () -> {
+          propagator.restore(hostCtx);
+          try {
+            task.run();
+          } finally {
+            propagator.clear();
+          }
+        });
   }
 }

@@ -1,23 +1,18 @@
 package com.sparkrooter.runtime.application;
 
-import com.sparkrooter.contracts.model.ToolSearch;
 import com.sparkrooter.runtime.application.port.IntentClassifier;
 import com.sparkrooter.runtime.application.port.ToolRegistryClient;
 import com.sparkrooter.runtime.domain.DomainRouter;
-import com.sparkrooter.spi.Principal;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
- * 分层领域路由：规则优先（0 延迟）→ 模型补位（只输出该 principal 可见领域的枚举，经代码校验）→ none。 结果只决定去 Registry 查哪个领域的候选；鉴权仍在
- * Registry / Gateway。source 只进日志，不进 SSE。
+ * 分层领域路由：规则优先（0 延迟）→ 模型补位（只输出可发现领域的枚举，经代码校验）→ none。 结果只决定去 Registry 查哪个领域的候选；内核不鉴权。source 只进日志，不进
+ * SSE。
  */
 @Component
 public class DomainResolver {
-
-  /** 页面实体类型白名单：只有这些类型会作为提示进入分类 prompt。 */
-  static final Set<String> ENTITY_HINT_WHITELIST = Set.of("order", "product");
 
   /** 路由决策；source ∈ {rule, model, none}。 */
   public record RouteDecision(Optional<String> domain, String source) {
@@ -44,17 +39,15 @@ public class DomainResolver {
     this.registry = registry;
   }
 
-  public RouteDecision resolve(String message, Optional<String> entityType, Principal principal) {
+  public RouteDecision resolve(String message) {
     Optional<String> byRule = rules.route(message);
     if (byRule.isPresent()) {
       return RouteDecision.rule(byRule.get());
     }
-    // 只在模型路径查一次 Registry：该 principal 可见的领域集合即分类枚举
-    Set<String> known =
-        registry.domains(new ToolSearch.Principal(principal.userId(), principal.tenantId()));
-    Optional<String> hint = entityType.filter(ENTITY_HINT_WHITELIST::contains);
+    // 只在模型路径查一次 Registry：可发现领域集合即分类枚举
+    Set<String> known = registry.domains();
     return classifier
-        .classify(message, hint, known)
+        .classify(message, known)
         .filter(known::contains)
         .map(RouteDecision::model)
         .orElseGet(RouteDecision::none);
