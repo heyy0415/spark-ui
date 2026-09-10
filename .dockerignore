@@ -1,0 +1,10 @@
+.git
+**/node_modules
+**/target
+**/dist
+.harness/changes
+.harness/node_modules
+.idea
+.vscode
+.claude
+docs

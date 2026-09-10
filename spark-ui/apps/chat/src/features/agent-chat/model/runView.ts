@@ -49,8 +49,15 @@ export function lastTurn(view: AgentRunView): ChatTurn | null {
 
 let seq = 0;
 
-/** 用户发送一条消息：追加新回合。历史回合原样保留（只读展示），不再撤屏——聊天流里每轮回答都留着。 */
+/**
+ * 用户发送一条消息：追加新回合。历史回合原样保留（只读展示）；若上一回合还在等确认，把它收口为 completed——
+ * ActionBar 只在最后回合渲染，令牌也将随新 Run 作废，不能让它永远显示「请确认后继续」（评审 M2）。
+ */
 export function beginTurn(view: AgentRunView, text: string): AgentRunView {
+  const closed = updateLast(view, (t) =>
+    t.status === 'waiting_confirmation' ? { ...t, status: 'completed', pendingActionId: null } : t,
+  );
+  view = closed;
   seq += 1;
   const turn: ChatTurn = {
     id: `t${Date.now().toString(36)}_${seq}`,
@@ -104,6 +111,10 @@ export function reduceEvent(view: AgentRunView, ev: SseEvent): AgentRunView {
 }
 
 function reduceTurn(t: ChatTurn, ev: SseEvent): ChatTurn {
+  // 旧流的残帧不得写进新回合：run.started 之后所有事件的 runId 必须与本回合一致（评审 S8）
+  if (t.runId && ev.event !== 'run.started' && ev.data.runId !== t.runId) {
+    return t;
+  }
   switch (ev.event) {
     case 'run.started':
       return { ...t, runId: ev.data.runId, status: 'streaming', failure: null };

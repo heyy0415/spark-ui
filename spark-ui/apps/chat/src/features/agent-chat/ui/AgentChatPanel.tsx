@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { UiAction } from '@spark-ui/core';
 import {
@@ -50,22 +50,27 @@ export function AgentChatPanel({ conversationId, baseUrl, fetch: hostFetch }: Ag
     transport,
   });
   const { mutate } = start;
-  // 消息流是否跟随到底（用户手动上翻超过一屏后停止跟随，新回合恢复）
+  // 消息流是否跟随（用户手动上翻超过半屏后停止，新回合恢复）
   const stickRef = useRef(true);
+  // busy 走 ref：send 不因 busy 变化换引用，历史回合的 TurnView 才能 memo 住（effect 里同步，不在渲染期写 ref）
+  const busyRef = useRef(busy);
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
 
   /** 发送一条用户消息：输入框、示例 chip、行内指令都走这里，文本原样提交、不拼接不改写。 */
   const send = useCallback(
     (message: string) => {
-      if (!message || busy) {
+      if (!message || busyRef.current) {
         return;
       }
-      stickRef.current = true; // 新回合：无论之前翻到哪，都回到底部
+      stickRef.current = true; // 新回合：无论之前翻到哪，都回到跟随
       mutate({
         message,
         clientCapabilities: { uiSchemaVersion: '1.0', components: [...COMPONENT_TYPES] },
       });
     },
-    [busy, mutate],
+    [mutate],
   );
 
   const onSubmit = (e: FormEvent) => {
@@ -89,31 +94,42 @@ export function AgentChatPanel({ conversationId, baseUrl, fetch: hostFetch }: Ag
           ? '请求失败'
           : null;
 
-  // 消息流高度一变就滚到底（ResizeObserver 盯内容容器，比按事件猜时机可靠：表格 / 骨架的渲染时刻不确定）。
-  // 用户手动往上翻超过一屏则不再跟随；新回合开始时恢复跟随。
-  const bottomRef = useRef<HTMLDivElement>(null);
+  // 消息流跟随：内容高度变化（ResizeObserver）时把「最后一个回合的用户气泡」滚到可视区顶部——新屏比视口高时用户先看到
+  // 问题与表头，而不是表格底部；只滚 .stream 自身，不用 scrollIntoView（会把嵌入的宿主页面一起卷走）。
+  // 用户往上翻超过半屏后停止跟随，新回合恢复。
   const streamRef = useRef<HTMLDivElement>(null);
   const turns = view.turns;
   const lastIdx = turns.length - 1;
   const onStreamScroll = () => {
     const el = streamRef.current;
     if (el) {
-      stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < el.clientHeight;
+      stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < el.clientHeight / 2;
     }
   };
-  // ref 回调：列表挂载时开始观察，卸载时断开；不经 effect 依赖
-  const observeList = useCallback((list: HTMLOListElement | null) => {
-    if (!list) {
+  const follow = useCallback(() => {
+    const el = streamRef.current;
+    if (!el || !stickRef.current) {
       return;
     }
-    const ro = new ResizeObserver(() => {
-      if (stickRef.current) {
-        bottomRef.current?.scrollIntoView({ block: 'end' });
-      }
-    });
-    ro.observe(list);
-    return () => ro.disconnect();
+    // user / assistant 两种 li 交替出现，:last-of-type 会选到 assistant；取全部 user li 的最后一个
+    const users = el.querySelectorAll<HTMLElement>('li[data-role="user"]');
+    const lastUser = users[users.length - 1];
+    const target = lastUser ? lastUser.offsetTop - el.offsetTop - 8 : el.scrollHeight;
+    // 内容不足一屏时贴底即可；否则把最后一轮的问题放到顶部
+    el.scrollTop = Math.min(target, el.scrollHeight - el.clientHeight);
   }, []);
+  // ref 回调：列表挂载时开始观察，卸载时断开；不经 effect 依赖
+  const observeList = useCallback(
+    (list: HTMLOListElement | null) => {
+      if (!list) {
+        return;
+      }
+      const ro = new ResizeObserver(follow);
+      ro.observe(list);
+      return () => ro.disconnect();
+    },
+    [follow],
+  );
 
   return (
     <div className={styles['panel']}>
@@ -151,7 +167,6 @@ export function AgentChatPanel({ conversationId, baseUrl, fetch: hostFetch }: Ag
             ))}
           </ol>
         )}
-        <div ref={bottomRef} />
       </div>
 
       <form className={styles['inputBar']} onSubmit={onSubmit}>
@@ -192,8 +207,15 @@ interface TurnViewProps {
   onAction: (a: UiAction) => void;
 }
 
-/** 一个回合 = 右侧用户气泡 + 左侧助手气泡（状态条 → 文本 → 骨架 / 屏 → 确认按钮）。历史回合只读。 */
-function TurnView({ turn, isLast, busy, onIntent, onFormChange, onAction }: TurnViewProps) {
+/** 一个回合 = 右侧用户气泡 + 左侧助手气泡（状态条 → 文本 → 骨架 / 屏 → 确认按钮）。历史回合只读；memo 住，SSE 帧只重渲最后回合。 */
+const TurnView = memo(function TurnView({
+  turn,
+  isLast,
+  busy,
+  onIntent,
+  onFormChange,
+  onAction,
+}: TurnViewProps) {
   const loading = turn.status === 'streaming' && turn.ui === null;
   const canConfirm = isLast && turn.status === 'waiting_confirmation' && turn.ui !== null;
   return (
@@ -231,4 +253,4 @@ function TurnView({ turn, isLast, busy, onIntent, onFormChange, onAction }: Turn
       </li>
     </>
   );
-}
+});

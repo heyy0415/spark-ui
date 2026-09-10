@@ -102,7 +102,7 @@ for (const t of contractTypes) {
 // ActionBar / RunStatus / SchemaSkeleton 不是契约组件，但都是官方组件（Button / Spin / Skeleton）的直接映射
 const ALLOWED_FILES = new Set([...contractTypes, 'ActionBar', 'RunStatus', 'SchemaSkeleton']);
 const ALLOWED_IMPORT =
-  /^(antd|antd-mobile|react|\.\.\/\.\.\/registry\/[a-zA-Z]+|\.\.\/\.\.\/schema\/[a-zA-Z]+)$/;
+  /^(antd|antd-mobile|react|\.\.\/\.\.\/registry\/[a-zA-Z]+|\.\.\/\.\.\/schema\/[a-zA-Z]+|\.\.\/\.\.\/lib\/[a-zA-Z]+)$/;
 for (const side of ['desktop', 'mobile']) {
   const dir = join(core, 'components', side);
   for (const f of readdirSync(dir)) {

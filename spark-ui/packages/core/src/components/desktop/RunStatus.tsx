@@ -1,6 +1,6 @@
 import { Space, Spin, Typography } from 'antd';
 import type { RunStatusProps } from '../../registry/types';
-import { runStatusText, TOOL_STATUS_TEXT } from '../../registry/runStatusText';
+import { runStatusText, TOOL_STATUS_TEXT } from '../../lib/runStatusText';
 
 /** 桌面 RunStatus：Spin + 文案；进度明细 <ol aria-label="工具进度">（e2e 依赖该 hook）。 */
 export function RunStatusDesktop(props: RunStatusProps) {

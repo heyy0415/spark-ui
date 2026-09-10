@@ -1,4 +1,4 @@
-import type { RunStatusProps, ToolStep } from './types';
+import type { RunStatusProps, ToolStep } from '../registry/types';
 
 /** 两端共用的状态文案：streaming 取最后一个未完成工具，没有工具时是「理解问题」阶段。 */
 export function runStatusText({ status, tools, text }: RunStatusProps): string {

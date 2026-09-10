@@ -9,9 +9,10 @@ export function ChatPage() {
 
   return (
     <section className={styles['wrap']} aria-labelledby="chat-title">
-      <h1 id="chat-title" className={styles['title']}>
-        用一句话查订单、看物流、办售后、退款
+      <h1 id="chat-title" className={styles['srOnly']}>
+        Spark 助手
       </h1>
+      <p className={styles['title']}>查订单、看物流、办售后、退款，直接说就行</p>
       <div className={styles['body']}>
         <AgentChatPanel conversationId={conversationId} />
       </div>

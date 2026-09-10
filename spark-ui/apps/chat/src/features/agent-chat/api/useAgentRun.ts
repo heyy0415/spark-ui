@@ -94,28 +94,33 @@ export function useAgentRun({ conversationId, transport }: UseAgentRunOptions) {
     [qc, conversationId],
   );
 
+  /** 流收口：无论正常结束、HTTP 非 2xx 还是网络异常，回合不能停在 streaming（评审 M1）。 */
+  const finalize = useCallback(() => {
+    qc.setQueryData<AgentRunView>(viewKey(conversationId), (prev) =>
+      failIfStillStreaming(prev ?? emptyView(conversationId)),
+    );
+  }, [qc, conversationId]);
+
   const stream = useCallback(
     async (path: string, body: unknown) => {
       abortRef.current?.abort();
       const ac = new AbortController();
       abortRef.current = ac;
-      await consumeSse(
-        {
-          path,
-          body,
-          signal: ac.signal,
-          fetch: transport.fetch,
-          baseUrl: transport.baseUrl,
-        },
-        apply,
-      );
-      if (!ac.signal.aborted) {
-        qc.setQueryData<AgentRunView>(viewKey(conversationId), (prev) =>
-          failIfStillStreaming(prev ?? emptyView(conversationId)),
-        );
-      }
+      const req = {
+        path,
+        body,
+        signal: ac.signal,
+        fetch: transport.fetch,
+        baseUrl: transport.baseUrl,
+      };
+      // 不用 try/finally：让 rejection 照常抛给 useMutation（error 展示），收口在 .finally 里做
+      await consumeSse(req, apply).finally(() => {
+        if (!ac.signal.aborted) {
+          finalize();
+        }
+      });
     },
-    [apply, transport, qc, conversationId],
+    [apply, transport, finalize],
   );
 
   const start = useMutation({

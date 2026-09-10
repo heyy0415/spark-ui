@@ -160,6 +160,20 @@ try {
     check('no action bar after confirm', 0, await page.$$eval('[data-action-id]', (e) => e.length));
     check('run status completed', 1, await page.$$eval(inLast('[data-run-status="completed"]'), (e) => e.length));
     check('tool progress items after confirm', 4, await page.$$eval(inLast('[aria-label="工具进度"] li'), (e) => e.length));
+    // 历史回合只读（评审 S5 / M2）：再发一条消息 → 上一回合的 Form 控件禁用、无 ActionBar；
+    // 再造一个「等确认时发新消息」的场景：确认屏挂起 → 发新消息 → 旧回合状态被收口为 completed（不再显示「请确认后继续」）
+    await page.type('#agent-input', '帮我把订单 10011 退款');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector(inLast('[data-screen-id="refund-confirmation"]'), { timeout: 15000 });
+    await sleep(500);
+    await page.type('#agent-input', '看看我的订单');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector(inLast('[data-component-id="orders"]'), { timeout: 15000 });
+    await sleep(500);
+    check('no action bar in history turns', 0, await page.$$eval('[data-action-id]', (e) => e.length));
+    check('history confirmation turn closed (not waiting)', 0, await page.$$eval('[data-run-status="waiting_confirmation"]', (e) => e.length));
+    check('history Form controls disabled', true, await page.$$eval('li[data-role="assistant"]:not(:last-of-type) .ant-form .ant-select', (e) => e.length > 0 && e.every((x) => x.className.includes('ant-select-disabled'))));
+    // 历史回合里唯一带行内指令的是最后一屏之前的确认卡（无 intent）；改在步骤 7 的多回合场景断言
     check('console errors', 0, errors.length);
     if (errors.length) console.log('    errors:', errors.slice(0, 3));
     await page.screenshot({ path: join(DEPLOY, 'ui-desktop-flow.png'), fullPage: true });
@@ -215,6 +229,8 @@ try {
     check('two turns visible', 2, await page.$$eval('[aria-label="对话消息"] li[data-role="user"]', (e) => e.length));
     check('previous order table still in DOM', 1, await page.$$eval('[data-component-id="orders"]', (e) => e.length));
     check('two screens in DOM', 2, await page.$$eval('[data-screen-id]', (e) => e.length));
+    // 历史回合（订单表）的行内按钮仍可点：自然语言、无令牌
+    check('history inline intents still clickable', true, await page.$$eval('li[data-role="assistant"]:not(:last-of-type) [data-intent]', (e) => e.length > 0 && e.every((x) => !x.disabled)));
     checkTrue('timeline items ≥ 3', (await page.$$eval('[data-component-id="logistics-events"] .ant-timeline-item', (e) => e.length)) >= 3);
     await page.screenshot({ path: join(DEPLOY, 'ui-logistics.png'), fullPage: true });
     await page.type('#agent-input', '有什么商品');

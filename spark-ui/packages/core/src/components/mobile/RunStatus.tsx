@@ -1,6 +1,6 @@
 import { SpinLoading } from 'antd-mobile';
 import type { RunStatusProps } from '../../registry/types';
-import { runStatusText, TOOL_STATUS_TEXT } from '../../registry/runStatusText';
+import { runStatusText, TOOL_STATUS_TEXT } from '../../lib/runStatusText';
 
 /** 移动端 RunStatus：SpinLoading + 文案；进度明细同桌面结构。 */
 export function RunStatusMobile(props: RunStatusProps) {
