@@ -21,7 +21,7 @@ Spark 让业务系统能听懂自然语言。用户在聊天框里输入「最�
 - [架构](#架构)
 - [快速开始](#快速开始)
 - [接入你的服务](#接入你的服务)
-- [部署 Demo](#部署-demo)
+- [Docker 部署](#docker-部署)
 - [安全模型](#安全模型)
 - [开发与质量门禁](#开发与质量门禁)
 - [已知限制](#已知限制)
@@ -134,27 +134,35 @@ public class OrderTools {
 
 完整示例见 [`spark-rooter/examples/host-demo`](spark-rooter/examples/host-demo/README.md)。前端可以直接用 `spark-chat`，或在自己页面里用 `@spark-ui/core` 的 `SchemaRenderer` / `RunStatus` / `SchemaSkeleton`；要带登录态就给 `AgentChatPanel` 传自己的 `fetch`。
 
-## 部署 Demo
+## Docker 部署
 
-仓库提供一个 `Dockerfile`，把前端静态资源和示例宿主打进一个镜像，单进程、8080 端口、无外部依赖（存储全在内存）。
+仓库根的 `Dockerfile` 把前端静态资源和示例宿主打进一个镜像：单进程、8080 端口、无外部依赖（存储全在内存），适合本机演示或放到任意一台有 Docker 的机器上。
 
 ```bash
 docker build -t spark-demo .
-docker run -p 8080:8080 spark-demo
+docker run -d --name spark-demo -p 8080:8080 spark-demo
+# 打开 http://localhost:8080
 ```
 
-免费托管平台里，能直接跑这个镜像、不要信用卡的：
+首次构建约 6～10 分钟（前端 pnpm install + 后端 Maven 拉依赖），之后有缓存会快很多。构建期间不需要本机装 JDK / Node / Maven，都在镜像里完成。
 
-| 平台 | 做法 | 免费额度要点 |
-|---|---|---|
-| **Koyeb**（推荐） | 连 GitHub 仓库，选 Dockerfile 部署 | 1 个常驻实例，512 MB，不休眠；JVM 建议加 `JAVA_TOOL_OPTIONS=-Xmx300m` |
-| **Render** | Web Service → Docker | 512 MB，15 分钟无流量休眠，冷启动约 1 分钟 |
-| **Hugging Face Spaces** | 新建 Docker Space，把仓库推上去，`app_port: 8080` | 2 vCPU / 16 GB，公开 Space 永久免费；适合做演示页 |
-| **Fly.io** | `fly launch` 用 Dockerfile | 需要绑卡但小实例有免费额度 |
+常用操作：
 
-前后端拆开部署也行：`spark-ui/apps/chat/dist` 是纯静态，可放 Vercel / Netlify / Cloudflare Pages，构建时设 `VITE_API_BASE_URL` 指向后端地址；后端仍用上面任一平台。
+```bash
+docker logs -f spark-demo                      # 看启动日志，应出现 "14 tools registered from 6 beans"
+curl http://localhost:8080/actuator/health     # {"status":"UP"}
+docker stop spark-demo && docker rm spark-demo # 停止并删除
+```
 
-Demo 环境请保留 `SessionIdResolver` 默认实现（会话即 conversationId），不要接真实 LLM 密钥到公开实例。
+可选环境变量：
+
+| 变量 | 说明 |
+|---|---|
+| `JAVA_TOOL_OPTIONS` | 镜像默认 `-Xmx300m -XX:+UseSerialGC`，内存紧就改小 |
+| `SPARK_LLM_BASE_URL` / `SPARK_LLM_API_KEY` / `SPARK_LLM_MODEL` | 接 OpenAI 兼容模型；用 `docker run -e` 传入，不要写进镜像。不传则走规则规划器 |
+| `SPARK_SELFCHECK_ENABLED=false` | 关闭启动自检，启动更快 |
+
+镜像里的示例宿主用的是 demo 版 `SessionIdResolver`（会话即 conversationId，没有用户隔离），只适合演示，不要直接对公网开放。
 
 ## 安全模型
 
