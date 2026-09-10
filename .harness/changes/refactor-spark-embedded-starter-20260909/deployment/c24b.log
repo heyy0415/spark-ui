@@ -1,3 +1,3 @@
 event:run.failed
-data:{"runId":"run_500057c4c8f847cb","code":"CONFIRMATION_REJECTED","message":"确认已过期或已被使用，请重新发起","at":"2026-09-10T08:12:25.923559Z"}
+data:{"runId":"run_a8bb1c15be794384","code":"CONFIRMATION_REJECTED","message":"确认已过期或已被使用，请重新发起","at":"2026-09-10T08:39:25.006244Z"}
 

@@ -19,6 +19,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..', '..');
 const sparkRooterDir = join(root, 'spark-rooter');
 
+// 以下三条正则被规则与自测共同引用（评审 v2 N-1：自测不能用手抄副本）
+const BOTTOM_DEP = /<groupId>com\.sparkrooter<\/groupId><artifactId>([^<]+)<\/artifactId>/g;
+const peerRule = (o) => new RegExp(`\\bcom\\.sparkrooter\\.${o}\\.(infra|domain|application)\\.`);
+const EXAMPLES_REF = /\bcom\.sparkrooter\.examples\.([a-z]+)\./g;
+
 let violations = 0;
 const fail = (msg) => {
   console.error(`✗ ${msg}`);
@@ -68,7 +73,7 @@ for (const mod of ['spark-rooter-runtime', 'spark-rooter-registry', 'spark-roote
     if (!existsSync(pom)) continue;
     const text = await readFile(pom, 'utf-8');
     const depsBlock = (text.match(/<dependencies>([\s\S]*?)<\/dependencies>/g) ?? []).join('\n');
-    for (const m of depsBlock.matchAll(/<groupId>com\.sparkrooter<\/groupId><artifactId>([^<]+)<\/artifactId>/g)) {
+    for (const m of depsBlock.matchAll(BOTTOM_DEP)) {
       if (!ok.includes(m[1])) fail(`${mod}/pom.xml must not depend on com.sparkrooter:${m[1]} (bottom layer)`);
     }
   }
@@ -114,17 +119,27 @@ for (const mod of PLATFORM_SRC) {
   }
 }
 
-// 规则自测（Hashimoto）：每条正则对一个「必须命中」的样本为真，防止改名后正则静默失效
+// 规则自测（Hashimoto）：引用与规则**同一个**正则对象；正样本必须命中、反样本（旧包名）必须不命中，改名后正则漂移会直接红
+const fresh = (re) => new RegExp(re.source, re.flags.replace('g', ''));
 const selfTests = [
-  [STEREOTYPES, '@org.springframework.stereotype.Service\npublic class X {}'],
-  [STEREOTYPES, '  @Component\npublic class X {}'],
-  [IDENTITY, 'String tenantId'],
-  [new RegExp(`\\bcom\\.sparkrooter\\.gateway\\.(infra|domain|application)\\.`), 'import com.sparkrooter.gateway.infra.LogAuditSink;'],
-  [/\bcom\.sparkrooter\.examples\.([a-z]+)\./, 'import com.sparkrooter.examples.order.domain.Order;'],
-  [/<groupId>com\.sparkrooter<\/groupId><artifactId>([^<]+)<\/artifactId>/, '<dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-runtime</artifactId></dependency>'],
+  [fresh(STEREOTYPES), '@org.springframework.stereotype.Service\npublic class X {}', 'stereo-fqn'],
+  [fresh(STEREOTYPES), '  @Component\npublic class X {}', 'stereo-simple'],
+  [fresh(IDENTITY), 'String tenantId', 'identity'],
+  [peerRule('gateway'), 'import com.sparkrooter.gateway.infra.LogAuditSink;', 'peer'],
+  [fresh(EXAMPLES_REF), 'import com.sparkrooter.examples.order.domain.Order;', 'examples'],
+  [fresh(BOTTOM_DEP), '<dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-runtime</artifactId></dependency>', 'bottom-dep'],
 ];
-for (const [re, sample] of selfTests) {
-  if (!re.test(sample)) fail(`check-module-deps self-test: rule ${re} does not match its own positive sample`);
+for (const [re, sample, name] of selfTests) {
+  if (!re.test(sample)) fail(`check-module-deps self-test[${name}]: rule does not match its positive sample`);
+}
+const negatives = [
+  [peerRule('gateway'), 'import com.sparkrooter.gateway.api.ToolInvokePort;', 'peer-api-allowed'],
+  [fresh(EXAMPLES_REF), 'import com.spark.domain.order.Order;', 'examples-old-name'],
+  [fresh(BOTTOM_DEP), '<groupId>com.spark</groupId><artifactId>x</artifactId>', 'bottom-old-group'],
+  [fresh(IDENTITY), 'String sessionId', 'identity-session-ok'],
+];
+for (const [re, sample, name] of negatives) {
+  if (re.test(sample)) fail(`check-module-deps self-test[${name}]: rule wrongly matches its negative sample`);
 }
 
 // 全文匹配（含 FQN 内联引用与 import），不只看 import 行，避免 `org.springframework.stereotype.Service` 内联绕过
@@ -156,8 +171,7 @@ for (const [mod, others] of Object.entries(peers)) {
     const text = await readFile(file, 'utf-8');
     for (const o of others) {
       // 三模块之间只允许依赖对方 api 包（project-structure §2）；infra / domain / application 都不行
-      const re = new RegExp(`\\bcom\\.sparkrooter\\.${o}\\.(infra|domain|application)\\.`);
-      if (re.test(text)) fail(`${relative(root, file)}: ${mod} must not depend on ${o}'s infra/domain/application package (only api)`);
+      if (peerRule(o).test(text)) fail(`${relative(root, file)}: ${mod} must not depend on ${o}'s infra/domain/application package (only api)`);
     }
   }
 }
@@ -194,7 +208,7 @@ for (const [mod, others] of Object.entries(peers)) {
     }
     for await (const file of walk(src)) {
       const text = await readFile(file, 'utf-8');
-      for (const m of text.matchAll(/\bcom\.sparkrooter\.examples\.([a-z]+)\./g)) {
+      for (const m of text.matchAll(EXAMPLES_REF)) {
         // examples.support（demo-support：mock 用户上下文 + OrderSnapshot 跨域只读端口）是共享支撑模块，不是兄弟领域
         if (m[1] === 'support') continue;
         if (!own.includes(m[1])) fail(`${relative(root, file)}: domains/${mod} must not reference com.sparkrooter.examples.${m[1]} (cross-domain only via spark-rooter-spi)`);

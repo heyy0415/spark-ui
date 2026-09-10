@@ -106,6 +106,10 @@ for (const e of invalidFiles) {
   else ok(`  rejected: ${e}`);
 }
 if (invalidFiles.length === 0) fail('examples/invalid/ is empty: at least one negative example per breaking rule');
+// 本 change 改过形状的契约必须各有 ≥ 1 条反例（只守「目录非空」会被抽走单个契约的反例绕过）
+for (const must of ['intent-request', 'tool-search', 'tool-invoke', 'ui-schema']) {
+  if (!invalidFiles.some((f) => f.split('.')[0] === must)) fail(`examples/invalid/: no negative example for ${must}`);
+}
 
 console.log('');
 if (errors > 0) {

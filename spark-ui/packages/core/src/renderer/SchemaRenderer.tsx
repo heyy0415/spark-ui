@@ -17,7 +17,7 @@ export interface SchemaRendererProps {
   ui: UiSchema;
   /** Form 组件的值变化回调（收集 formData）。 */
   onFormChange?: (values: FormValues) => void;
-  /** Table 行内指令点击：回调 intent 原文；宿主应把它当用户输入原样提交，不拼接、不改写。 */
+  /** Table 行内指令 / Card.actions 点击：回调 intent 原文；宿主应把它当用户输入原样提交，不拼接、不改写。 */
   onIntent?: (intent: string) => void;
 }
 

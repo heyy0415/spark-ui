@@ -119,3 +119,19 @@ deploy-verify（8091）                              12 passed / 0 failed
 e2e-frontend（5199）                               37 passed / 0 failed
 植入 runtime `String userId` → check-module-deps 红；doctor 0
 ```
+
+---
+
+# 阶段 4 回修记录 v2（响应 `code_review_backend_v2.md`：APPROVED，2 SHOULD + 8 LOW；`code_review_frontend_v2.md`：APPROVED，2 SHOULD + 5 LOW）
+
+| # | 意见 | 处理 |
+|---|---|---|
+| 后端 N-1 (SHOULD) | module-deps 自测用手抄正则，规则漂移不会红 | 三条正则提为共享常量（`BOTTOM_DEP` / `peerRule()` / `EXAMPLES_REF`），规则与自测引用同一对象；增 4 条反样本（旧包名 / api 包 / sessionId）。植入 `peerRule` 改回旧包名 → 自测红 |
+| 后端 N-2 (SHOULD) | 澄清屏后「第二个的物流」被拼成「删除订单 第二个的物流」→ 误出删除确认屏 | `effectiveMessage` 只在当前消息无自身动词时拼回挂起原话；e2e ㉒''：「删除订单」→ 澄清屏 → 「第二个的物流」→ `order.logistics.get`、无确认、卡片含 rows[1].id |
+| 后端 N-12 (LOW) | 组件注解规则失去行首锚点，注释里的 `@Configuration` 也红 | 保留（宁严勿松，注释改 `{@code}`）；记为已知取舍 |
+| 后端 N-3 / N-4 / N-6 (LOW) | pendingMessage 未清；无 runTtl ≥ tokenTtl 守卫；「双绑定」注释不准 | 记入 summary 待办（下一 change） |
+| 前端 N-1 (SHOULD) | M-1 修复无回归门禁 | 新增 `scripts/verify-transport.ts`（假 fetch 断言 `request()` / `consumeSse()` URL 前缀、`''` 与 `undefined` 语义），纳入 `pnpm run ci` |
+| 前端 N-2 (SHOULD) | 反例门禁只守「目录非空」 | `check-contracts`：4 个改过形状的契约各须 ≥ 1 反例；`verify-examples`：intent-request / ui-schema 各须 ≥ 1 且 rejected > 0，未知 stem 报错。植入抽走 intent-request 反例 → 两端红 |
+| 前端 N-3 / N-5 / N-6 / N-7 (LOW) | `request()` 非 JSON 体抛 SyntaxError；check-rename 含 NUL 字面量；注释过期；L-1 第三处 / L-7 未改 | 全部修正（NUL 改转义序列 + 显式跳过自身；§5a 补 `$id` 行；SchemaRenderer 注释） |
+
+复验：harness ci 0（新增 verify-transport）；e2e-backend 159/159；deploy-verify 12/12；e2e-frontend 37/37；doctor 0。

@@ -1,18 +1,18 @@
 event:run.started
-data:{"runId":"run_f275c0cd28ad4f89","conversationId":"c22","at":"2026-09-10T08:12:25.651544Z"}
+data:{"runId":"run_a1b0ff2ab138482d","conversationId":"c22","at":"2026-09-10T08:39:24.607320Z"}
 
 event:tool.selected
-data:{"runId":"run_f275c0cd28ad4f89","toolCallId":"tc_000041","toolId":"aftersale.list.get","version":"1.0.0","displayName":"查询售后单"}
+data:{"runId":"run_a1b0ff2ab138482d","toolCallId":"tc_000041","toolId":"aftersale.list.get","version":"1.0.0","displayName":"查询售后单"}
 
 event:tool.started
-data:{"runId":"run_f275c0cd28ad4f89","toolCallId":"tc_000041","at":"2026-09-10T08:12:25.652177Z"}
+data:{"runId":"run_a1b0ff2ab138482d","toolCallId":"tc_000041","at":"2026-09-10T08:39:24.607978Z"}
 
 event:tool.completed
-data:{"runId":"run_f275c0cd28ad4f89","toolCallId":"tc_000041","status":"succeeded","durationMs":0,"summary":"该订单有 0 条售后记录"}
+data:{"runId":"run_a1b0ff2ab138482d","toolCallId":"tc_000041","status":"succeeded","durationMs":0,"summary":"该订单有 0 条售后记录"}
 
 event:ui.replace
-data:{"runId":"run_f275c0cd28ad4f89","ui":{"schemaVersion":"1.0","screenId":"aftersale-confirmation","title":"申请售后","components":[{"id":"order","type":"Card","props":{"title":"订单 10030","items":[{"label":"商品","value":"无线耳机 Pro"},{"label":"件数","value":"1"},{"label":"金额","value":"899.00 CNY"},{"label":"状态","value":"SHIPPED"}]}},{"id":"aftersale-form","type":"Form","props":{"fields":[{"name":"type","type":"select","label":"售后类型","required":true,"options":[{"label":"退货","value":"RETURN"},{"label":"换货","value":"EXCHANGE"},{"label":"维修","value":"REPAIR"}]},{"name":"reason","type":"text","label":"问题描述","required":true}]}}],"actions":[{"id":"confirm-aftersale","type":"submit","label":"提交售后申请","style":"primary","confirmationToken":"ct_f9Kz9LDgkyjfLqerjnmSpsdW2ouf6YNv"},{"id":"cancel","type":"cancel","label":"取消","style":"default"}]}}
+data:{"runId":"run_a1b0ff2ab138482d","ui":{"schemaVersion":"1.0","screenId":"aftersale-confirmation","title":"申请售后","components":[{"id":"order","type":"Card","props":{"title":"订单 10030","items":[{"label":"商品","value":"无线耳机 Pro"},{"label":"件数","value":"1"},{"label":"金额","value":"899.00 CNY"},{"label":"状态","value":"SHIPPED"}]}},{"id":"aftersale-form","type":"Form","props":{"fields":[{"name":"type","type":"select","label":"售后类型","required":true,"options":[{"label":"退货","value":"RETURN"},{"label":"换货","value":"EXCHANGE"},{"label":"维修","value":"REPAIR"}]},{"name":"reason","type":"text","label":"问题描述","required":true}]}}],"actions":[{"id":"confirm-aftersale","type":"submit","label":"提交售后申请","style":"primary","confirmationToken":"ct_XyXTUkBF-hfbGBYYVM76pXpdmAsn4sMJ"},{"id":"cancel","type":"cancel","label":"取消","style":"default"}]}}
 
 event:confirmation.required
-data:{"runId":"run_f275c0cd28ad4f89","actionId":"confirm-aftersale","expiresAt":"2026-09-10T08:22:25.652849Z"}
+data:{"runId":"run_a1b0ff2ab138482d","actionId":"confirm-aftersale","expiresAt":"2026-09-10T08:49:24.608702Z"}
 

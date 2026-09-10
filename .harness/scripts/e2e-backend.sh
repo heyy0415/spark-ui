@@ -326,6 +326,15 @@ check "㉒' ordinal → confirmation" 1 "$(events "$DEPLOY/c22b.log" | grep -c '
 check "㉒' card title has rows[1].id" "订单 $ROW2B" "$(comp c22b order "['title']")"
 check "㉒' source=memory(ordinal) logged" 1 "$([ "$(grep -c "runId=$(runid_of c22b) .*source=memory(ordinal)" "$DEPLOY/backend.log")" -ge 1 ] && echo 1 || echo 0)"
 
+echo "--- ㉒'' 澄清屏（删除订单）→ 「第二个的物流」：当前消息自带动词，不拼回「删除」→ 物流屏而非删除确认（评审 v2 N-2）"
+run_msg c22c "删除订单"
+check "㉒'' clarify shown" "['Table']" "$(types c22c)"
+ROW2C=$(data "$DEPLOY/c22c.log" ui.replace | json "[c for c in d['ui']['components'] if c['id']=='clarify'][0]['props']['rows'][1]['id']")
+run_msg c22c "第二个的物流"
+check "㉒'' tool" order.logistics.get "$(data "$DEPLOY/c22c.log" tool.selected | json "d['toolId']")"
+check "㉒'' no confirmation" 0 "$(events "$DEPLOY/c22c.log" | grep -c 'confirmation.required$')"
+check "㉒'' logistics card has rows[1].id" 1 "$(data "$DEPLOY/c22c.log" ui.replace | json "1 if '$ROW2C' in [c for c in d['ui']['components'] if c['id']=='logistics'][0]['props']['title'] else 0")"
+
 echo "--- ㉔ 令牌 sessionId 不一致：A（user_001）的确认令牌用 B（X-Demo-User: userb）的请求提交 → CONFIRMATION_REJECTED"
 run_msg c24 "订单 10011 退款"
 check "㉔ confirmation shown" 1 "$(events "$DEPLOY/c24.log" | grep -c 'confirmation.required$')"

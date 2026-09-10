@@ -14,4 +14,4 @@
 1293 /Users/fangtao/strato_ui/spark-ui/packages/core/dist/chunks/Card-DlujmgYg.js
 9532 /Users/fangtao/strato_ui/spark-ui/packages/core/dist/index.js
 ## spark-rooter
-38529648 /Users/fangtao/strato_ui/spark-rooter/examples/host-demo/target/host-demo.jar
+38529714 /Users/fangtao/strato_ui/spark-rooter/examples/host-demo/target/host-demo.jar

@@ -212,7 +212,7 @@ public class RunOrchestrator {
       try {
         plan =
             planWithMemory(
-                effectiveMessage(intent.message(), remembered),
+                effectiveMessage(intent.message(), domain.get(), remembered),
                 intent,
                 domain.get(),
                 found,
@@ -567,13 +567,17 @@ public class RunOrchestrator {
   }
 
   /** 规划；目标缺实体时先试记忆补位再规划一次，仍缺则把 MissingEntity 抛给调用方走澄清屏。 */
-  /** 纯序数指代且上一屏是澄清屏 → 规划消息 = 挂起原话 + 当前消息（「申请售后 第二个」），动词表才能命中。 */
+  /**
+   * 纯序数指代且上一屏是澄清屏 → 规划消息 = 挂起原话 + 当前消息（「申请售后 第二个」），动词表才能命中。 当前消息自带动词（「第二个的物流」）时不拼：用户已换了意图，
+   * 拼回去会让旧动词（如「删除」）抢先命中（评审 v2 N-2）。
+   */
   private static String effectiveMessage(
-      String message, Optional<ConversationMemory.Memory> remembered) {
+      String message, String domain, Optional<ConversationMemory.Memory> remembered) {
+    boolean ownVerb = IntentVerbs.target(message, domain).isPresent();
     return remembered
         .map(ConversationMemory.Memory::lastTable)
         .map(ConversationMemory.LastTable::pendingMessage)
-        .filter(p -> p != null && ArgumentExtractor.isOrdinalReference(message))
+        .filter(p -> p != null && !ownVerb && ArgumentExtractor.isOrdinalReference(message))
         .map(p -> p + " " + message)
         .orElse(message);
   }

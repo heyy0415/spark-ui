@@ -61,6 +61,7 @@
 
 | 契约 | 变更 | 原因 |
 |---|---|---|
+| 全部 9 个 | `$id` 前缀由旧项目名域改为 `https://spark-rooter.local/contracts/v1/`；`SchemaValidator.ID_PREFIX` 同步 | 工程改名（T02） |
 | `intent-request` | 删 `pageContext`（含 `selectedEntity`） | 前端始终只发自然语言，实体 ID 在 `message` 内；上下文由后端会话记忆补位 |
 | `tool-search.request` | 删 `principal`，`required: ["domain"]` | 内核不识别用户；权限过滤交宿主 `ToolAccessPolicy` |
 | `tool-invoke.executionContext` | 删 `userId / tenantId`，增 `sessionId` | 令牌 / 审计按宿主 `SessionIdResolver` 的会话键隔离 |

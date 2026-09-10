@@ -29,7 +29,7 @@ const EXAMPLE_CHIPS = [
 export function AgentChatPanel({ conversationId, baseUrl, fetch: hostFetch }: AgentChatPanelProps) {
   const [input, setInput] = useState('');
   // 缺省 baseUrl 回落到 VITE_API_BASE_URL（同源为 ''），不能写成 ''：否则会短路 env（评审 M-1）；
-  // 注入的 fetch 需绑定到 globalThis，否则 Illegal invocation
+  // 缺省 fetch 绑定到 globalThis（注入的 fetch 由宿主自行保证可直接调用）
   const transport = useMemo(
     () => ({
       baseUrl: baseUrl ?? env.VITE_API_BASE_URL,

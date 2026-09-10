@@ -1,21 +1,21 @@
 event:tool.selected
-data:{"runId":"run_7dd5cea8bea044c8","toolCallId":"tc_000025","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
+data:{"runId":"run_cc9f046948344a61","toolCallId":"tc_000025","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
 
 event:tool.started
-data:{"runId":"run_7dd5cea8bea044c8","toolCallId":"tc_000025","at":"2026-09-10T08:12:24.696287Z"}
+data:{"runId":"run_cc9f046948344a61","toolCallId":"tc_000025","at":"2026-09-10T08:39:23.654557Z"}
 
 event:tool.completed
-data:{"runId":"run_7dd5cea8bea044c8","toolCallId":"tc_000025","status":"succeeded","durationMs":0,"summary":"订单 10010 COMPLETED"}
+data:{"runId":"run_cc9f046948344a61","toolCallId":"tc_000025","status":"succeeded","durationMs":0,"summary":"订单 10010 COMPLETED"}
 
 event:tool.selected
-data:{"runId":"run_7dd5cea8bea044c8","toolCallId":"tc_000026","toolId":"order.delete","version":"1.0.0","displayName":"删除订单"}
+data:{"runId":"run_cc9f046948344a61","toolCallId":"tc_000026","toolId":"order.delete","version":"1.0.0","displayName":"删除订单"}
 
 event:tool.started
-data:{"runId":"run_7dd5cea8bea044c8","toolCallId":"tc_000026","at":"2026-09-10T08:12:24.697158Z"}
+data:{"runId":"run_cc9f046948344a61","toolCallId":"tc_000026","at":"2026-09-10T08:39:23.655421Z"}
 
 event:tool.completed
-data:{"runId":"run_7dd5cea8bea044c8","toolCallId":"tc_000026","status":"failed","durationMs":0}
+data:{"runId":"run_cc9f046948344a61","toolCallId":"tc_000026","status":"failed","durationMs":0}
 
 event:run.failed
-data:{"runId":"run_7dd5cea8bea044c8","code":"TOOL_EXECUTION_FAILED","message":"执行过程中工具调用失败，请稍后重试","at":"2026-09-10T08:12:24.698246Z"}
+data:{"runId":"run_cc9f046948344a61","code":"TOOL_EXECUTION_FAILED","message":"执行过程中工具调用失败，请稍后重试","at":"2026-09-10T08:39:23.656443Z"}
 

@@ -47,7 +47,13 @@ export async function request<T>(path: string, options: RequestOptions<T>): Prom
   const res = await (doFetch ?? fetch)(`${baseUrl ?? env.VITE_API_BASE_URL}${path}`, init);
 
   const text = await res.text();
-  const json: unknown = text.length > 0 ? JSON.parse(text) : null;
+  let json: unknown = null;
+  try {
+    json = text.length > 0 ? JSON.parse(text) : null;
+  } catch {
+    // 网关 / 反代返回 HTML 错误页：仍按 HttpError 抛，不让 SyntaxError 逃出网络层
+    json = null;
+  }
 
   if (!res.ok) {
     throw new HttpError(res.status, `${method} ${path} failed with ${res.status}`, json);

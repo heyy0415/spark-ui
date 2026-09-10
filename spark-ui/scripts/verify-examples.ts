@@ -86,6 +86,20 @@ for (const file of readdirSync(invalidDir)
     rejected += 1;
   }
 }
+// 前端投影的契约中，本 change 改过形状的两个必须各有 ≥ 1 条被拒反例（否则「抽走反例」即可让投影放宽而门禁仍绿）
+for (const must of ['intent-request', 'ui-schema']) {
+  const has = readdirSync(invalidDir).some(
+    (f) => f.split('.')[0] === must && f.endsWith('.invalid.json'),
+  );
+  if (!has) {
+    failed += 1;
+    process.stderr.write(`✗ examples/invalid/: no negative example for ${must}\n`);
+  }
+}
+if (rejected === 0) {
+  failed += 1;
+  process.stderr.write('✗ no invalid example was rejected by the Zod projections\n');
+}
 process.stdout.write(
   `${ok} examples OK, ${rejected} invalid rejected${failed > 0 ? `, ${failed} failed` : ''}\n`,
 );

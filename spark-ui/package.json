@@ -20,7 +20,8 @@
     "format:check": "prettier --check .",
     "verify-examples": "vite-node -c apps/chat/vite.config.ts scripts/verify-examples.ts",
     "verify-pack": "node scripts/verify-pack.mjs",
-    "ci": "pnpm build:core && pnpm typecheck && pnpm lint && pnpm format:check && pnpm verify-examples && pnpm build:chat && pnpm verify-pack"
+    "ci": "pnpm build:core && pnpm typecheck && pnpm lint && pnpm format:check && pnpm verify-examples && pnpm verify-transport && pnpm build:chat && pnpm verify-pack",
+    "verify-transport": "vite-node -c apps/chat/vite.config.ts scripts/verify-transport.ts"
   },
   "devDependencies": {
     "@spark-ui/core": "workspace:*",
