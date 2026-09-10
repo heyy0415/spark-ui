@@ -15,15 +15,15 @@ public class InMemoryIdempotencyStore implements IdempotencyStore {
   private final Map<String, CompletableFuture<ToolInvoke.Response>> store =
       new ConcurrentHashMap<>();
 
-  private static String key(String tenantId, String idem) {
-    return tenantId + "/" + idem;
+  private static String key(String scope, String idem) {
+    return scope + "/" + idem;
   }
 
   @Override
-  public Claim claim(String tenantId, String idempotencyKey) {
+  public Claim claim(String scope, String idempotencyKey) {
     CompletableFuture<ToolInvoke.Response> mine = new CompletableFuture<>();
     CompletableFuture<ToolInvoke.Response> existing =
-        store.putIfAbsent(key(tenantId, idempotencyKey), mine);
+        store.putIfAbsent(key(scope, idempotencyKey), mine);
     if (existing == null) {
       return new Claim.Owner();
     }
@@ -34,16 +34,16 @@ public class InMemoryIdempotencyStore implements IdempotencyStore {
   }
 
   @Override
-  public void complete(String tenantId, String idempotencyKey, ToolInvoke.Response response) {
-    CompletableFuture<ToolInvoke.Response> f = store.get(key(tenantId, idempotencyKey));
+  public void complete(String scope, String idempotencyKey, ToolInvoke.Response response) {
+    CompletableFuture<ToolInvoke.Response> f = store.get(key(scope, idempotencyKey));
     if (f != null) {
       f.complete(response);
     }
   }
 
   @Override
-  public void release(String tenantId, String idempotencyKey) {
-    String k = key(tenantId, idempotencyKey);
+  public void release(String scope, String idempotencyKey) {
+    String k = key(scope, idempotencyKey);
     CompletableFuture<ToolInvoke.Response> f = store.get(k);
     // 只释放未完成的占位；已 complete 的结果必须保留，否则重放失效
     if (f != null && !f.isDone()) {
@@ -53,8 +53,8 @@ public class InMemoryIdempotencyStore implements IdempotencyStore {
   }
 
   @Override
-  public Optional<ToolInvoke.Response> find(String tenantId, String idempotencyKey) {
-    CompletableFuture<ToolInvoke.Response> f = store.get(key(tenantId, idempotencyKey));
+  public Optional<ToolInvoke.Response> find(String scope, String idempotencyKey) {
+    CompletableFuture<ToolInvoke.Response> f = store.get(key(scope, idempotencyKey));
     if (f == null || !f.isDone() || f.isCompletedExceptionally()) {
       return Optional.empty();
     }

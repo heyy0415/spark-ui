@@ -31,7 +31,7 @@ import org.springframework.stereotype.Component;
 public class GatewayIdempotencySelfCheck implements SelfCheck {
 
   private static final Logger log = LoggerFactory.getLogger(GatewayIdempotencySelfCheck.class);
-  private static final String TENANT = "selfcheck";
+  private static final String SCOPE = "selfcheck";
   private static final long WAIT_MS = 2000;
 
   private final IdempotencyStore store;
@@ -66,14 +66,14 @@ public class GatewayIdempotencySelfCheck implements SelfCheck {
       throws InterruptedException, ExecutionException, TimeoutException {
     String key = "sc-idem-1";
     ToolInvoke.Response result = response("tc_sc_a");
-    if (!(store.claim(TENANT, key) instanceof Claim.Owner)) {
+    if (!(store.claim(SCOPE, key) instanceof Claim.Owner)) {
       throw new IllegalStateException("first claim must be Owner");
     }
     CountDownLatch bClaimed = new CountDownLatch(1);
     Future<ToolInvoke.Response> b =
         executor.submit(
             () -> {
-              Claim c = store.claim(TENANT, key);
+              Claim c = store.claim(SCOPE, key);
               bClaimed.countDown();
               if (!(c instanceof Claim.Awaiting aw)) {
                 throw new IllegalStateException("second claim during hold must be Awaiting");
@@ -83,12 +83,12 @@ public class GatewayIdempotencySelfCheck implements SelfCheck {
     if (!bClaimed.await(WAIT_MS, TimeUnit.MILLISECONDS)) {
       throw new IllegalStateException("B did not claim in time");
     }
-    store.complete(TENANT, key, result);
+    store.complete(SCOPE, key, result);
     ToolInvoke.Response seen = b.get(WAIT_MS, TimeUnit.MILLISECONDS);
     if (!result.toolCallId().equals(seen.toolCallId())) {
       throw new IllegalStateException("Awaiting must receive Owner's response");
     }
-    if (!(store.claim(TENANT, key) instanceof Claim.Replay)) {
+    if (!(store.claim(SCOPE, key) instanceof Claim.Replay)) {
       throw new IllegalStateException("claim after complete must be Replay");
     }
   }
@@ -96,30 +96,30 @@ public class GatewayIdempotencySelfCheck implements SelfCheck {
   private void releaseLetsWaiterReclaim()
       throws InterruptedException, ExecutionException, TimeoutException {
     String key = "sc-idem-2";
-    if (!(store.claim(TENANT, key) instanceof Claim.Owner)) {
+    if (!(store.claim(SCOPE, key) instanceof Claim.Owner)) {
       throw new IllegalStateException("first claim must be Owner");
     }
-    Claim second = store.claim(TENANT, key);
+    Claim second = store.claim(SCOPE, key);
     if (!(second instanceof Claim.Awaiting aw)) {
       throw new IllegalStateException("second claim during hold must be Awaiting");
     }
-    store.release(TENANT, key);
+    store.release(SCOPE, key);
     CompletableFuture<ToolInvoke.Response> f = aw.future();
     if (!f.isCompletedExceptionally()) {
       throw new IllegalStateException("release must complete waiter's future exceptionally");
     }
-    if (!(store.claim(TENANT, key) instanceof Claim.Owner)) {
+    if (!(store.claim(SCOPE, key) instanceof Claim.Owner)) {
       throw new IllegalStateException("claim after release must be Owner again");
     }
-    store.release(TENANT, key);
+    store.release(SCOPE, key);
   }
 
   private void releaseAfterCompleteIsNoop() {
     String key = "sc-idem-3";
-    store.claim(TENANT, key);
-    store.complete(TENANT, key, response("tc_sc_c"));
-    store.release(TENANT, key);
-    if (store.find(TENANT, key).isEmpty()) {
+    store.claim(SCOPE, key);
+    store.complete(SCOPE, key, response("tc_sc_c"));
+    store.release(SCOPE, key);
+    if (store.find(SCOPE, key).isEmpty()) {
       throw new IllegalStateException("release after complete must not drop the result");
     }
   }

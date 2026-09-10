@@ -5,53 +5,54 @@ import com.sparkrooter.contracts.model.ToolSearch;
 import com.sparkrooter.registry.api.ToolSearchPort;
 import com.sparkrooter.registry.domain.DiscoveryPolicy;
 import com.sparkrooter.registry.domain.ToolRegistryRepository;
-import com.sparkrooter.spi.Principal;
-import com.sparkrooter.spi.PrincipalPermissionResolver;
+import com.sparkrooter.spi.ToolAccessPolicy;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
-/** 发现用例：按 domain 取候选 → 按 principal 权限与 status 过滤 → 投影为六字段候选。 */
+/**
+ * 发现用例：按 domain 取候选 → 按 status 过滤 → （宿主有 ToolAccessPolicy 时）按策略过滤 → 投影为六字段候选。 内核不识别用户；策略入参只有 toolId
+ * 与 sessionId，宿主要按用户判定就从自己传播过来的上下文取。
+ */
 @Service
 public class SearchToolsUseCase implements ToolSearchPort {
 
   private static final Logger log = LoggerFactory.getLogger(SearchToolsUseCase.class);
 
   private final ToolRegistryRepository repo;
-  private final PrincipalPermissionResolver permissions;
+  private final ToolAccessPolicy access;
 
-  public SearchToolsUseCase(ToolRegistryRepository repo, PrincipalPermissionResolver permissions) {
+  public SearchToolsUseCase(ToolRegistryRepository repo, ObjectProvider<ToolAccessPolicy> access) {
     this.repo = repo;
-    this.permissions = permissions;
+    // 宿主未定义策略 Bean → 全放行
+    this.access = access.getIfAvailable(() -> (toolId, sessionId) -> true);
   }
 
   @Override
   public ToolSearch.Response search(ToolSearch.Request req) {
-    return execute(req);
+    return execute(req, null);
   }
 
   @Override
-  public Set<String> domains(ToolSearch.Principal principal) {
-    Principal p = new Principal(principal.userId(), principal.tenantId());
-    Set<String> perms = permissions.permissionsOf(p);
-    return DiscoveryPolicy.filter(repo.findAll(), perms).stream()
+  public Set<String> domains() {
+    return DiscoveryPolicy.filter(repo.findAll()).stream()
         .map(ToolManifest::domain)
         .collect(Collectors.toUnmodifiableSet());
   }
 
-  public ToolSearch.Response execute(ToolSearch.Request req) {
-    Principal p = new Principal(req.principal().userId(), req.principal().tenantId());
-    Set<String> perms = permissions.permissionsOf(p);
-    List<ToolManifest> visible = DiscoveryPolicy.filter(repo.findByDomain(req.domain()), perms);
-    log.info(
-        "search domain={} user={} tenant={} candidates={}",
-        req.domain(),
-        p.userId(),
-        p.tenantId(),
-        visible.size());
+  /**
+   * @param sessionId 宿主会话键（可空：进程内自检 / 无会话的内部查询），透传给 ToolAccessPolicy
+   */
+  public ToolSearch.Response execute(ToolSearch.Request req, String sessionId) {
+    List<ToolManifest> visible =
+        DiscoveryPolicy.filter(repo.findByDomain(req.domain())).stream()
+            .filter(m -> access.allowed(m.toolId(), sessionId))
+            .toList();
+    log.info("search domain={} candidates={}", req.domain(), visible.size());
     return new ToolSearch.Response(visible.stream().map(ToolSearch.ToolCandidate::from).toList());
   }
 }

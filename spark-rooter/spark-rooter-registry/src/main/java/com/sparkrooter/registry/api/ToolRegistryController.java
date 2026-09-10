@@ -55,8 +55,8 @@ public class ToolRegistryController {
   public ToolSearch.Response search(@RequestBody JsonNode body) {
     ToolSearch.Request req =
         validator.bind("tool-search", "#/$defs/request", body, ToolSearch.Request.class);
-    log.info("search_tools, domain={} userId={}", req.domain(), req.principal().userId());
-    return search.execute(req);
+    log.info("search_tools, domain={}", req.domain());
+    return search.execute(req, null);
   }
 
   @GetMapping("/tools/{toolId}/versions")

@@ -16,6 +16,6 @@ public interface ToolRegistryRepository {
 
   List<ToolManifest> findVersions(String toolId);
 
-  /** 全部已注册 Manifest（供按 principal 过滤后的领域枚举）。 */
+  /** 全部已注册 Manifest（供领域枚举）。 */
   List<ToolManifest> findAll();
 }

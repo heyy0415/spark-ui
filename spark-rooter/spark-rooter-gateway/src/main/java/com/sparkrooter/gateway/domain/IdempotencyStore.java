@@ -5,7 +5,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * 幂等端口（先占位后填充）：(tenantId, idempotencyKey) 只允许一个执行者。
+ * 幂等端口（先占位后填充）：(scope, idempotencyKey) 只允许一个执行者；scope 由调用方决定（Gateway 传 sessionId）。
  *
  * <ul>
  *   <li>{@link #claim}：原子占位。返回 {@link Claim.Owner}（本次拿到执行权）、{@link Claim.Replay}（已有最终结果，直接重放）或
@@ -30,12 +30,12 @@ public interface IdempotencyStore {
     record Awaiting(CompletableFuture<ToolInvoke.Response> future) implements Claim {}
   }
 
-  Claim claim(String tenantId, String idempotencyKey);
+  Claim claim(String scope, String idempotencyKey);
 
-  void complete(String tenantId, String idempotencyKey, ToolInvoke.Response response);
+  void complete(String scope, String idempotencyKey, ToolInvoke.Response response);
 
-  void release(String tenantId, String idempotencyKey);
+  void release(String scope, String idempotencyKey);
 
   /** 只读查询最终结果（自检断言终态用）；占位中或不存在返回 empty。 */
-  Optional<ToolInvoke.Response> find(String tenantId, String idempotencyKey);
+  Optional<ToolInvoke.Response> find(String scope, String idempotencyKey);
 }

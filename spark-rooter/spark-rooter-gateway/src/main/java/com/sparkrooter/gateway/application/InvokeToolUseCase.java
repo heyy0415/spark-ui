@@ -8,14 +8,14 @@ import com.sparkrooter.contracts.model.ToolInvoke;
 import com.sparkrooter.contracts.model.ToolManifest;
 import com.sparkrooter.gateway.api.ToolInvokePort;
 import com.sparkrooter.gateway.domain.ArgsDigest;
-import com.sparkrooter.gateway.domain.AuditSink;
 import com.sparkrooter.gateway.domain.GatewayException;
 import com.sparkrooter.gateway.domain.IdempotencyStore;
 import com.sparkrooter.gateway.domain.IdempotencyStore.Claim;
 import com.sparkrooter.gateway.domain.RetryPolicy;
+import com.sparkrooter.spi.AuditSink;
 import com.sparkrooter.spi.ExecutionContext;
-import com.sparkrooter.spi.Principal;
-import com.sparkrooter.spi.PrincipalPermissionResolver;
+import com.sparkrooter.spi.RunContextPropagator;
+import com.sparkrooter.spi.ToolAccessPolicy;
 import com.sparkrooter.spi.ToolHandler;
 import com.sparkrooter.spi.ToolResolver;
 import java.util.List;
@@ -32,11 +32,12 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 /**
- * 执行面唯一入口（agent-safety §5）。顺序固定： 输入 Schema 校验 → 鉴权 → 幂等 → 寻址 → 调用（超时 / 重试按 Manifest）→ 输出 Schema 校验
- * → 脱敏 → 审计。
+ * 执行面唯一入口（agent-safety §5）。顺序固定： 寻址 → 输入 Schema 校验 → 宿主访问策略（可选）→ 幂等 → 调用（超时 / 重试按 Manifest）→ 输出
+ * Schema 校验 → 脱敏 → 审计。内核不做用户鉴权：宿主的方法级切面在反射调用时照常触发，宿主 ThreadLocal 经 RunContextPropagator 带到工具线程。
  *
  * <p>Gateway 不做规划、不选工具；ToolHandler 由 Spring 注入，pom 不依赖任何领域模块。
  */
@@ -47,7 +48,8 @@ public class InvokeToolUseCase implements ToolInvokePort {
   private static final Set<String> SENSITIVE_KEYS = Set.of("password", "token", "secret", "apiKey");
 
   private final ToolResolver resolver;
-  private final PrincipalPermissionResolver permissions;
+  private final ToolAccessPolicy access;
+  private final RunContextPropagator propagator;
   private final IdempotencyStore idempotency;
   private final AuditSink audit;
   private final SchemaValidator validator;
@@ -59,14 +61,17 @@ public class InvokeToolUseCase implements ToolInvokePort {
 
   public InvokeToolUseCase(
       ToolResolver resolver,
-      PrincipalPermissionResolver permissions,
+      ObjectProvider<ToolAccessPolicy> access,
+      RunContextPropagator propagator,
       IdempotencyStore idempotency,
       AuditSink audit,
       SchemaValidator validator,
       List<ToolHandler> handlerBeans,
       ExecutorService toolExecutor) {
     this.resolver = resolver;
-    this.permissions = permissions;
+    // 宿主未定义策略 Bean → 全放行
+    this.access = access.getIfAvailable(() -> (toolId, sessionId) -> true);
+    this.propagator = propagator;
     this.idempotency = idempotency;
     this.audit = audit;
     this.validator = validator;
@@ -108,7 +113,6 @@ public class InvokeToolUseCase implements ToolInvokePort {
       MDC.put("traceId", ec.traceId());
     }
     String digest = ArgsDigest.of(req.arguments().toString());
-    String principalText = ec.userId() + "@" + ec.tenantId();
     try {
       Outcome out = pipeline(req, ec);
       ToolInvoke.Response resp = out.response();
@@ -120,7 +124,7 @@ public class InvokeToolUseCase implements ToolInvokePort {
               ec.toolCallId(),
               req.toolId(),
               req.toolVersion(),
-              principalText,
+              ec.sessionId(),
               digest,
               auditStatus,
               resp.durationMs(),
@@ -134,7 +138,7 @@ public class InvokeToolUseCase implements ToolInvokePort {
               ec.toolCallId(),
               req.toolId(),
               req.toolVersion(),
-              principalText,
+              ec.sessionId(),
               digest,
               "failed:" + e.code().name(),
               ms,
@@ -169,13 +173,11 @@ public class InvokeToolUseCase implements ToolInvokePort {
           ToolInvoke.ErrorCode.INPUT_INVALID, "arguments invalid: " + summarize(inErr));
     }
 
-    // 3. 鉴权
-    if (!permissions
-        .permissionsOf(new Principal(ec.userId(), ec.tenantId()))
-        .contains(manifest.authorization().permission())) {
+    // 3. 宿主访问策略（可选；默认全放行）。用户级权限由宿主在工具方法上用切面做，这里不做
+    if (!access.allowed(manifest.toolId(), ec.sessionId())) {
       throw new GatewayException(
           ToolInvoke.ErrorCode.FORBIDDEN,
-          "missing permission " + manifest.authorization().permission());
+          "tool access denied by host policy: " + manifest.toolId());
     }
 
     // 4. 幂等（仅对声明 required 的工具）：先占位后填充。拿不到执行权的等待或重放
@@ -190,12 +192,12 @@ public class InvokeToolUseCase implements ToolInvokePort {
       boolean completed = false;
       try {
         ToolInvoke.Response resp = execute(req, ec, manifest, start);
-        idempotency.complete(ec.tenantId(), ec.idempotencyKey(), resp);
+        idempotency.complete(ec.sessionId(), ec.idempotencyKey(), resp);
         completed = true;
         return new Outcome(resp, false);
       } finally {
         if (!completed) {
-          idempotency.release(ec.tenantId(), ec.idempotencyKey());
+          idempotency.release(ec.sessionId(), ec.idempotencyKey());
         }
       }
     }
@@ -210,7 +212,7 @@ public class InvokeToolUseCase implements ToolInvokePort {
       ToolInvoke.Request req, ToolInvoke.ExecutionContext ec, long timeoutMs) {
     long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
     while (true) {
-      Claim claim = idempotency.claim(ec.tenantId(), ec.idempotencyKey());
+      Claim claim = idempotency.claim(ec.sessionId(), ec.idempotencyKey());
       switch (claim) {
         case Claim.Owner o -> {
           return Optional.empty();
@@ -258,11 +260,12 @@ public class InvokeToolUseCase implements ToolInvokePort {
       throw new GatewayException(
           ToolInvoke.ErrorCode.TOOL_NOT_FOUND, "no handler bound for " + manifest.key());
     }
-    Principal principal = new Principal(ec.userId(), ec.tenantId());
     ExecutionContext ctx =
         new ExecutionContext(
-            ec.runId(), ec.toolCallId(), principal, ec.idempotencyKey(), ec.traceId());
-    JsonNode output = callWithRetry(handler, req.arguments(), ctx, manifest);
+            ec.runId(), ec.toolCallId(), ec.sessionId(), ec.idempotencyKey(), ec.traceId());
+    // 当前线程（Runtime 的 agent-run-* 或 HTTP 线程）里的宿主上下文，带到 tool-* 线程
+    Object hostCtx = propagator.capture();
+    JsonNode output = callWithRetry(handler, req.arguments(), ctx, manifest, hostCtx);
 
     // 6. 输出 Schema 校验
     Set<ValidationMessage> outErr =
@@ -282,14 +285,27 @@ public class InvokeToolUseCase implements ToolInvokePort {
   }
 
   private JsonNode callWithRetry(
-      ToolHandler handler, JsonNode args, ExecutionContext ctx, ToolManifest manifest) {
+      ToolHandler handler,
+      JsonNode args,
+      ExecutionContext ctx,
+      ToolManifest manifest,
+      Object hostCtx) {
     int retries = RetryPolicy.allowedRetries(manifest);
     long timeoutMs = manifest.execution().timeoutMs();
     GatewayException last = null;
     for (int attempt = 0; attempt <= retries; attempt++) {
       try {
         // 用 ExecutorService.submit 而非 CompletableFuture：后者的 cancel(true) 不会中断工作线程
-        Future<JsonNode> f = executor.submit(() -> handler.handle(args, ctx));
+        Future<JsonNode> f =
+            executor.submit(
+                () -> {
+                  propagator.restore(hostCtx);
+                  try {
+                    return handler.handle(args, ctx);
+                  } finally {
+                    propagator.clear();
+                  }
+                });
         try {
           return f.get(timeoutMs, TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
