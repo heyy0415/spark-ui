@@ -11,8 +11,8 @@ spark_ui/
 │   ├── contracts/           # 跨端契约真源（JSON Schema 2020-12 + examples/）
 │   ├── scripts/             # doctor / new-change / check-contracts / check-module-deps / mvn / ci
 │   └── package.json         # 仅供上述脚本使用（ajv）
-├── spark-ui/                 # 前端工程，独立 package.json / pnpm
-├── spark-rooter/                  # 后端工程，独立 pom.xml / Maven
+├── spark-ui/                # 前端工程，独立 package.json / pnpm（@spark-ui/core + spark-chat）
+├── spark-rooter/            # 后端：平台模块 + spring-boot-starter + examples/（领域示例、独立示例宿主）
 ├── docs/                    # 人读文档
 └── CLAUDE.md / AGENTS.md    # L1 记忆
 ```
@@ -57,38 +57,39 @@ spark-ui/
 - 端型由宿主挂载 `SparkDeviceProvider` 一次性决定，组件内不各自判断。
 - 安全边界分工（随包走 / 留在宿主）见 `spark-ui/packages/core/README.md`。
 
-## 2. 后端模块分层（Maven 多模块）
+## 2. 后端模块分层（Maven 多模块 + Starter）
 
 ```
 spark-rooter/
-├── pom.xml                      # 父 POM：版本、插件、spotless、enforcer
-├── spark-rooter-spi/                # 极薄接口层：ToolHandler SPI、ToolResolver、PrincipalPermissionResolver；无 Spring 依赖
-├── spark-rooter-contracts/              # 与 .harness/contracts/ 对应的 record DTO + JSON Schema 校验器
-├── agent-runtime/               # 领域路由（规则 → 模型分类）、实体检查、规划、Policy、Run 状态机、SSE 输出
-├── tool-registry/               # 控制面：Manifest 注册、查询、版本、状态；实现 ToolResolver
-├── tool-gateway/                # 执行面：鉴权、Schema 校验、路由、超时、审计；注入 List<ToolHandler>
-├── domains/                     # 领域服务：实现 ToolHandler，携带 tool-manifest 与 data/ 种子；
-│   ├── order-service/           #   infra/screen/ 提供 ScreenBuilder（屏）与 ConfirmationRecheck（重校验）
-│   ├── product-service/         #   领域之间互不 import；跨领域读订单只经 spark-rooter-spi OrderSnapshotProvider
-│   ├── aftersale-service/
-│   └── refund-service/
-└── app/                         # 可运行装配（首期单进程装配全部模块）
+├── pom.xml                              # 父 POM：版本、插件、spotless
+├── spark-rooter-spi/                    # 注解（@SparkTool / @SparkRisk / @SparkPrerequisite / @SparkParam / @SparkDefault）+ 端口接口；零 Spring
+├── spark-rooter-contracts/              # 契约 schema 打进 jar + record DTO + SchemaValidator
+├── spark-rooter-runtime/                # 决策面：路由 → 抽取 → 规划 → 编排 → 令牌 → 记忆 → 澄清屏；无 Controller、无 Spring 组件注解
+├── spark-rooter-registry/               # 控制面：Manifest 注册 / 发现 / 版本；不转发调用
+├── spark-rooter-gateway/                # 执行面：校验 → 幂等 → 代理调用 → 输出校验 → 脱敏 → 审计；不做用户鉴权
+├── spark-rooter-web-mvc/                # /agent/runs SSE 端点 + /internal/** 端点 + 异常映射；唯一依赖 spring-boot-starter-web 的平台模块
+├── spark-rooter-spring-boot-starter/    # AutoConfiguration.imports + spark.* 属性 + 全部平台 Bean 的 @ConditionalOnMissingBean 装配 + @SparkTool 扫描 / Manifest 推导；宿主唯一引入坐标
+└── examples/
+    ├── demo-support/                    # 示例宿主侧 mock 用户上下文（DemoUserContext），纯 JDK
+    ├── domains/{order,product,aftersale,refund}-service/   # @SparkTool 形态的示例领域；只依赖 spi + contracts + demo-support
+    └── host-demo/                       # 独立 Maven 工程（parent = spring-boot-starter-parent，不在根 modules）：引入 starter 即可用的验收物
 ```
 
-**依赖方向**（Maven `<dependency>` 即红线）：
+**依赖方向**（Maven `<dependency>` 即红线，`check-module-deps` 机械校验）：
 
 ```
-app → 全部模块（唯一允许依赖 domains/* 的非领域模块）
-agent-runtime → tool-registry(api) , tool-gateway(api) , spark-rooter-contracts , spark-rooter-spi
-tool-gateway  → tool-registry(ToolResolver 接口经 spark-rooter-spi) , spark-rooter-contracts , spark-rooter-spi
-tool-registry → spark-rooter-contracts , spark-rooter-spi
-domains/*     → spark-rooter-contracts , spark-rooter-spi            （实现 ToolHandler；不依赖 gateway / registry / runtime）
-agent-runtime ↛ domains/*     tool-registry ↛ domains/*     tool-gateway ↛ domains/*
-domains/<a>   ↛ domains/<b>                              （源码不得引用 com.sparkrooter.examples.<b>，pom 不得依赖兄弟 artifact）
-spark-rooter-spi ↛ 任何 com.sparkrooter artifact；spark-rooter-contracts → 仅 spark-rooter-spi
+spi ↛ 任何 com.sparkrooter；contracts → spi
+runtime / registry / gateway → contracts, spi（三者之间只经对方 api 包接口 ToolSearchPort / ToolInvokePort）
+web-mvc → runtime, registry, gateway；starter → 全部平台模块
+examples/domains/* → spi, contracts, demo-support（不依赖任何平台模块；互不 import，跨领域读订单只经 spi OrderSnapshotProvider）
+host-demo → starter + examples/domains/*（本地仓坐标）
+平台模块（spi / contracts / runtime / registry / gateway）pom 禁 spring-boot-starter-web / starter-validation
+平台模块（contracts / runtime / registry / gateway / web-mvc）源码禁 @Component / @Service / @Repository / @Configuration / @ComponentScan —— Bean 由 starter @Bean 装配，不依赖包扫描
 ```
 
-模块内包结构：`api/`（controller / DTO）、`application/`（用例）、`domain/`（实体、规则）、`infra/`（持久化、外部调用）。`domain/` 不依赖 Spring。
+模块内包结构：`api/`（跨模块公开接口）、`application/`（用例）、`domain/`（实体、规则）、`infra/`（默认实现、适配器、自检）。`domain/` 不依赖 Spring。Controller 只在 `web-mvc`。
+
+**身份边界**：内核不识别用户。`Principal` / `userId` / `tenantId` 不得出现在平台模块源码；身份、权限、业务字段全在宿主工程（`SessionIdResolver` 产出会话键、`RunContextPropagator` 把宿主 ThreadLocal 带到工作线程、方法级切面做权限、`@SparkDefault` 预制业务默认值）。
 
 ## 3. 文件命名
 
@@ -113,5 +114,6 @@ spark-rooter-spi ↛ 任何 com.sparkrooter artifact；spark-rooter-contracts �
 6. `spark-rooter-registry` 暴露转发调用的端点。
 7. 后端 `domain/` 包 import `org.springframework.*`。
 8. 跨端数据结构在 `.harness/contracts/` 中无对应 Schema。
-9. `domains/<a>` 引用 `com.sparkrooter.examples.<b>` 或依赖兄弟领域 artifact；领域屏（`infra/screen/`）直读领域数据而不是用 Gateway 输出。
+9. `examples/domains/<a>` 引用 `com.sparkrooter.examples.<b>` 或依赖兄弟领域 artifact；领域屏（`infra/screen/`）直读领域数据而不是用 Gateway 输出。
+11. 平台模块源码出现 `userId` / `tenantId` / `Principal` 标识符（身份归宿主）；`@SparkTool` 方法 / 类为 `final`、非 `public`、标在 `@Configuration` 类上（扫描器启动失败）。
 10. `spark-ui/packages/core/src/components/**` 出现业务命名组件或 import antd / antd-mobile / react / 本包类型之外的模块（core 组件只能是官方组件映射）。

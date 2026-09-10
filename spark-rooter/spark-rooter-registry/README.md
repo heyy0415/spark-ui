@@ -1,24 +1,20 @@
-# tool-registry
+# spark-rooter-registry
 
-**控制面**。负责工具的注册、发现、版本查询与治理元数据。**不经过业务流量**，没有任何转发或代理端点，也没有出向 HTTP 客户端。
+**控制面**。负责工具的注册、发现、版本查询。**不经过业务流量**，没有任何转发或代理端点。Bean 由 starter `RegistryBeans` 装配；HTTP 端点在 `web-mvc`（默认不装配）。
 
-## 对外端点
+## 来源
 
-| 端点 | 说明 |
-|---|---|
-| `POST /internal/tool-registry/tools` | 注册一个 Manifest（`tool-manifest` 契约）。同 `toolId@version` 重复 → 409 `TOOL_VERSION_CONFLICT`。 |
-| `POST /internal/tool-registry/search` | 按 domain + principal 发现工具（`tool-search` 契约）。只返回 `status ∈ {active, canary}` 且调用方持有 `authorization.permission` 的工具；响应项恰六字段。 |
-| `GET /internal/tool-registry/tools/{toolId}/versions` | 列出某工具的全部已注册版本。 |
+- `@SparkTool`：starter 的 `SparkToolScanner` 启动时推导 Manifest 并调 `RegisterToolUseCase`（经 `tool-manifest` 契约校验；`authorization` 为空对象）。
+- 手写 `ToolManifestSource`（迁移期仍可用）：`StartupManifestRegistrar` 在 `ApplicationReadyEvent` 注册。两种来源同 `toolId@version` → 启动失败。
 
-## 依赖的端口
+## 发现
 
-- `PrincipalPermissionResolver`（platform-spi）：查询调用方权限，由 `app` 提供内存实现。
-- `ToolManifestSource`（platform-spi）：启动时拉取各领域模块暴露的 Manifest，逐个注册。
+`ToolSearchPort.search(request)` / `domains()` **不带身份**：只按 `status ∈ {active, canary}` 过滤；宿主定义了 `ToolAccessPolicy` Bean 时再按它过滤。响应项恰六字段（`toolId / version / description / inputSchema / riskLevel / confirmation`）。
 
 ## 提供的端口
 
-- `ToolResolver`（platform-spi）：供 Gateway 按 `toolId@version` 取回 Manifest 做寻址与 Schema 校验。
+`ToolResolver`（spi）：供 Gateway 按 `toolId@version` 取回 Manifest 做寻址与 Schema 校验。
 
 ## 包结构
 
-`api`（Controller、异常映射）/ `application`（用例）/ `domain`（仓储端口、发现策略、领域异常；无 Spring 依赖）/ `infra`（内存仓储、ToolResolver 实现、启动注册器）。
+`api`（`ToolSearchPort`）/ `application`（注册 / 发现用例）/ `domain`（仓储端口、发现策略、领域异常；无 Spring 依赖）/ `infra`（内存仓储、ToolResolver 实现、启动注册器）。

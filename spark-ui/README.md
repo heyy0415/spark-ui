@@ -9,7 +9,7 @@ pnpm workspace，两个包：
 
 React 19 / TypeScript 7 strict / Vite 8 / TanStack Query / Zod 4 / antd 6 / antd-mobile 5 / oxlint / prettier。版本由 `pnpm-workspace.yaml` 的 `catalog` 统一。
 
-> 一句话：前端只负责交互。它把用户意图与页面上下文发给 Agent Runtime，消费 SSE 事件流，并**只渲染白名单组件**描述的 UI Schema；不执行任何模型生成的代码，不自行决定调用哪个工具。
+> 一句话：前端只负责交互。它**始终只发自然语言**（输入框、示例 chip、Table / Card 的行内指令都原样作为一条新消息发送）给 Agent Runtime，消费 SSE 事件流，并**只渲染白名单组件**描述的 UI Schema；不发页面上下文 / 身份 / 业务字段，不执行任何模型生成的代码，不自行决定调用哪个工具。多级界面（列表 → 详情 → 返回）由后端在屏里预写的 `intent` 驱动。
 
 ## 命令（在 `spark-ui/` 下）
 
@@ -19,7 +19,7 @@ pnpm run dev              # apps/chat dev server http://localhost:5173（自动�
 pnpm run build:core       # packages/core → dist（vite lib + tsc d.ts）
 pnpm run build            # build:core → build:chat
 pnpm run ci               # build:core → typecheck → lint → format:check → verify-examples → build:chat → verify-pack
-pnpm run verify-examples  # 用 Zod 投影校验 .harness/contracts/examples（期望 "16 examples OK"）
+pnpm run verify-examples  # 用 Zod 投影校验 .harness/contracts/examples（27 examples OK）
 pnpm run verify-pack      # pnpm pack 解包后断言：文件清单 / exports / 17 导出名 / d.ts 双 EOPT 消费 / antd 未打包 / 体积基线
 ```
 
@@ -39,9 +39,9 @@ pnpm run verify-pack      # pnpm pack 解包后断言：文件清单 / exports /
 | 层                        | 内容                                                                                                                                                                                          |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `app`                     | 路由（`/` = chat、DEV-only `/dev/schema`）、Providers（QueryClient → `SparkDeviceProvider` → `SparkThemeProvider tokens`）、`global.css`（首行 import core 的 style.css）、`styles/tokens.ts` |
-| `pages/chat`              | 从 URL 读 `page / entityType / entityId` 组成 pageContext                                                                                                                                     |
+| `pages/chat`              | 生成 `conversationId`，挂 `AgentChatPanel`；无 URL 参数、无页面上下文                                                                                                                       |
 | `pages/schema-playground` | 开发用：直接渲染契约示例（`?example=` 取 `confirm` / `result` / `unknown`）                                                                                                                   |
-| `features/agent-chat`     | `useAgentRun`（发起 / 确认、SSE 归约为 `AgentRunView`）、`AgentChatPanel`                                                                                                                     |
+| `features/agent-chat`     | `useAgentRun`（发起 / 确认、SSE 归约为 `AgentRunView`）、`AgentChatPanel({conversationId, baseUrl?, fetch?})`——宿主要带登录态就注入自己的 `fetch`                                          |
 | `entities/agent-run`      | intent / action / run-summary / sse-events / error 的 Zod 投影（ui-schema 投影来自 core）                                                                                                     |
 | `shared/api`              | `httpClient`（`HttpError`）、`sseClient`（fetch + ReadableStream 分帧）                                                                                                                       |
 | `shared/ui/Button`        | 纯 CSS 按钮                                                                                                                                                                                   |
@@ -56,8 +56,8 @@ pnpm run verify-pack      # pnpm pack 解包后断言：文件清单 / exports /
 ## 与后端联调
 
 1. 启动后端（见 [spark-rooter/README.md](../spark-rooter/README.md)），确认 `curl localhost:8080/actuator/health`。
-2. `pnpm run dev`，打开 `http://localhost:5173/?page=order-detail&entityType=order&entityId=10001`。
-3. 输入「帮我把这个订单退款」→ 两条工具进度 → 确认屏（订单 Card + 退款摘要 Card + Form）→ 选原因 → 确认 → Result。
+2. `pnpm run dev`，打开 `http://localhost:5173/`。
+3. 输入「帮我把订单 10001 退款」→ 两条工具进度 → 确认屏（订单 Card + 退款摘要 Card + Form）→ 选原因 → 确认 → Result。再试「看看我的订单」→ 点某行「查看物流」；「有什么商品」→「查看商品」→ Card 底部「返回列表」；直接说「申请售后」→ 澄清屏点选。
 
 自动化版本：`pnpm -C .harness run e2e-frontend`（需要本机 Google Chrome，后端 8080 与 vite 5173 已启动），产出截图到当前 change 的 `deployment/`。
 
@@ -67,7 +67,7 @@ pnpm run verify-pack      # pnpm pack 解包后断言：文件清单 / exports /
 | ------------------- | ------------ | --------------------------------------------------------- |
 | `VITE_API_BASE_URL` | `''`（同源） | 后端端点已带完整前缀（`/agent/runs`），生产可指向网关地址 |
 
-首期身份固定为 `X-Tenant-Id: tenant_001` / `X-User-Id: user_001`（`apps/chat/src/pages/chat/ChatPage.tsx`），真实登录为后续 change。
+前端没有身份概念：身份在宿主工程（后端 `SessionIdResolver` / 拦截器）。示例宿主用可选请求头 `X-Demo-User` 模拟用户；要带登录态就给 `AgentChatPanel` 注入自己的 `fetch`。
 
 ## 发包（占位）
 

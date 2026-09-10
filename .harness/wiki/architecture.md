@@ -4,44 +4,42 @@
 
 > Spark UI 负责交互，Agent Runtime 负责理解与规划，Tool Registry 负责能力发现与治理（控制面），Tool Gateway 负责安全执行（执行面），领域服务负责确定性业务执行。
 
-## 四层总览
+## 形态：Spring Boot Starter（embedded）
+
+spark-rooter 不是一个独立部署的平台，而是一个 **Starter 依赖**：任何 Java 服务引入 `com.sparkrooter:spark-rooter-spring-boot-starter`，在自己的 `@Service` 方法上加 `@SparkTool`，启动时扫描器推导 Manifest 并注册，前端 `spark-chat`（或任何嵌入 `@spark-ui/core` 的页面）即可用自然语言驱动这些工具。分布式（远程工具、服务发现）只预留了 `ToolTransport` / `ToolProviderDiscovery` 端口，本期只有进程内实现。
 
 ```
-┌──────── spark-ui/ apps/chat + @spark-ui/core（Spark UI） ─┐
-│ chat 应用壳 + 引擎包：Schema Renderer + Registry（白名单）   │
-│ 输入采集、动态表单、确认卡片、结果展示、SSE 流式更新        │
-└───────────────────────┬───────────────────────────────────┘
-                        │ IntentRequest / ActionRequest（HTTP）
-                        │ SSE 事件流
-┌───────────────────────▼───────────────────────────────────┐
-│               spark-rooter/spark-rooter-runtime                        │
-│ 领域路由（规则 → 模型分类）→ 工具发现 → 实体检查 → 规划   │
-│ Policy / Permission → Run 状态机 → SSE 输出               │
-└──────────────┬────────────────────────────┬──────────────┘
-               │ 查询能力（控制面）          │ 执行调用（执行面）
-┌──────────────▼──────────────┐   ┌─────────▼──────────────┐
-│   spark-rooter/spark-rooter-registry      │   │   spark-rooter/spark-rooter-gateway  │
-│ Manifest、版本、权限、风险、  │   │ 鉴权、Schema 校验、寻址、│
-│ 状态、Owner；不转发调用       │   │ 超时/重试、幂等、审计    │
-└──────────────┬──────────────┘   └─────────┬──────────────┘
-               │ 注册（CI/CD）                │ 调用
-┌──────────────▼─────────────────────────────▼──────────────┐
-│               spark-rooter/examples/domains/*  领域服务                   │
-│         order-service │ refund-service │ …                 │
-└───────────────────────────────────────────────────────────┘
+┌──────── spark-ui/ apps/chat + @spark-ui/core（Spark UI） ─────────┐
+│ 只发自然语言（输入框 / chip / 行内指令）；只渲染 5 个官方组件映射   │
+└───────────────────────┬───────────────────────────────────────────┘
+                        │ IntentRequest{conversationId, message, clientCapabilities} / ActionRequest；SSE
+┌───────────────────────▼─────────── 宿主工程（任意 Spring Boot 服务） ─────────┐
+│ 宿主拦截器 / 登录态 → SessionIdResolver（会话键）→ RunContextPropagator（跨线程）  │
+│ ┌──────────────────── spark-rooter-spring-boot-starter（自动装配） ──────────┐ │
+│ │ web-mvc：/agent/runs SSE、/internal/**（可选）                              │ │
+│ │ runtime：路由 → 抽取（实体 / 别名 / 数量 / 时间）→ 记忆补位 → 规划 → 编排   │ │
+│ │          → 令牌（conversationId + sessionId）→ 屏 / 澄清屏 → SSE            │ │
+│ │ registry：@SparkTool 推导的 Manifest；按 status（+ 宿主 ToolAccessPolicy）过滤│ │
+│ │ gateway：校验 → 幂等 → 经 Spring 代理调用 @SparkTool 方法 → 校验 → 审计     │ │
+│ └────────────────────────────────┬───────────────────────────────────────────┘ │
+│                                  │ 反射调用（代理对象，宿主 @Aspect / @PreAuthorize 生效）│
+│ ┌────────────────────────────────▼───────────────────────────────────────────┐ │
+│ │ 宿主 @Service：@SparkTool 方法 + record In/Out（@SparkParam / @SparkDefault）│ │
+│ │ + ScreenBuilder / ConfirmationRecheck（屏与重校验策略留在领域）              │ │
+│ └────────────────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 运行链路（以"给订单 10001 退款"为例）
+## 运行链路（以「订单 10001 退款」为例）
 
-1. 前端 `POST /agent/runs`，携带 `IntentRequest`（消息、pageContext、clientCapabilities）。pageContext 视为不可信。
-2. Runtime 创建 Run，SSE 推 `run.started`。领域路由：关键词规则命中 `refund`（未命中时由模型在该用户可见领域内分类，越界视为 none）。缺页面实体时在此提示用户并结束。
-3. Runtime 以服务身份 + principal 查询 Registry `POST /internal/tool-registry/search`，拿到过滤后的候选工具。
-4. LLM（Spring AI `ChatClient`，OpenAI 兼容接口，内部工具执行关闭）在候选内选择并给出计划；计划存后端 Run，不下发前端。
-5. 低风险只读工具（`refund.eligibility.check`、`refund.preview`）经 Gateway `POST /internal/tool-gateway/invoke` 自动执行，每次调用 SSE 推 `tool.selected` → `tool.started` → `tool.completed`。
-6. 高风险工具（`refund.create`）需确认：Runtime 生成 UI Schema（订单 `Card` + 退款摘要 `Card` + `Form` + `confirm-refund` action，含不透明 `confirmationToken`），SSE 推 `ui.replace` + `confirmation.required`，Run 进入 `WAITING_CONFIRMATION`。
-7. 用户在前端确认，`POST /agent/runs/{runId}/actions/{actionId}` 携带 Token 与 formData。
-8. Runtime 用 Token 找回计划，重新校验权限、金额、订单状态、有效期，再经 Gateway 执行 `refund.create`。
-9. SSE 推 `ui.replace`（`Result`）与 `run.completed`。全程 `runId` / `toolCallId` 贯穿审计。
+1. 前端 `POST /agent/runs`，只带 `conversationId` / `message` / `clientCapabilities`。宿主拦截器已把用户放进自己的 ThreadLocal；`SessionIdResolver` 解析出 `sessionId`；`RunContextPropagator.capture()` 后切到 `agent-run-*` 线程 `restore`。
+2. Runtime 创建 Run，SSE 推 `run.started`。领域路由：关键词规则命中 `refund`（未命中时由模型在可发现领域内分类，越界视为 none）。
+3. 抽取：`ArgumentExtractor` 从原话抓 `order=10001`；缺实体时先用会话记忆补位（序数指代「第二个」→ 最近列表行），仍缺则出**澄清屏**（调 `clarifiesEntity=ORDER` 的列表工具，每行按钮 intent 带订单号）。
+4. Registry `search(domain)` 拿候选（不带身份）。规划器（Spring AI 或规则）在候选内选工具；参数 = 实体 + 抽取值 + `@SparkDefault`，值过 JSON Schema，实体参数值必须等于抽到的 ID。
+5. 只读前置步骤经 Gateway 自动执行：Gateway 经 Spring **代理**反射调 `RefundTools.eligibility(in)`，宿主方法级切面照常触发。
+6. 高风险 `refund.create` 需确认：领域 `ScreenBuilder` 出确认屏（Card + Card + Form），令牌绑定 `runId + actionId + argsDigest + conversationId + sessionId`，SSE `ui.replace` + `confirmation.required`。
+7. 用户确认 → 令牌双校验 → 领域 `ConfirmationRecheck` 重校验 → 执行 → 结果屏 → `run.completed` → 会话记忆写入 `{domain, entities, lastTable}`。
+8. 宿主权限：`guest` 删除订单 → 前置步骤通过 → 确认 → Gateway 代理调用 `delete` → 宿主 `@Aspect` 拒绝 → `TOOL_EXECUTION_FAILED`，审计 `failed`。安全上拦住，体验上晚一步（默认取舍；要提前拒绝就实现 `ToolAccessPolicy`）。
 
 ## 前端 FSD 分层
 
@@ -50,12 +48,16 @@
 ## 后端模块依赖
 
 ```
-app → 全部模块（唯一可依赖 domains/* 的非领域模块）
-agent-runtime → { tool-registry(api), tool-gateway(api) }
-tool-gateway → tool-registry(ToolResolver) ；通过 spark-rooter-spi 的 ToolHandler SPI 调用领域实现，pom 不依赖 domains/*
-domains/* → spark-rooter-spi , spark-rooter-contracts（实现 ToolHandler、ToolManifestSource、ScreenBuilder、ConfirmationRecheck；互不 import，跨领域读订单经 spi OrderSnapshotProvider）
-所有模块 → spark-rooter-contracts , spark-rooter-spi
+starter → web-mvc, runtime, registry, gateway, contracts, spi（AutoConfiguration.imports；全部默认实现 @ConditionalOnMissingBean，Bean 名前缀 sparkRooter*）
+web-mvc → runtime, registry, gateway
+runtime → { registry(api), gateway(api) }, contracts, spi
+gateway → spi（ToolResolver / ToolHandler / AuditSink / ToolAccessPolicy / RunContextPropagator）, contracts
+registry → spi, contracts
+examples/domains/* → spi, contracts, demo-support（@SparkTool；互不 import；跨领域读订单经 spi OrderSnapshotProvider）
+examples/host-demo → starter + examples/domains/*（独立工程，本地仓坐标）
 ```
+
+宿主可替换端口（定义同类型 Bean 即覆盖）：`RunRepository` / `ConfirmationTokenStore` / `IdempotencyStore` / `ToolRegistryRepository` / `ConversationMemory`（默认内存）、`AuditSink`（默认日志）、`LlmClient` / `IntentClassifier`（默认 Spring AI 或规则）、`SessionIdResolver`（默认 = conversationId，仅演示）、`ToolAccessPolicy`（默认全放行）、`RunContextPropagator`（默认 no-op，宿主强烈建议实现）。
 
 ## 状态管理边界（前端）
 
@@ -73,5 +75,5 @@ domains/* → spark-rooter-spi , spark-rooter-contracts（实现 ToolHandler、T
 ## 改动边界
 
 - 改 `.harness/contracts/` → 两端都受影响，先跑 `check-contracts`，再 typecheck / compile 暴露不一致。
-- 新增工具 → 领域服务写 Manifest 并注册；Runtime、Gateway 不需改代码。
+- 新增工具 → 宿主 `@Service` 加一个 `@SparkTool` 方法 + record；Manifest 自动推导，Runtime、Gateway 不需改代码。新领域的路由关键词表本期仍硬编码（已知限制）。
 - 新增 UI 组件 → Schema enum + 前端注册表 + 后端生成逻辑，三处同 change。

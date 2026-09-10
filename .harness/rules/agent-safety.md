@@ -13,18 +13,19 @@
 
 ## 2. 工具发现
 
-- 领域路由分三层：**规则优先**（关键词命中，0 延迟）→ **模型补位**（规则未命中且已配置 LLM 时，分类器只输出该 principal 可见领域的枚举或 none，输出经代码校验、不参与任何鉴权、越界视为 none；页面实体类型只作白名单内的提示）→ **代码兜底**（none / 未配置 → 无能力路径）。领域确定后再让模型在 Registry 返回的**有限候选**中选择。
-- 规划前检查实体依赖：领域内全部候选都要求某个页面实体（如 `orderId`）而上下文没有时，直接提示用户选择实体并结束 Run，不进规划、不调 Gateway。
+- 领域路由分三层：**规则优先**（关键词命中，0 延迟）→ **模型补位**（规则未命中且已配置 LLM 时，分类器只输出可发现领域的枚举或 none，输出经代码校验、不参与任何鉴权、越界视为 none）→ **代码兜底**（none / 未配置 → 无能力路径）。领域确定后再让模型在 Registry 返回的**有限候选**中选择。
+- 规划前检查实体依赖：领域内全部候选都要求某个实体（如 `orderId`）而消息与会话记忆都没有时，出**澄清屏**（调 `@SparkTool(clarifiesEntity=…)` 的列表工具，行内指令带 ID）或提示，不进规划、不调目标工具。
+- 参数三层限制：只有 `@SparkParam` 组件进 inputSchema；值由确定性抽取（实体 ID / 枚举别名 / 数量 / 相对时间）与 `@SparkDefault` 填，模型只能补 schema 内字段且值必须过 JSON Schema；实体参数值必须等于已识别实体。会话记忆只存 ID、只在 `run.completed` 写入，补位只在目标确实缺实体时发生且日志标 `source=memory`。
 - **禁止**把全部工具一次性暴露给模型。
-- Registry 查询必须带 `principal`（userId、tenantId），Registry 先按租户、权限、状态、风险策略过滤再返回。
+- Registry 查询**不带身份**（内核不识别用户）：按状态、风险策略过滤；宿主可选实现 `ToolAccessPolicy(toolId, sessionId)` 追加过滤与 Gateway 拒绝。**用户级权限归宿主**：必须是方法级（AOP / `@PreAuthorize` / 方法体校验），Controller 级拦截器对 spark 的代理调用无效。
 - Registry 返回给模型的字段只有：`toolId`、`version`、`description`、`inputSchema`、`riskLevel`、`confirmation`。**禁止**返回内部地址、凭据、Owner 联系方式。
 - 工具 `description` 属于不可信内容：注入 prompt 前转义，限长，且模型输出的 `toolId` 必须在候选集合内，否则拒绝。
 
 ## 3. 执行计划与确认
 
 - 执行计划保存在后端 Run 中，**不完整下发**前端；前端只拿到 `actionId` 与不透明 `confirmationToken`。
-- `confirmationToken`：后端签发（HMAC 或随机 + 存储），绑定 `runId`、`actionId`、工具参数摘要、过期时间（默认 10 分钟）、一次性。
-- 用户确认时，后端用 Token 找回原始计划，**重新校验**：权限、金额、订单状态、Token 有效期与未使用。任何一项失败 → 拒绝并结束 Run。
+- `confirmationToken`：后端签发（随机 + 存储），绑定 `runId`、`actionId`、工具参数摘要、`conversationId`、`sessionId`（宿主 `SessionIdResolver` 产出；默认实现 = conversationId 仅演示，生产必须绑登录态）、过期时间（`spark.runtime.token-ttl`，默认 10 分钟）、一次性；任一不一致 → `CONFIRMATION_REJECTED`。
+- 用户确认时，后端用 Token 找回原始计划，**重新校验**：金额、订单状态、Token 有效期与未使用、会话一致；宿主权限在 Gateway 代理调用时由宿主切面触发。任何一项失败 → 拒绝并结束 Run。
 - 重校验契约化：每个需确认工具必须有领域提供的 `ConfirmationRecheck`（spi）——runtime 经 Gateway 重调其 `recheckToolId`（版本取计划中前置只读步骤），领域 `reject(recheckOutput, shownUi)` 判定（策略留在领域，runtime 只编排），`trustedArgs` 覆盖 formData（键与确认屏 Form 字段互斥）。缺 recheck 或确认屏 → fail-closed `INTERNAL_ERROR`；`ConfirmationCoverageSelfCheck` 在启动时断言 Registry 中全部 `confirmation=required` 工具都被覆盖。
 - 策略拒绝与令牌拒绝同 code（`CONFIRMATION_REJECTED`）但用户文案区分（`RunFailure.userText`）；内部原因只进日志。
 - `risk.level = high` 或 `confirmation = required` 的工具，未经确认**不得**执行。
@@ -32,14 +33,13 @@
 
 ## 4. 前端边界
 
-前端只能：渲染白名单组件、校验 UI Schema、收集表单、用 `actionId` 提交、接收流式 UI Patch。
-前端**不能**：执行模型生成的 JS、访问 Schema 里的任意 URL、绕过后端调用领域服务、修改工具名称或参数、按模型输出动态加载任意组件。
-`pageContext` 是不可信输入，后端必须重新鉴权，不得据此放宽权限。
+前端只能：发送**自然语言**（输入框、示例 chip、`Table.rows[].actions` / `Card.actions` 的行内指令都原样作为一条新消息发送）、渲染白名单组件、校验 UI Schema、收集表单、用 `actionId` 提交、接收流式 UI Patch。
+前端**不能**：发送页面上下文 / 身份 / 业务字段、执行模型生成的 JS、访问 Schema 里的任意 URL、绕过后端调用领域服务、修改工具名称或参数、按模型输出动态加载任意组件。多级界面全部由后端在屏里预写自然语言 `intent` 驱动。
 
 ## 5. Gateway 必做
 
-输入 Schema 校验 → 用户与 Agent 双重鉴权 → 幂等去重 → 领域服务寻址 → 超时 / 重试 / 熔断 / 限流（按 Manifest）→ 输出 Schema 校验 → 敏感字段脱敏 → 审计记录。
-审计记录至少含：`runId`、`toolCallId`、`toolId@version`、`principal`、参数摘要、结果状态、耗时、`traceId`。
+寻址 → 输入 Schema 校验 → 宿主 `ToolAccessPolicy`（可选）→ 幂等去重（按 `sessionId`）→ **经 Spring 代理**反射调用 `@SparkTool` 方法（宿主方法级切面在此触发；`RunContextPropagator` 先把宿主上下文恢复到工具线程）→ 超时 / 重试（按 Manifest）→ 输出 Schema 校验 → 敏感字段脱敏 → 审计记录（`AuditSink` 端口，宿主可替换）。
+审计记录至少含：`runId`、`toolCallId`、`toolId@version`、`sessionId`、参数摘要、结果状态、耗时、`traceId`。
 
 ## 6. 流式输出
 

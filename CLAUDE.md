@@ -43,7 +43,7 @@
 
 - 金额 / ID / Token 一律 `string`；时间 ISO-8601。
 - 跨边界数据按 `.harness/contracts/` Schema 校验；契约先改，两端后改。
-- Agent Runtime 不直连领域服务；Registry 不转发调用。
+- Agent Runtime 不直连领域服务；Registry 不转发调用。后端是 **Spring Boot Starter**（`spark-rooter-spring-boot-starter`），工具用方法级 `@SparkTool` 声明；内核不识别用户 / 权限 / 页面上下文（归宿主）；前端始终只发自然语言。
 - 前端只渲染白名单组件，不执行模型生成代码；antd / antd-mobile 只在 `spark-ui/packages/core/src/components/**` 与 `theme/**` 内 import；`apps/chat` 只用 `@spark-ui/core` 包入口。
 - 高风险工具必须经后端签发的 `confirmationToken` 确认。
 - 前端 TS strict、禁 `any`、FSD 单向依赖；后端 `domain/` 不依赖 Spring，金额 / ID 用 `String`。
@@ -51,7 +51,7 @@
 ## 单一质量门禁（仓库根执行）
 
 ```bash
-pnpm -C .harness run ci   # = check-contracts + check-module-deps + spark-ui ci + spark-rooter mvnw verify
+pnpm -C .harness run ci   # = check-rename + check-contracts + check-module-deps + check-seed + spark-ui ci + spark-rooter mvnw install + host-demo mvn -o package
 ```
 
 退出码 0 才算通过。Agent 声称完成前必须把真实退出码打印出来。

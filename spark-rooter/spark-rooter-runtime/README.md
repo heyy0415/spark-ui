@@ -1,25 +1,17 @@
-# agent-runtime
+# spark-rooter-runtime
 
-**决策面 + 状态面**。理解意图、路由领域、发现工具、规划、编排执行、管理 Run 生命周期与确认令牌。**不直连领域服务**：所有工具调用经 `ToolGatewayClient`（agent-safety §1）。
-
-## 对外端点
-
-| 端点 | 说明 |
-|---|---|
-| `POST /agent/runs` | `intent-request` → `text/event-stream`（`sse-events`）。头 `X-Tenant-Id` / `X-User-Id` 必填，缺失 401。 |
-| `POST /agent/runs/{runId}/actions/{actionId}` | `action-request` → SSE。runId 不存在同步 404。 |
-| `GET /agent/runs/{runId}` | `run-summary`。只能查自己的 Run。 |
+**决策面 + 状态面**。理解意图、路由领域、抽取参数、发现工具、规划、编排执行、管理 Run 生命周期、确认令牌、会话记忆与澄清屏。**不直连领域服务**：所有工具调用经 `ToolGatewayClient`（agent-safety §1）。无 Controller、无 Spring 组件注解：Bean 由 starter `RuntimeBeans` 装配，SSE 端点在 `spark-rooter-web-mvc`。
 
 ## 流程
 
-路由（`DomainResolver`：`DomainRouter` 关键词规则优先；未命中且配置了 LLM 时 `IntentClassifier` 在 `ToolRegistryClient.domains(principal)` 返回的可见领域内分类，越界视为 none；日志 `route runId=… source=rule|model|none`）→ `ToolRegistryClient.search`（按 principal 过滤后的候选）→ `EntityRequirementCheck`（候选全需 `orderId` 而页面无选中订单 → `message.delta` 提示 + `run.completed`，不调 Gateway）→ `LlmClient.plan`（Spring AI，`internalToolExecutionEnabled=false`；无 key 时 `RuleBasedLlmClient`）→ `ToolSelectionValidator`（toolId 必须在候选内、args 键必须在 inputSchema 内）→ 逐步执行：低风险自动经 Gateway；`requiresConfirmation` 步骤生成 UI Schema（`UiSchemaBuilder`，必含 `Form`）+ `confirmationToken` → `WAITING_CONFIRMATION`。确认时：令牌一次性 / 10 分钟 / argsDigest / formData 键白名单 全部校验 → 经 Gateway 重调 `refund.eligibility.check` → 执行目标工具 → ResultCard → `COMPLETED`。
+`DomainResolver`（`DomainRouter` 关键词规则优先；未命中且配置了 LLM 时 `IntentClassifier` 在可发现领域内分类，越界视为 none）→ `ToolRegistryClient.search(domain)`（不带身份）→ `ArgumentExtractor`（实体 ID 正则；序数指代查记忆最近列表）→ `EntityRequirementCheck`（候选全需实体而缺失 → 记忆懒补位 → 仍缺则 `ClarificationScreen`）→ `LlmClient.plan`（Spring AI 或 `RuleBasedLlmClient`；参数 = 实体 + 抽取值 + `@SparkDefault`）→ `ToolSelectionValidator`（候选内、键 ⊆ inputSchema、值过 JSON Schema、实体值一致、前置齐全、不填可信参数）→ 逐步执行：低风险自动经 Gateway；需确认步骤由领域 `ScreenBuilder` 出确认屏 + 令牌（绑 `runId / actionId / argsDigest / conversationId / sessionId`）→ `WAITING_CONFIRMATION`。确认：令牌一次性 / TTL / 双绑定校验 → 领域 `ConfirmationRecheck` 重校验 → 执行 → 结果屏 → `COMPLETED` → `ConversationMemory` 写入。
 
-事件按 spec §4.0 发射，发出前经 `sse-events` 契约校验；每 15s `: ping`。
+事件发出前经 `sse-events` 契约校验；屏经 `ScreenRegistry.toUi` 校验（唯一 ui-schema 校验点）。
 
-## 环境变量
+## 元数据
 
-`SPARK_LLM_BASE_URL`、`SPARK_LLM_API_KEY`、`SPARK_LLM_MODEL`；任一缺失 → 规则规划器并 WARN。
+`ToolMetaRegistry`：`@SparkTool` 扫描出的前置步骤、实体参数、别名、单位、默认值、`clarifiesEntity`；规划器 / 校验器 / 抽取器读它。`IntentVerbs.PREREQUISITES` 与 `EntityRequirementCheck.ENTITY_ARGS` 只作手写 Manifest 的回落表。
 
 ## 包结构
 
-`api`（SSE 控制器、事件 Sink、异常映射、线程池）/ `application`（编排器、令牌服务、UI 生成、端口）/ `domain`（Run 状态机、Plan / Step、路由、令牌；无框架依赖）/ `infra`（内存仓储、LLM 客户端、进程内 Registry / Gateway 适配、自检）。
+`api`（`RuntimeExecutorConfiguration` 已迁 starter，仅余端口）/ `application`（编排器、令牌服务、抽取器、`meta/ToolMetaRegistry`、`screen/`、端口）/ `domain`（Run 状态机、Plan / Step、路由、令牌；无框架依赖）/ `infra`（内存仓储 / 记忆、LLM 工厂与客户端、进程内 Registry / Gateway 适配、自检）。

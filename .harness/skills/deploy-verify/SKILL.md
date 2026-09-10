@@ -30,7 +30,7 @@ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:4173/
 
 # 3. 端到端一条 Run（用 examples 里的 intent-request）
 curl -N -s -X POST http://localhost:8080/agent/runs \
-  -H 'Content-Type: application/json' -H 'X-Tenant-Id: tenant_001' -H 'X-User-Id: user_001' \
+  -H 'Content-Type: application/json' \
   --data @.harness/contracts/examples/intent-request.example.json > deployment/run_events.log
 grep -c "event: " deployment/run_events.log     # 事件条数
 grep -q "run.completed\|confirmation.required" deployment/run_events.log

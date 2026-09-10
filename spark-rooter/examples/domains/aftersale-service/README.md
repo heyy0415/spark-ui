@@ -2,9 +2,9 @@
 
 售后领域服务，提供 2 个工具。**不依赖** gateway / registry / runtime，也不 import 其他领域模块：订单只读经 `platform-spi` 的 `OrderSnapshotProvider`（由 order-service 实现、app 装配）。
 
-| 工具 | 版本 | 风险 | 权限 |
+| 工具 | 版本 | 风险 | 风险 |
 |---|---|---|---|
-| `aftersale.list.get` | 1.0.0 | low | `aftersale:read` |
+| `aftersale.list.get` | 1.0.0 | low | low |
 | `aftersale.create` | 1.0.0 | **high / required / sideEffect** | `aftersale:create` |
 
 策略 `AftersalePolicy`：订单 `status ∈ {SHIPPED, COMPLETED}` 且无进行中（SUBMITTED / APPROVED）售后单。`aftersale.list.get` 带 `orderId` 时附带 `order` 摘要，供 runtime 的售后确认屏渲染 OrderCard（屏层不直读订单域）。

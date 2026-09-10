@@ -25,7 +25,7 @@
 |---|---|---|
 | runId | string | 前缀 `run_` |
 | conversationId | string | |
-| principal | { userId, tenantId } | 来自请求头，不信任 body |
+| sessionId | string | 宿主 `SessionIdResolver` 产出的会话隔离键；内核不识别用户（默认实现 = conversationId 仅演示） |
 | state | `CREATED \| PLANNING \| EXECUTING \| WAITING_CONFIRMATION \| COMPLETED \| FAILED` | 迁移幂等 |
 | plan | Step[] | 只存后端 |
 | createdAt / updatedAt | string | ISO-8601 |
