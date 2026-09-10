@@ -1,18 +1,20 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { UiAction } from '@spark-ui/core';
 import { ActionBar, COMPONENT_TYPES, SchemaRenderer } from '@spark-ui/core';
-import type { Principal } from '@entities/agent-run';
 import { HttpError } from '@shared/api';
 import { Button } from '@shared/ui';
 import { FormIncompleteError, useAgentRun } from '../api/useAgentRun';
-import type { PageContextQuery } from '../model/runView';
 import styles from './AgentChatPanel.module.css';
 
+/**
+ * 宿主只需给 conversationId；baseUrl / fetch 可选注入（宿主要带登录态就传自己的 fetch）。前端始终只发自然语言，
+ * 没有页面上下文、没有身份字段。
+ */
 export interface AgentChatPanelProps {
   conversationId: string;
-  principal: Principal;
-  pageContext: PageContextQuery;
+  baseUrl?: string;
+  fetch?: typeof fetch;
 }
 
 /** 演示页示例问题：点击 = 发送同一条文本（与行内指令同一路径）。 */
@@ -23,11 +25,16 @@ const EXAMPLE_CHIPS = [
   '订单 10002 申请售后',
 ];
 
-export function AgentChatPanel({ conversationId, principal, pageContext }: AgentChatPanelProps) {
+export function AgentChatPanel({ conversationId, baseUrl, fetch: hostFetch }: AgentChatPanelProps) {
   const [input, setInput] = useState('');
+  // 默认同源 + window.fetch；注入的 fetch 需绑定到 globalThis，否则 Illegal invocation
+  const transport = useMemo(
+    () => ({ baseUrl: baseUrl ?? '', fetch: hostFetch ?? globalThis.fetch.bind(globalThis) }),
+    [baseUrl, hostFetch],
+  );
   const { view, start, submitAction, onFormChange, busy } = useAgentRun({
     conversationId,
-    principal,
+    transport,
   });
   // useMutation 返回对象每次渲染都是新引用；只依赖稳定的 mutate，send 才真正被 memo
   const { mutate } = start;
@@ -40,16 +47,10 @@ export function AgentChatPanel({ conversationId, principal, pageContext }: Agent
       }
       mutate({
         message,
-        pageContext: {
-          page: pageContext.page,
-          ...(pageContext.entityType && pageContext.entityId
-            ? { selectedEntity: { type: pageContext.entityType, id: pageContext.entityId } }
-            : {}),
-        },
         clientCapabilities: { uiSchemaVersion: '1.0', components: [...COMPONENT_TYPES] },
       });
     },
-    [busy, mutate, pageContext],
+    [busy, mutate],
   );
 
   const onSubmit = (e: FormEvent) => {

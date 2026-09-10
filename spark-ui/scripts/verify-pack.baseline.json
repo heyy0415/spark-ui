@@ -1,4 +1,5 @@
 {
-  "distKb": 38,
-  "recordedAt": "2026-09-08T12:32:51.149Z"
+  "distKb": 39,
+  "recordedAt": "2026-09-10T00:00:00.000Z",
+  "note": "change 5 T13: Card.actions 渲染 +1 KB（38 → 39）"
 }

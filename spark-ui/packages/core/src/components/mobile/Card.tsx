@@ -1,4 +1,4 @@
-import { Card as AdmCard, List } from 'antd-mobile';
+import { Button, Card as AdmCard, List, Space } from 'antd-mobile';
 import type { CardProps, LabelValue, RenderedComponentProps } from '../../registry/types';
 
 /** tone → antd-mobile 颜色变量；default 不上色。 */
@@ -9,7 +9,9 @@ const TONE_COLOR: Record<NonNullable<LabelValue['tone']>, string | undefined> = 
   danger: 'var(--adm-color-danger)',
 };
 
-export function CardMobile({ id, props }: RenderedComponentProps<CardProps>) {
+/** 移动端 Card：底部 actions 与桌面同语义（intent 原文回调 handlers.onIntent）。 */
+export function CardMobile({ id, props, handlers }: RenderedComponentProps<CardProps>) {
+  const actions = props.actions ?? [];
   return (
     <AdmCard title={props.title} data-component-id={id}>
       {props.description ? <p style={{ margin: 0 }}>{props.description}</p> : null}
@@ -27,6 +29,21 @@ export function CardMobile({ id, props }: RenderedComponentProps<CardProps>) {
             );
           })}
         </List>
+      ) : null}
+      {actions.length > 0 ? (
+        <Space wrap style={{ marginTop: 8 }}>
+          {actions.map((a, i) => (
+            <Button
+              key={i}
+              size="small"
+              data-intent={a.intent}
+              disabled={handlers?.onIntent === undefined}
+              onClick={() => handlers?.onIntent?.(a.intent)}
+            >
+              {a.label}
+            </Button>
+          ))}
+        </Space>
       ) : null}
     </AdmCard>
   );

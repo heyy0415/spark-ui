@@ -17,6 +17,10 @@ export interface SseRequest {
   body: unknown;
   headers?: Record<string, string>;
   signal?: AbortSignal;
+  /** 宿主注入的 fetch（带登录态）；缺省 window.fetch。 */
+  fetch?: typeof fetch;
+  /** 覆盖 env.VITE_API_BASE_URL。 */
+  baseUrl?: string;
 }
 
 export type SseFrameHandler = (frame: SseFrame) => void;
@@ -31,7 +35,8 @@ export async function consumeSse(req: SseRequest, onFrame: SseFrameHandler): Pro
   if (req.signal) {
     init.signal = req.signal;
   }
-  const res = await fetch(`${env.VITE_API_BASE_URL}${req.path}`, init);
+  const doFetch = req.fetch ?? fetch;
+  const res = await doFetch(`${req.baseUrl ?? env.VITE_API_BASE_URL}${req.path}`, init);
   if (!res.ok) {
     const text = await res.text();
     let json: unknown = null;

@@ -111,9 +111,10 @@ try {
   console.log('--- §6.3.4 step 5: / (chat) main flow @1280');
   {
     const { page, errors } = await newPage(1280);
-    await page.goto(`${BASE}/?page=order-detail&entityType=order&entityId=10001`, { waitUntil: 'networkidle0' });
+    // change 5：无 URL 参数，消息带订单号（前端只发自然语言）
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle0' });
     await page.waitForSelector('#agent-input');
-    await page.type('#agent-input', '帮我把这个订单退款');
+    await page.type('#agent-input', '帮我把订单 10001 退款');
     await page.keyboard.press('Enter');
     await page.waitForSelector('[data-screen-id="refund-confirmation"]', { timeout: 15000 });
     await sleep(800);
@@ -143,10 +144,10 @@ try {
   }
 
   // ---- step 6: all contract examples render at both viewports
-  console.log('--- step 6: 8 contract examples @1280 / @375');
+  console.log('--- step 6: 9 contract examples @1280 / @375');
   {
     // 每个示例的期望组件数（与契约示例文件一致）；渲染出的 data-component-id 数必须相等且无 UnknownComponent 占位
-    const EXAMPLES = { confirm: 3, result: 1, 'order-table': 1, 'product-table': 1, 'order-detail': 3, logistics: 2, 'aftersale-confirm': 2, 'delete-confirm': 1 };
+    const EXAMPLES = { confirm: 3, result: 1, 'order-table': 1, 'product-table': 1, 'order-detail': 3, logistics: 2, 'aftersale-confirm': 2, 'delete-confirm': 1, 'product-detail': 1 };
     for (const width of [1280, 375]) {
       let errs = 0;
       const mismatched = [];
@@ -199,6 +200,12 @@ try {
     await page.waitForSelector('[data-component-id="product"]', { timeout: 15000 });
     await sleep(600);
     check('product card title', true, await page.$eval('[data-component-id="product"]', (e) => e.textContent.includes('无线耳机 Pro')));
+    // change 5：Card.actions —— 详情卡「返回列表」→ 发「有什么商品」→ 回到商品表
+    check('product card has 返回列表 intent', 1, await page.$$eval('[data-component-id="product"] [data-intent="有什么商品"]', (e) => e.length));
+    await page.click('[data-component-id="product"] [data-intent="有什么商品"]');
+    await page.waitForSelector('[data-component-id="products"]', { timeout: 15000 });
+    await sleep(600);
+    check('返回列表 → product table again', 20, await page.$$eval('[data-component-id="products"] tbody tr', (e) => e.length));
     check('console errors', 0, errors.length);
     if (errors.length) console.log('    errors:', errors.slice(0, 3));
     await page.close();

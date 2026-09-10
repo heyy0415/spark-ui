@@ -10,7 +10,7 @@ const browser = await puppeteer.launch({ executablePath: CHROME, headless: true,
 let total = 0;
 try {
   for (const [name, url] of [
-    ['preview-chat', 'http://localhost:4173/?page=order-detail&entityType=order&entityId=10001'],
+    ['preview-chat', 'http://localhost:4173/'],
     ['preview-notfound', 'http://localhost:4173/does-not-exist'],
   ]) {
     const page = await browser.newPage();

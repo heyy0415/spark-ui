@@ -24,6 +24,5 @@ export {
   buildActionRequest,
   buildIntentRequest,
   getRun,
-  principalHeaders,
 } from './api/agentRunApi';
-export type { Principal } from './api/agentRunApi';
+export type { Transport } from './api/agentRunApi';

@@ -8,13 +8,14 @@ import orderDetailExample from '@contracts/examples/ui-schema.order-detail.examp
 import logisticsExample from '@contracts/examples/ui-schema.logistics.example.json';
 import aftersaleConfirmExample from '@contracts/examples/ui-schema.aftersale-confirm.example.json';
 import deleteConfirmExample from '@contracts/examples/ui-schema.delete-confirm.example.json';
+import productDetailExample from '@contracts/examples/ui-schema.product-detail.example.json';
 import type { UiSchema } from '@spark-ui/core';
 import { SchemaRenderer, UiSchemaSchema, useDevice } from '@spark-ui/core';
 import unknownFixture from './fixtures/unknown.json';
 import styles from './SchemaPlaygroundPage.module.css';
 
 /**
- * DEV 专用渲染宿主：/dev/schema?example={confirm|result|order-table|product-table|order-detail|logistics|aftersale-confirm|delete-confirm|unknown}
+ * DEV 专用渲染宿主：/dev/schema?example={confirm|result|order-table|product-table|order-detail|logistics|aftersale-confirm|delete-confirm|product-detail|unknown}
  * 契约示例经 Zod 校验；unknown 为本地夹具，**跳过 Zod** 直接传给渲染器，
  * 用于验证 UnknownComponent 路径（契约校验会在此之前拒绝未知 type，所以这里必须绕过）。仅在 env.DEV 注册路由。
  */
@@ -25,6 +26,7 @@ const EXAMPLES = {
   'order-table': orderTableExample,
   'product-table': productTableExample,
   'order-detail': orderDetailExample,
+  'product-detail': productDetailExample,
   logistics: logisticsExample,
   'aftersale-confirm': aftersaleConfirmExample,
   'delete-confirm': deleteConfirmExample,

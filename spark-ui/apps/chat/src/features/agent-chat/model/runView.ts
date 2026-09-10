@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import type { UiSchema } from '@spark-ui/core';
 import type { RunFailureCode, SseEvent } from '@entities/agent-run';
 
@@ -132,21 +131,3 @@ export function reduceEvent(view: AgentRunView, ev: SseEvent): AgentRunView {
       return view;
   }
 }
-
-/** URL query → pageContext（不可信输入，仅作为提示传给后端；后端会重新鉴权）。 */
-export const PageContextQuerySchema = z.object({
-  page: z
-    .string()
-    .min(1)
-    .max(64)
-    .regex(/^[a-z0-9-]+$/)
-    .default('agent'),
-  entityType: z
-    .string()
-    .min(1)
-    .max(32)
-    .regex(/^[a-z]+$/)
-    .optional(),
-  entityId: z.string().min(1).max(64).optional(),
-});
-export type PageContextQuery = z.infer<typeof PageContextQuerySchema>;

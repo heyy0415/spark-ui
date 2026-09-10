@@ -163,35 +163,38 @@ public class RunOrchestrator {
       found.tools().forEach(c -> schemas.put(c.toolId(), c.inputSchema()));
       inputSchemas.put(runId, schemas);
 
-      // 实体抽取（只从消息正则）→ 会话记忆补位（序数指代 → 最近列表行；否则同类型实体）；日志只记类型与 ID 与来源，不记原文
+      // 实体抽取（只从消息正则）；序数指代（「第二个」）按最近列表立即解析；其余记忆补位只在目标确实缺实体时才用（懒补位，
+      // 否则「有什么商品」会被上一轮的商品号变成详情）。日志只记类型与 ID 与来源，不记原文
       Map<String, String> entities =
           new LinkedHashMap<>(ArgumentExtractor.extractEntities(intent.message()));
       Optional<ConversationMemory.Memory> remembered = memory.find(intent.conversationId());
-      remembered.ifPresent(m -> fillFromMemory(intent.message(), entities, m, runId));
+      remembered.ifPresent(m -> fillOrdinal(intent.message(), entities, m, runId));
       log.info("entities runId={} {}", runId, entities);
 
-      // 规划前拦截：领域内全部候选都需要实体而没有 → 澄清屏（有候选源）或提示，不进规划
+      // 规划前拦截：领域内全部候选都需要实体而没有 → 记忆补位 → 仍缺则澄清屏（有候选源）或提示，不进规划
       Optional<String> needEntity =
           EntityRequirementCheck.check(domain.get(), found.tools(), entities, meta);
       if (needEntity.isPresent()) {
-        log.info("entity required but missing runId={} domain={}", runId, domain.get());
         String missingType =
             EntityRequirementCheck.missingType(found.tools(), entities, meta).orElse(null);
-        if (!clarify(run, intent.message(), domain.get(), missingType, traceId, sink)) {
-          emit(
-              sink, SseEvent.MESSAGE_DELTA, new SseEvent.MessageDeltaData(runId, needEntity.get()));
+        if (!fillMissingFromMemory(missingType, entities, remembered, runId)) {
+          log.info("entity required but missing runId={} domain={}", runId, domain.get());
+          if (!clarify(run, intent.message(), domain.get(), missingType, traceId, sink)) {
+            emit(
+                sink,
+                SseEvent.MESSAGE_DELTA,
+                new SseEvent.MessageDeltaData(runId, needEntity.get()));
+          }
+          complete(run, sink);
+          return runId;
         }
-        complete(run, sink);
-        return runId;
       }
 
       Plan plan;
       try {
-        plan =
-            llm.plan(
-                new LlmClient.PlanRequest(intent.message(), domain.get(), found.tools(), entities));
+        plan = planWithMemory(intent, domain.get(), found, entities, remembered, runId);
       } catch (LlmClient.MissingEntity e) {
-        // 动词命中但目标工具缺实体（如无号码的「删除订单」）：澄清屏（有候选源）或友好提示，不算失败
+        // 动词命中但目标工具缺实体（如无号码的「删除订单」）且记忆也没有：澄清屏（有候选源）或友好提示，不算失败
         log.info(
             "target entity missing runId={} domain={} entity={}",
             runId,
@@ -497,35 +500,62 @@ public class RunOrchestrator {
     sink.close();
   }
 
-  /**
-   * 记忆补位：① 序数指代（「第二个」「最后一个」）→ 最近列表 rowIds；② 消息缺该类型实体 → 记忆里同类型实体。补来的实体日志标 source=memory。 记忆里的实体类型即
-   * lastTable 所属工具的 clarifiesEntity 或记忆 entities 的键。
-   */
-  private void fillFromMemory(
+  /** 序数指代（「第二个」「最后一个」）→ 最近列表 rowIds；用户明确指代，立即解析。补来的实体日志标 source=memory(ordinal)。 */
+  private void fillOrdinal(
       String message, Map<String, String> entities, ConversationMemory.Memory m, String runId) {
-    if (m.lastTable() != null && !m.lastTable().rowIds().isEmpty()) {
-      String type =
-          meta.find(m.lastTable().toolId())
-              .map(t -> ToolMetaRegistry.typeName(t.clarifiesEntity()))
-              .filter(t -> !"none".equals(t))
-              .orElse(null);
-      if (type != null && !entities.containsKey(type)) {
-        ArgumentExtractor.ordinalReference(message, m.lastTable().rowIds())
-            .ifPresent(
-                id -> {
-                  entities.put(type, id);
-                  log.info("entity runId={} type={} id={} source=memory(ordinal)", runId, type, id);
-                });
-      }
+    if (m.lastTable() == null || m.lastTable().rowIds().isEmpty()) {
+      return;
     }
-    m.entities()
-        .forEach(
-            (type, id) -> {
-              if (!entities.containsKey(type)) {
-                entities.put(type, id);
-                log.info("entity runId={} type={} id={} source=memory", runId, type, id);
-              }
+    String type =
+        meta.find(m.lastTable().toolId())
+            .map(t -> ToolMetaRegistry.typeName(t.clarifiesEntity()))
+            .filter(t -> !"none".equals(t))
+            .orElse(null);
+    if (type == null || entities.containsKey(type)) {
+      return;
+    }
+    ArgumentExtractor.ordinalReference(message, m.lastTable().rowIds())
+        .ifPresent(
+            id -> {
+              entities.put(type, id);
+              log.info("entity runId={} type={} id={} source=memory(ordinal)", runId, type, id);
             });
+  }
+
+  /** 懒补位：目标确实缺某类型实体时，用记忆里同类型实体补；补上返回 true。日志标 source=memory。 */
+  private boolean fillMissingFromMemory(
+      String type,
+      Map<String, String> entities,
+      Optional<ConversationMemory.Memory> remembered,
+      String runId) {
+    if (type == null || entities.containsKey(type) || remembered.isEmpty()) {
+      return false;
+    }
+    String id = remembered.get().entities().get(type);
+    if (id == null) {
+      return false;
+    }
+    entities.put(type, id);
+    log.info("entity runId={} type={} id={} source=memory", runId, type, id);
+    return true;
+  }
+
+  /** 规划；目标缺实体时先试记忆补位再规划一次，仍缺则把 MissingEntity 抛给调用方走澄清屏。 */
+  private Plan planWithMemory(
+      IntentRequest intent,
+      String domain,
+      ToolSearch.Response found,
+      Map<String, String> entities,
+      Optional<ConversationMemory.Memory> remembered,
+      String runId) {
+    try {
+      return llm.plan(new LlmClient.PlanRequest(intent.message(), domain, found.tools(), entities));
+    } catch (LlmClient.MissingEntity e) {
+      if (!fillMissingFromMemory(e.entityType(), entities, remembered, runId)) {
+        throw e;
+      }
+      return llm.plan(new LlmClient.PlanRequest(intent.message(), domain, found.tools(), entities));
+    }
   }
 
   /**

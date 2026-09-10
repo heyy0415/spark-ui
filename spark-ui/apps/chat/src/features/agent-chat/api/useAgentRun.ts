@@ -2,13 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useRef } from 'react';
 import type { FormValues, UiAction, UiSchema } from '@spark-ui/core';
 import { FormPropsSchema } from '@spark-ui/core';
-import type { IntentRequest, Principal } from '@entities/agent-run';
+import type { IntentRequest, Transport } from '@entities/agent-run';
 import {
   AGENT_RUNS_PATH,
   actionPath,
   buildActionRequest,
   buildIntentRequest,
-  principalHeaders,
   SseEventSchema,
 } from '@entities/agent-run';
 import { consumeSse } from '@shared/api';
@@ -71,10 +70,10 @@ function failIfStillStreaming(
 
 export interface UseAgentRunOptions {
   conversationId: string;
-  principal: Principal;
+  transport: Transport;
 }
 
-export function useAgentRun({ conversationId, principal }: UseAgentRunOptions) {
+export function useAgentRun({ conversationId, transport }: UseAgentRunOptions) {
   const qc = useQueryClient();
   const abortRef = useRef<AbortController | null>(null);
   const formRef = useRef<FormValues>({});
@@ -110,7 +109,13 @@ export function useAgentRun({ conversationId, principal }: UseAgentRunOptions) {
       const ac = new AbortController();
       abortRef.current = ac;
       await consumeSse(
-        { path, body, headers: principalHeaders(principal), signal: ac.signal },
+        {
+          path,
+          body,
+          signal: ac.signal,
+          fetch: transport.fetch,
+          baseUrl: transport.baseUrl,
+        },
         apply,
       );
       if (!ac.signal.aborted) {
@@ -119,7 +124,7 @@ export function useAgentRun({ conversationId, principal }: UseAgentRunOptions) {
         );
       }
     },
-    [apply, principal, qc, conversationId],
+    [apply, transport, qc, conversationId],
   );
 
   const start = useMutation({

@@ -59,13 +59,13 @@ const ui = parseUiSchema(payloadFromBackend); // 不要写 payload as UiSchema
 
 白名单组件（5）——每个都是官方组件的直接映射，core 内**没有**业务命名组件（`scripts/check-registry.mjs` 守护文件名与 import 白名单）：
 
-| type       | 桌面（antd 6）                                                     | 移动（antd-mobile 5）                     | 用途                      |
-| ---------- | ------------------------------------------------------------------ | ----------------------------------------- | ------------------------- |
-| `Form`     | `Form` + `Input` / `Select` / `InputNumber`                        | `Form` + `Input` / `Selector` / `Stepper` | 确认屏表单                |
-| `Card`     | `Card` + `Descriptions`（`items[].tone` → `Typography.Text type`） | `Card` + `List`                           | 订单 / 商品 / 摘要 / 警示 |
-| `Table`    | `Table`（末列 `Button` 为行内指令，`data-intent`）                 | 每行一个 `List` 分组 + `Button`           | 订单 / 商品 / 售后列表    |
-| `Result`   | `Result` + `Descriptions`                                          | `Result` + `List`                         | 写操作结果                |
-| `Timeline` | `Timeline`                                                         | `Steps direction="vertical"`              | 物流轨迹                  |
+| type       | 桌面（antd 6）                                                                                                                        | 移动（antd-mobile 5）                     | 用途                                                              |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------- |
+| `Form`     | `Form` + `Input` / `Select` / `InputNumber`                                                                                           | `Form` + `Input` / `Selector` / `Stepper` | 确认屏表单                                                        |
+| `Card`     | `Card` + `Descriptions`（`items[].tone` → `Typography.Text type`）；`actions[]` → 底部 `Button`（`data-intent`，点击回调 `onIntent`） | `Card` + `List` + `Button`                | 订单 / 商品 / 摘要 / 警示 / 详情屏二级入口（返回列表 / 查看物流） |
+| `Table`    | `Table`（末列 `Button` 为行内指令，`data-intent`）                                                                                    | 每行一个 `List` 分组 + `Button`           | 订单 / 商品 / 售后列表                                            |
+| `Result`   | `Result` + `Descriptions`                                                                                                             | `Result` + `List`                         | 写操作结果                                                        |
+| `Timeline` | `Timeline`                                                                                                                            | `Steps direction="vertical"`              | 物流轨迹                                                          |
 
 五个组件的 props 都是契约级约束（`ui-schema.schema.json` if/then；Zod `.strict()` 同源）。
 

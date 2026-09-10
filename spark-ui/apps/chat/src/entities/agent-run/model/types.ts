@@ -8,7 +8,6 @@ import { z } from 'zod';
 
 // ---- 共用 -------------------------------------------------------------------
 
-const idPattern = /^[a-z0-9-]+$/;
 export const RunIdSchema = z.string().regex(/^run_[A-Za-z0-9_-]{1,60}$/);
 export const ToolCallIdSchema = z.string().regex(/^tc_[A-Za-z0-9_-]{1,60}$/);
 export const ToolIdSchema = z.string().regex(/^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*){1,3}$/);
@@ -62,23 +61,6 @@ export const IntentRequestSchema = z
   .object({
     conversationId: z.string().min(1).max(64),
     message: z.string().min(1).max(2000),
-    pageContext: z
-      .object({
-        page: z.string().min(1).max(64).regex(idPattern),
-        selectedEntity: z
-          .object({
-            type: z
-              .string()
-              .min(1)
-              .max(32)
-              .regex(/^[a-z]+$/),
-            id: z.string().min(1).max(64),
-          })
-          .strict()
-          .optional(),
-      })
-      .strict()
-      .optional(),
     clientCapabilities: z
       .object({
         uiSchemaVersion: z.literal('1.0'),
