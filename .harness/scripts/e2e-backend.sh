@@ -37,7 +37,7 @@ echo "boot: ready after ${i}s"
 
 check "tools registered (12 domain + demo.whoami + selfcheck echo)" 1 "$(grep -c "spark-rooter: 14 tools registered from 6 beans" "$DEPLOY/backend.log")"
 echo "--- selfchecks"
-PLAN_CHECK="plan 10 messages OK"; [ "$LIVE_LLM" = 1 ] && PLAN_CHECK="plan skipped (live LLM"
+PLAN_CHECK="plan 12 messages OK"; [ "$LIVE_LLM" = 1 ] && PLAN_CHECK="plan skipped (live LLM"
 for s in "contracts 9 schemas, 27 examples OK" "refund.create idempotent OK" "$PLAN_CHECK" "invalid toolId rejected OK" "missing prerequisite rejected OK" "foreign entity arg rejected OK" "schema-violating arg rejected OK" "intent verbs reference registered tools OK" "token expired/replayed/digest-mismatch/extra-key/session-mismatch rejected OK" "gateway idempotency claim OK" "confirmation coverage OK" "inline actions OK" "proxy invocation OK (aspect fired once)" "manifest parity"; do
   check "selfcheck: $s" 1 "$(grep -v SelfCheckRunner "$DEPLOY/backend.log" | grep -c "selfcheck: $s")"
 done
@@ -199,6 +199,11 @@ check "⑧ tool" order.logistics.get "$(data "$DEPLOY/c8.log" tool.selected | js
 check "⑧ types" "['Card', 'Timeline']" "$(types c8)"
 check "⑧ timeline ≥ 3" 1 "$(data "$DEPLOY/c8.log" ui.replace | json "1 if len([c for c in d['ui']['components'] if c['id']=='logistics-events'][0]['props']['items'])>=3 else 0")"
 check "⑧ card has 运单号" 1 "$(data "$DEPLOY/c8.log" ui.replace | json "sum(1 for i in [c for c in d['ui']['components'] if c['id']=='logistics'][0]['props']['items'] if i['label']=='运单号')")"
+
+echo "--- ⑧' 10030查看物流（无「订单」前缀）→ order.logistics.get，Card 标题含 10030"
+run_msg c8b "10030查看物流"
+check "⑧' tool" order.logistics.get "$(data "$DEPLOY/c8b.log" tool.selected | json "d['toolId']")"
+check "⑧' card title has 10030" 1 "$(data "$DEPLOY/c8b.log" ui.replace | json "1 if '10030' in [c for c in d['ui']['components'] if c['id']=='logistics'][0]['props']['title'] else 0")"
 
 echo "--- ⑨ 有什么商品 → Table 20 / 20"
 run_msg c9 "有什么商品"

@@ -26,6 +26,10 @@ import java.util.regex.Pattern;
 public final class ArgumentExtractor {
 
   private static final Pattern ORDER = Pattern.compile("订单\\s*(\\d{5})(?!\\d)");
+
+  /** 裸订单号：用户常只打「10030查看物流」；独立的 5 位数字（前后不是数字 / 连字符，避开 P-1003 与更长数字、金额）。 */
+  private static final Pattern BARE_ORDER = Pattern.compile("(?<![\\d\\-.])(\\d{5})(?![\\d.])");
+
   private static final Pattern PRODUCT = Pattern.compile("商品\\s*(P-\\d{4})(?!\\d)");
 
   /** 数量：数字 + 单位词；单位词集合来自各参数的 unit 声明，运行期拼接。数字前不能紧跟「订单」等实体前缀（由实体正则先消费）。 */
@@ -85,6 +89,11 @@ public final class ArgumentExtractor {
       Matcher o = ORDER.matcher(message);
       if (o.find()) {
         out.put("order", o.group(1));
+      } else {
+        Matcher bare = BARE_ORDER.matcher(message);
+        if (bare.find()) {
+          out.put("order", bare.group(1));
+        }
       }
       Matcher p = PRODUCT.matcher(message);
       if (p.find()) {

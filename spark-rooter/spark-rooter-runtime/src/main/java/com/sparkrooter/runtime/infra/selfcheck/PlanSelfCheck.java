@@ -81,7 +81,20 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
               List.of("order.detail.get"),
               Map.of("orderId", "10002")),
           new Case(
-              "order", "我想查看最近订单", Map.of(), List.of("order.list.search"), Map.of("limit", "20")));
+              "order", "我想查看最近订单", Map.of(), List.of("order.list.search"), Map.of("limit", "20")),
+          // fix-order-id-bare-number：不带「订单」前缀的裸 5 位号也算订单号
+          new Case(
+              "order",
+              "10030查看物流",
+              Map.of("order", "10030"),
+              List.of("order.logistics.get"),
+              Map.of("orderId", "10030")),
+          new Case(
+              "order",
+              "10002 的详情",
+              Map.of("order", "10002"),
+              List.of("order.detail.get"),
+              Map.of("orderId", "10002")));
 
   private final LlmClient llm;
   private final ToolRegistryClient registry;
@@ -146,7 +159,7 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
           throw new IllegalStateException("confirmation flag wrong for " + last.toolId());
         }
       }
-      log.info("selfcheck: plan 10 messages OK");
+      log.info("selfcheck: plan 12 messages OK");
     } else {
       log.info("selfcheck: plan skipped (live LLM {}), validator check only", llm.name());
     }

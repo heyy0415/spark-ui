@@ -179,7 +179,7 @@ docker stop spark-demo && docker rm spark-demo # 停止并删除
 ```bash
 pnpm -C .harness run ci          # 改名检查、契约检查、模块依赖检查、种子检查、前端 ci、后端 install、host-demo 离线打包
 pnpm -C .harness run doctor      # Harness 自检
-SPARK_PORT=8091 bash .harness/scripts/e2e-backend.sh     # 159 条端到端断言
+SPARK_PORT=8091 bash .harness/scripts/e2e-backend.sh     # 161 条端到端断言
 SPARK_PORT=8091 bash .harness/scripts/deploy-verify.sh   # 部署验证 12 条
 SPARK_FRONT_BASE=http://localhost:5199 node .harness/scripts/e2e-frontend.mjs   # 54 条 headless Chrome 断言
 ```
