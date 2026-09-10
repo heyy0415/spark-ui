@@ -4,6 +4,7 @@
  *
  * 后端模块依赖红线（project-structure.md §2 / §4）：
  *   - spark-rooter-runtime、spark-rooter-registry、spark-rooter-gateway、spark-rooter-spi、spark-rooter-contracts 的 pom.xml 不得依赖任何 domains/* 模块（只有 app 可以）
+ *   - 平台模块（spi / contracts / runtime / registry / gateway）pom 不得依赖 spring-boot-starter-web / starter-validation（Web 绑定只在 spark-rooter-web-mvc，spec refactor-spark-embedded-starter §2.2）
  *   - 任何模块 DDD 分层 domain/ 包（文件直接父目录为 domain）下的 .java 不得 import org.springframework.* 或 com.fasterxml.*
  *
  * spark-rooter/ 尚无 pom.xml 时视为通过（骨架未初始化）。
@@ -69,6 +70,17 @@ for (const mod of ['spark-rooter-runtime', 'spark-rooter-registry', 'spark-roote
     for (const m of depsBlock.matchAll(/<groupId>com\.spark<\/groupId><artifactId>([^<]+)<\/artifactId>/g)) {
       if (!ok.includes(m[1])) fail(`${mod}/pom.xml must not depend on com.sparkrooter:${m[1]} (bottom layer)`);
     }
+  }
+}
+
+// 平台模块不绑 Web 容器：只有 spark-rooter-web-mvc 允许 spring-boot-starter-web / starter-validation
+for (const mod of ['spark-rooter-spi', 'spark-rooter-contracts', 'spark-rooter-runtime', 'spark-rooter-registry', 'spark-rooter-gateway']) {
+  const pom = join(sparkRooterDir, mod, 'pom.xml');
+  if (!existsSync(pom)) continue;
+  const text = await readFile(pom, 'utf-8');
+  const depsBlock = (text.match(/<dependencies>([\s\S]*?)<\/dependencies>/g) ?? []).join('\n');
+  for (const banned of ['spring-boot-starter-web', 'spring-boot-starter-validation']) {
+    if (depsBlock.includes(`<artifactId>${banned}</artifactId>`)) fail(`${mod}/pom.xml must not depend on ${banned} (web binding lives only in spark-rooter-web-mvc)`);
   }
 }
 

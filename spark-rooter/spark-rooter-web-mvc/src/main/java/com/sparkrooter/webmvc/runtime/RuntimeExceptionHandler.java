@@ -1,4 +1,4 @@
-package com.sparkrooter.runtime.api;
+package com.sparkrooter.webmvc.runtime;
 
 import com.sparkrooter.contracts.ContractViolationException;
 import com.sparkrooter.contracts.model.ErrorResponse;

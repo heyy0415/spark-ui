@@ -1,4 +1,4 @@
-package com.sparkrooter.runtime.infra.host;
+package com.sparkrooter.webmvc;
 
 import com.sparkrooter.spi.RunContextPropagator;
 import com.sparkrooter.spi.SessionIdResolver;
@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
  *   <li>RunContextPropagator no-op —— 宿主 ThreadLocal / SecurityContext 不会带到 spark 工作线程。
  * </ul>
  *
- * T08 起由 starter 装配；此处先以 @Configuration 存在，保证 T06/T07a 阶段可运行。
+ * T08 起由 starter 装配；此处先以 @Configuration 存在于 web-mvc。
  */
 @Configuration
 public class HostPortDefaults {

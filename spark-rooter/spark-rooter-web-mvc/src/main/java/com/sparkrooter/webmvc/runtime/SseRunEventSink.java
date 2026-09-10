@@ -1,4 +1,4 @@
-package com.sparkrooter.runtime.api;
+package com.sparkrooter.webmvc.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sparkrooter.contracts.model.SseEvent;

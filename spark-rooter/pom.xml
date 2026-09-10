@@ -16,6 +16,7 @@
     <module>spark-rooter-registry</module>
     <module>spark-rooter-gateway</module>
     <module>spark-rooter-runtime</module>
+    <module>spark-rooter-web-mvc</module>
     <module>examples/demo-support</module>
     <module>examples/domains/order-service</module>
     <module>examples/domains/product-service</module>
@@ -60,6 +61,7 @@
       <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-registry</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-gateway</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-runtime</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-web-mvc</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.sparkrooter</groupId><artifactId>order-service</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.sparkrooter</groupId><artifactId>product-service</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.sparkrooter</groupId><artifactId>aftersale-service</artifactId><version>${project.version}</version></dependency>

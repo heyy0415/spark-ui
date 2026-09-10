@@ -1,4 +1,4 @@
-package com.sparkrooter.gateway.api;
+package com.sparkrooter.webmvc.gateway;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sparkrooter.contracts.SchemaValidator;
