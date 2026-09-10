@@ -63,6 +63,47 @@ public final class ToolSelectionValidator {
             });
   }
 
+  private static final com.networknt.schema.JsonSchemaFactory SCHEMA_FACTORY =
+      com.networknt.schema.JsonSchemaFactory.getInstance(
+          com.networknt.schema.SpecVersion.VersionFlag.V202012);
+  private static final com.fasterxml.jackson.databind.ObjectMapper MAPPER =
+      new com.fasterxml.jackson.databind.ObjectMapper();
+
+  /** 单参数值校验：按 inputSchema.properties[k] 校验（string 直接校；integer / boolean 先转，转不了即不合规）。 */
+  static void assertValueMatches(
+      com.fasterxml.jackson.databind.JsonNode propSchema, String key, String value, String toolId) {
+    if (propSchema == null || propSchema.isMissingNode()) {
+      return;
+    }
+    com.fasterxml.jackson.databind.JsonNode typed;
+    String type = propSchema.path("type").asText("string");
+    try {
+      typed =
+          switch (type) {
+            case "integer" -> MAPPER.getNodeFactory().numberNode(Long.parseLong(value));
+            case "number" -> MAPPER.getNodeFactory().numberNode(Double.parseDouble(value));
+            case "boolean" -> MAPPER.getNodeFactory().booleanNode(Boolean.parseBoolean(value));
+            default -> MAPPER.getNodeFactory().textNode(value);
+          };
+    } catch (NumberFormatException e) {
+      throw new RunFailure(
+          "TOOL_SELECTION_INVALID", "arg " + key + " of " + toolId + " is not a " + type);
+    }
+    var config =
+        com.networknt.schema.SchemaValidatorsConfig.builder().formatAssertionsEnabled(true).build();
+    var errors = SCHEMA_FACTORY.getSchema(propSchema, config).validate(typed);
+    if (!errors.isEmpty()) {
+      throw new RunFailure(
+          "TOOL_SELECTION_INVALID",
+          "arg "
+              + key
+              + " of "
+              + toolId
+              + " violates inputSchema: "
+              + errors.iterator().next().getMessage());
+    }
+  }
+
   /** 实体类参数（orderId / productId）的值必须等于已识别实体，模型不得换成别的 ID；未识别的实体一律不得出现在参数里。 */
   public static Plan validate(
       LlmPlanDraft draft,
@@ -91,6 +132,9 @@ public final class ToolSelectionValidator {
           throw new RunFailure(
               "TOOL_SELECTION_INVALID", "arg not in inputSchema of " + d.toolId() + ": " + k);
         }
+        // 值过该参数的 JSON Schema（enum / min / max / format / pattern）；Step 值是字符串，integer / boolean
+        // 先按类型转
+        assertValueMatches(props.path(k), k, args.get(k), d.toolId());
         String type = meta.entityTypeOf(k);
         if (type != null && !args.get(k).equals(entities.get(type))) {
           throw new RunFailure(

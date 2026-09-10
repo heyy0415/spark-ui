@@ -13,7 +13,7 @@
  * 任一步骤非 0 立即停止并以该退出码退出。最后打印每步退出码摘要。
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -39,6 +39,8 @@ const steps = [
     cmd: 'mvn',
     args: ['-q', '-B', '-o', 'package', '-DskipTests'],
     cwd: join(root, 'spark-rooter', 'examples', 'host-demo'),
+    // 不用 clean 插件（离线可能未缓存），直接删 target 保证重打包（否则 boot repackage 可能沿用旧 jar）
+    before: () => rmSync(join(root, 'spark-rooter', 'examples', 'host-demo', 'target'), { recursive: true, force: true }),
     skipIf: () => !existsSync(join(root, 'spark-rooter', 'examples', 'host-demo', 'pom.xml')),
   },
 ];
@@ -51,6 +53,7 @@ for (const s of steps) {
     continue;
   }
   console.log(`\n=== ${s.name} ===`);
+  s.before?.();
   const r = spawnSync(s.cmd, s.args, { stdio: 'inherit', cwd: s.cwd ?? root });
   const code = r.status ?? 1;
   results.push([s.name, code]);

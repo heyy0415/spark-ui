@@ -81,6 +81,9 @@ public class RunOrchestrator {
   /** 每个 Run 最近一次下发的 UI（供 GET /agent/runs/{id}）。 */
   private final Map<String, UiSchema> lastUi = new java.util.concurrent.ConcurrentHashMap<>();
 
+  /** 候选工具的 inputSchema（toolId → schema），按 runId；参数值在 Step 里是字符串，调用前按 schema 类型化。 */
+  private final Map<String, Map<String, JsonNode>> inputSchemas = new ConcurrentHashMap<>();
+
   /** 确认屏所需的中间结果缓存（订单详情 / 资格 / 试算），按 runId。 */
   private final Map<String, Map<String, JsonNode>> stepOutputs = new ConcurrentHashMap<>();
 
@@ -149,9 +152,12 @@ public class RunOrchestrator {
         complete(run, sink);
         return runId;
       }
+      Map<String, JsonNode> schemas = new ConcurrentHashMap<>();
+      found.tools().forEach(c -> schemas.put(c.toolId(), c.inputSchema()));
+      inputSchemas.put(runId, schemas);
 
       // 实体抽取（只从消息正则）；日志只记类型与 ID，不记原文
-      Map<String, String> entities = EntityExtractor.extract(intent.message());
+      Map<String, String> entities = ArgumentExtractor.extractEntities(intent.message());
       log.info("entities runId={} {}", runId, entities);
 
       // 规划前拦截：领域内全部候选都需要实体而没有 → 提示并结束，不进规划、不调 Gateway
@@ -500,8 +506,7 @@ public class RunOrchestrator {
         SseEvent.TOOL_SELECTED,
         new SseEvent.ToolSelectedData(run.runId(), toolCallId, toolId, version, displayName));
     emit(sink, SseEvent.TOOL_STARTED, new SseEvent.ToolStartedData(run.runId(), toolCallId, now()));
-    ObjectNode argNode = mapper.createObjectNode();
-    args.forEach(argNode::put);
+    ObjectNode argNode = typedArgs(run.runId(), toolId, args);
     String idem =
         run.runId()
             + "-"
@@ -553,6 +558,34 @@ public class RunOrchestrator {
     return resp.output();
   }
 
+  /**
+   * Step.fixedArgs 一律字符串（参与 argsDigest）；按候选 inputSchema 把 integer / boolean 类型的参数转成对应 JSON
+   * 类型，其余保持字符串。
+   */
+  private ObjectNode typedArgs(String runId, String toolId, Map<String, String> args) {
+    ObjectNode node = mapper.createObjectNode();
+    JsonNode props =
+        inputSchemas
+            .getOrDefault(runId, Map.of())
+            .getOrDefault(toolId, mapper.createObjectNode())
+            .path("properties");
+    args.forEach(
+        (k, v) -> {
+          String type = props.path(k).path("type").asText("string");
+          try {
+            switch (type) {
+              case "integer" -> node.put(k, Long.parseLong(v));
+              case "number" -> node.put(k, Double.parseDouble(v));
+              case "boolean" -> node.put(k, Boolean.parseBoolean(v));
+              default -> node.put(k, v);
+            }
+          } catch (NumberFormatException e) {
+            node.put(k, v); // 类型不符交给 Gateway 的 inputSchema 校验报 INPUT_INVALID
+          }
+        });
+    return node;
+  }
+
   /** 一次工具调用失败：携带 Gateway 结构化错误码，供确认路径把 FORBIDDEN 映射为 CONFIRMATION_REJECTED。 */
   static final class ToolCallFailed extends RunFailure {
     private static final long serialVersionUID = 1L;
@@ -573,6 +606,7 @@ public class RunOrchestrator {
     run.transition(RunState.COMPLETED, now());
     runs.save(run);
     stepOutputs.remove(run.runId());
+    inputSchemas.remove(run.runId());
     emit(sink, SseEvent.RUN_COMPLETED, new SseEvent.RunCompletedData(run.runId(), now()));
     sink.close();
   }
@@ -584,6 +618,7 @@ public class RunOrchestrator {
     }
     runs.save(run);
     stepOutputs.remove(run.runId());
+    inputSchemas.remove(run.runId());
     try {
       emit(
           sink,

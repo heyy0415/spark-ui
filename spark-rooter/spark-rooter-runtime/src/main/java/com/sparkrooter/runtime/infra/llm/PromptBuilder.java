@@ -26,7 +26,8 @@ public final class PromptBuilder {
         退款/退钱 → refund.create；详情/看看这个/查看商品 → 该领域的 detail.get；没有动词时，有实体 → detail.get，无实体 → list.search（售后为 aftersale.list.get）。
         有副作用的目标工具必须带上它的前置只读步骤且放在前面：refund.create 前置 refund.eligibility.check、refund.preview；
         order.delete 前置 order.detail.get；aftersale.create 前置 aftersale.list.get。refund.status.get 不进退款计划。
-        args 只能包含候选 inputSchema 中声明的字段，值一律为字符串；orderId / productId 从「已识别实体」取，没有就不要发明。
+        args 只能包含候选 inputSchema 中声明的字段，值一律为字符串且必须满足该字段的 enum / minimum / maximum / format；
+        orderId / productId 等 ID 必须来自用户原话（见「已识别实体」），没有就不要发明；用户没提到的字段留空，系统会按默认值补齐。
         需要用户确认的步骤不要填写 amount 等金额字段，金额由系统在确认后按试算结果填入。
         """;
   }

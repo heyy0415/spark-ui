@@ -141,10 +141,11 @@ class RuntimeBeans {
       LlmFactory.SharedChat chat,
       ToolDisplayNames names,
       ToolMetaRegistry meta,
+      Clock sparkRooterClock,
       SparkRooterProperties props,
       Environment env) {
     return LlmFactory.llmClient(
-        chat, names, meta, pick(props.llm().model(), env, "SPARK_LLM_MODEL"));
+        chat, names, meta, sparkRooterClock, pick(props.llm().model(), env, "SPARK_LLM_MODEL"));
   }
 
   @Bean

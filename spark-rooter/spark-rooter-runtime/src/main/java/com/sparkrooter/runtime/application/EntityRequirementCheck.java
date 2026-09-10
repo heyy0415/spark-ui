@@ -9,7 +9,7 @@ import java.util.Optional;
 
 /**
  * 规划前拦截（spec §2.2）：领域内**全部**候选工具都要求某个实体参数（orderId ↔ order、productId ↔ product）， 而已识别实体（消息，见
- * EntityExtractor）里没有时，直接给用户一句提示并结束 Run，不进规划、不调 Gateway。 只要有一个候选不需要实体（如
+ * ArgumentExtractor）里没有时，直接给用户一句提示并结束 Run，不进规划、不调 Gateway。 只要有一个候选不需要实体（如
  * order.list.search）就放行，由规划器决定；动词命中但目标缺实体的情况由规划器抛 MissingEntity。纯函数。
  */
 public final class EntityRequirementCheck {

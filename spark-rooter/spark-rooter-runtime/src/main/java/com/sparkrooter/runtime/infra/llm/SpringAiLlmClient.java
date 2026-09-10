@@ -1,10 +1,12 @@
 package com.sparkrooter.runtime.infra.llm;
 
+import com.sparkrooter.contracts.model.ToolSearch;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.runtime.application.port.LlmClient;
 import com.sparkrooter.runtime.domain.Plan;
 import com.sparkrooter.runtime.domain.RunFailure;
+import java.time.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -24,13 +26,19 @@ public final class SpringAiLlmClient implements LlmClient {
   private final ToolDisplayNames displayNames;
 
   private final ToolMetaRegistry meta;
+  private final Clock clock;
 
   public SpringAiLlmClient(
-      ChatClient chat, String model, ToolDisplayNames displayNames, ToolMetaRegistry meta) {
+      ChatClient chat,
+      String model,
+      ToolDisplayNames displayNames,
+      ToolMetaRegistry meta,
+      Clock clock) {
     this.chat = chat;
     this.model = model;
     this.displayNames = displayNames;
     this.meta = meta;
+    this.clock = clock;
   }
 
   @Override
@@ -56,7 +64,12 @@ public final class SpringAiLlmClient implements LlmClient {
                 .call()
                 .entity(LlmPlanDraft.class);
         return ToolSelectionValidator.validate(
-            draft, req.domain(), req.candidates(), displayNames, req.entities(), meta);
+            fillDefaults(draft, req),
+            req.domain(),
+            req.candidates(),
+            displayNames,
+            req.entities(),
+            meta);
       } catch (MissingEntity e) {
         // 目标工具缺必填实体：编排器走友好提示，不重试、不当传输错误
         throw e;
@@ -85,6 +98,31 @@ public final class SpringAiLlmClient implements LlmClient {
       }
     }
     throw last;
+  }
+
+  /** 模型未填的参数用确定性抽取值与 @SparkDefault 补齐（模型填了的保留，由校验器按 schema 校验），使两种模式的 argsDigest 一致。 */
+  private LlmPlanDraft fillDefaults(LlmPlanDraft draft, PlanRequest req) {
+    if (draft == null || draft.steps() == null) {
+      return draft;
+    }
+    java.util.Map<String, ToolSearch.ToolCandidate> byId = new java.util.HashMap<>();
+    req.candidates().forEach(c -> byId.put(c.toolId(), c));
+    java.util.List<LlmPlanDraft.DraftStep> steps = new java.util.ArrayList<>();
+    for (LlmPlanDraft.DraftStep d : draft.steps()) {
+      ToolSearch.ToolCandidate c = byId.get(d.toolId());
+      if (c == null) {
+        steps.add(d);
+        continue;
+      }
+      java.util.Map<String, String> merged =
+          new java.util.LinkedHashMap<>(
+              RuleBasedLlmClient.argsFor(c, req.message(), req.entities(), meta, clock));
+      if (d.args() != null) {
+        merged.putAll(d.args());
+      }
+      steps.add(new LlmPlanDraft.DraftStep(d.toolId(), merged));
+    }
+    return new LlmPlanDraft(steps);
   }
 
   @Override

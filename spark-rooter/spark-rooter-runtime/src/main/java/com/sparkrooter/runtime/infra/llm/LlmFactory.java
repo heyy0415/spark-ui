@@ -4,6 +4,7 @@ import com.sparkrooter.runtime.application.ToolDisplayNames;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.runtime.application.port.IntentClassifier;
 import com.sparkrooter.runtime.application.port.LlmClient;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -60,10 +61,10 @@ public final class LlmFactory {
 
   /** 两个实现都持有 ToolDisplayNames Bean 引用（Registry 启动时才回填 name），不能取构造期快照。 */
   public static LlmClient llmClient(
-      SharedChat chat, ToolDisplayNames names, ToolMetaRegistry meta, String model) {
+      SharedChat chat, ToolDisplayNames names, ToolMetaRegistry meta, Clock clock, String model) {
     return chat.client()
-        .<LlmClient>map(c -> new SpringAiLlmClient(c, model, names, meta))
-        .orElseGet(() -> new RuleBasedLlmClient(names, meta));
+        .<LlmClient>map(c -> new SpringAiLlmClient(c, model, names, meta, clock))
+        .orElseGet(() -> new RuleBasedLlmClient(names, meta, clock));
   }
 
   public static IntentClassifier intentClassifier(SharedChat chat, String model) {

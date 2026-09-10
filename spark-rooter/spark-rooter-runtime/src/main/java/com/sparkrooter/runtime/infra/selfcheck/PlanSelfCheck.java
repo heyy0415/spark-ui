@@ -26,8 +26,17 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
 
   private static final Logger log = LoggerFactory.getLogger(PlanSelfCheck.class);
 
-  /** 一条核心消息：领域、消息、已识别实体、期望 toolId 序列。 */
-  record Case(String domain, String message, Map<String, String> entities, List<String> expect) {}
+  /** 一条核心消息：领域、消息、已识别实体、期望 toolId 序列、期望最后一步的参数（null 不断言）。 */
+  record Case(
+      String domain,
+      String message,
+      Map<String, String> entities,
+      List<String> expect,
+      Map<String, String> expectArgs) {
+    Case(String domain, String message, Map<String, String> entities, List<String> expect) {
+      this(domain, message, entities, expect, null);
+    }
+  }
 
   private static final List<Case> CASES =
       List.of(
@@ -54,7 +63,24 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
               "refund",
               "订单 10002 退货退款",
               Map.of("order", "10002"),
-              List.of("refund.eligibility.check", "refund.preview", "refund.create")));
+              List.of("refund.eligibility.check", "refund.preview", "refund.create")),
+          // change 5 T11：抽取层 —— 枚举别名 + 数量；数量截断到 max；实体消息里的数字不当数量
+          new Case(
+              "order",
+              "最近 5 单已发货的订单",
+              Map.of(),
+              List.of("order.list.search"),
+              Map.of("status", "SHIPPED", "limit", "5")),
+          new Case(
+              "order", "最近 100 单", Map.of(), List.of("order.list.search"), Map.of("limit", "50")),
+          new Case(
+              "order",
+              "订单 10002 的详情",
+              Map.of("order", "10002"),
+              List.of("order.detail.get"),
+              Map.of("orderId", "10002")),
+          new Case(
+              "order", "我想查看最近订单", Map.of(), List.of("order.list.search"), Map.of("limit", "20")));
 
   private final LlmClient llm;
   private final ToolRegistryClient registry;
@@ -99,12 +125,21 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
               "rule planner mismatch for domain " + c.domain() + ": " + got + " != " + c.expect());
         }
         Step last = p.steps().get(p.steps().size() - 1);
+        if (c.expectArgs() != null && !c.expectArgs().equals(last.fixedArgs())) {
+          throw new IllegalStateException(
+              "rule planner args mismatch for "
+                  + last.toolId()
+                  + ": "
+                  + last.fixedArgs()
+                  + " != "
+                  + c.expectArgs());
+        }
         boolean writes = !meta.prerequisites(last.toolId()).isEmpty();
         if (writes != last.requiresConfirmation()) {
           throw new IllegalStateException("confirmation flag wrong for " + last.toolId());
         }
       }
-      log.info("selfcheck: plan 6 messages OK");
+      log.info("selfcheck: plan 10 messages OK");
     } else {
       log.info("selfcheck: plan skipped (live LLM {}), validator check only", llm.name());
     }
@@ -150,6 +185,21 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
           "validator accepted an entity arg that differs from recognized entity");
     } catch (RunFailure expected) {
       log.info("selfcheck: foreign entity arg rejected OK");
+    }
+    try {
+      // change 5 T11：值必须满足 inputSchema（status enum）
+      ToolSelectionValidator.validate(
+          new LlmPlanDraft(
+              List.of(
+                  new LlmPlanDraft.DraftStep("order.list.search", Map.of("status", "DELETED")))),
+          "order",
+          candidates("order"),
+          names,
+          Map.of(),
+          meta);
+      throw new IllegalStateException("validator accepted an enum value outside inputSchema");
+    } catch (RunFailure expected) {
+      log.info("selfcheck: schema-violating arg rejected OK");
     }
   }
 
