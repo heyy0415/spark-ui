@@ -192,14 +192,6 @@ SPARK_FRONT_BASE=http://localhost:5199 node .harness/scripts/e2e-frontend.mjs   
 
 每个需求走 8 个阶段（需求分析、需求评审、编码、编码评审、推送、CI、部署验证、用户确认），产物放在 [`.harness/changes/`](.harness/changes/) 下。
 
-## 已知限制
-
-- **模型是硬依赖，没有规则兜底**。三项 `SPARK_LLM_*` 任一缺失，所有请求都返回「未配置模型，无法理解请求」。模型或网关不可用时同样无法工作。
-- 只有进程内模式。远程工具和服务发现只留了 `ToolTransport` / `ToolProviderDiscovery` 两个接口。
-- 存储全是内存实现（带 TTL）。多实例部署要自己替换成 Redis 等，端口都是 `@ConditionalOnMissingBean`。
-- 文案全中文，没有 i18n。
-- 聊天记录只在内存里，刷新页面即清空。
-
 ## 许可
 
 [MIT](LICENSE)

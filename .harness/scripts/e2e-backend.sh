@@ -37,9 +37,14 @@ echo "boot: ready after ${i}s"
 
 check "tools registered (12 domain + demo.whoami + selfcheck echo)" 1 "$(grep -c "spark-rooter: 14 tools registered from 6 beans" "$DEPLOY/backend.log")"
 echo "--- selfchecks"
-PLAN_CHECK="plan 12 messages OK"; [ "$LIVE_LLM" = 1 ] && PLAN_CHECK="plan skipped (live LLM"
-for s in "contracts 9 schemas, 27 examples OK" "refund.create idempotent OK" "$PLAN_CHECK" "invalid toolId rejected OK" "missing prerequisite rejected OK" "foreign entity arg rejected OK" "schema-violating arg rejected OK" "intent verbs reference registered tools OK" "token expired/replayed/digest-mismatch/extra-key/session-mismatch rejected OK" "gateway idempotency claim OK" "confirmation coverage OK" "inline actions OK" "proxy invocation OK (aspect fired once)" "manifest parity"; do
+# 各检查类自己打的明细行（不含 SelfCheckRunner 汇总行）。
+# PlanSelfCheck 改为测通用校验器后不再调模型，规则 / LLM 两种模式断言相同。
+for s in "contracts 9 schemas, 27 examples OK" "refund.create idempotent OK" "invalid toolId rejected OK" "missing prerequisite rejected OK" "foreign entity arg rejected OK" "schema-violating arg rejected OK" "token expired/replayed/digest-mismatch/extra-key/session-mismatch rejected OK" "gateway idempotency claim OK" "confirmation coverage OK" "inline actions OK" "proxy invocation OK (aspect fired once)" "manifest parity"; do
   check "selfcheck: $s" 1 "$(grep -v SelfCheckRunner "$DEPLOY/backend.log" | grep -c "selfcheck: $s")"
+done
+# SelfCheckRunner 汇总行：9 项全过（含 plan validator / confirmation token 两项只在汇总行出现）
+for s in "plan validator OK" "confirmation token OK"; do
+  check "selfcheck summary: $s" 1 "$(grep -c "SelfCheckRunner.*selfcheck: $s" "$DEPLOY/backend.log")"
 done
 
 echo "--- §6.2.5 Registry search（无身份；按 status 过滤，权限归宿主）"
