@@ -4,7 +4,7 @@
 |---|---|
 | Change ID | refactor-llm-planner-domain-free-20260910 |
 | 类型 | refactor |
-| 状态 | CODING |
+| 状态 | PUSHED |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | contracts / spark-rooter / spark-ui（按需删减） |
 | 起止时间 | 2026-09-10 ~ 2026-09-11 |
@@ -19,8 +19,8 @@
 | 2 | 需求评审 | SKIP | 0/3 | 用户口头确认架构方向 | 2026-09-10 |
 | 3 | 编码实现 | DONE | — | coding_report_v1.md | 2026-09-11 |
 | 4 | 编码评审 | SKIP | 0/2 | 用户要求直接提交 | — |
-| 5 | 代码推送 | TODO | — | — | — |
-| 6 | CI 验证 | TODO | — | — | — |
+| 5 | 代码推送 | DONE | — | 03a7838 + 3a32c36 | 2026-09-11 |
+| 6 | CI 验证 | SKIP | — | 未配置 GitHub Actions | — |
 | 7 | 部署验证 | TODO | — | — | — |
 | 8 | 用户确认 | TODO | — | — | — |
 
@@ -37,8 +37,7 @@
 - **live 验证 5/7 场景通过**：「看看我的订单」「10030查看物流」「第二个的物流」「有什么商品」「今天天气怎么样」✓；「申请售后」「删除订单 10010」因上游 503 未验证
 
 ## 遗留债务
-1. e2e-backend 规则模式断言已失效（用户明确要求跳过 e2e，待修改为纯 HTTP 断言）
-2. deploy-verify 期望 selfcheck count=9，实际 8（DomainResolver 已删除）
+无（e2e-backend 断言已修正为 12 明细 + 2 汇总行）
 
 ## 经验沉淀
 - check-module-deps self-test 正则与实际检查规则不一致 → 已修为引用同一常量（DOMAIN_WORDS）
