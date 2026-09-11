@@ -1,6 +1,6 @@
 event:run.started
-data:{"runId":"run_112c458ba63143ac","conversationId":"conv_001","at":"2026-09-11T09:19:08.665351Z"}
+data:{"runId":"run_3d321dea344949c3","conversationId":"conv_001","at":"2026-09-11T09:34:12.813326Z"}
 
 event:run.failed
-data:{"runId":"run_112c458ba63143ac","code":"INTERNAL_ERROR","message":"未配置模型，无法理解请求","at":"2026-09-11T09:19:08.666837Z"}
+data:{"runId":"run_3d321dea344949c3","code":"INTERNAL_ERROR","message":"未配置模型，无法理解请求","at":"2026-09-11T09:34:12.815202Z"}
 

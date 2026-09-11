@@ -1,0 +1,34 @@
+--- 1. 后端启动与健康
+  ✓ health: {"status":"UP"}
+  ✓ selfcheck all OK: 9
+--- 2. 前端预览（vite preview :4173，代理到 8091）
+  ✓ preview /: 200
+  ✓ preview proxies /actuator/health: 200
+--- 3. 端到端一条 Run（经预览代理）
+  ✗ event sequence: expected [run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required] got [run.started run.failed]
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+  ✗ confirm reaches run.completed: expected [1] got [0]
+  ✗ run-summary state: expected [COMPLETED] got [FAILED]
+  ✗ backend.log has this run: expected [1] got [0]
+  ✓ user text in log: 0
+--- 4. 预览页面 console.error（headless Chrome）
+agent-input=1
+  preview-chat: console.error=0
+  preview-notfound: console.error=0
+  ✓ preview pages console.error == 0: 0
+  ✓ preview chat page renders #agent-input: agent-input=1
+--- 5. 体积报告
+  ✓ bundle_size.txt written: 1
+
+deploy-verify: 8 passed, 4 failed
+Terminated: 15             pnpm exec vite preview --port 4173 --strictPort > "$DEPLOY/preview.log" 2>&1
