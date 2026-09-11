@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spark-rooter.local/contracts/v1/sse-events.schema.json",
+  "title": "SseEvent",
+  "description": "Runtime → 前端的 SSE 单帧 data 结构（event 字段与 SSE 的 event: 行一致）。事件发射规则见 spec §4.0。data 不含模型推理原文、工具参数原文、堆栈、凭据。",
+  "oneOf": [
+    { "$ref": "#/$defs/runStarted" },
+    { "$ref": "#/$defs/messageDelta" },
+    { "$ref": "#/$defs/toolSelected" },
+    { "$ref": "#/$defs/toolStarted" },
+    { "$ref": "#/$defs/toolCompleted" },
+    { "$ref": "#/$defs/uiReplace" },
+    { "$ref": "#/$defs/uiPatch" },
+    { "$ref": "#/$defs/confirmationRequired" },
+    { "$ref": "#/$defs/runCompleted" },
+    { "$ref": "#/$defs/runFailed" }
+  ],
+  "$defs": {
+    "runId": { "type": "string", "pattern": "^run_[A-Za-z0-9_-]{1,60}$" },
+    "toolCallId": { "type": "string", "pattern": "^tc_[A-Za-z0-9_-]{1,60}$" },
+    "toolId": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*){1,3}$" },
+    "semver": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "runStarted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "data"],
+      "properties": {
+        "event": { "const": "run.started" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runId", "conversationId", "at"],
+          "properties": {
+            "runId": { "$ref": "#/$defs/runId" },
+            "conversationId": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "at": { "$ref": "#/$defs/timestamp" }
+          }
+        }
+      }
+    },
+    "messageDelta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "data"],
+      "properties": {
+        "event": { "const": "message.delta" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runId", "text"],
+          "properties": {
+            "runId": { "$ref": "#/$defs/runId" },
+            "text": { "type": "string", "maxLength": 4000 }
+          }
+        }
+      }
+    },
+    "toolSelected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "data"],
+      "properties": {
+        "event": { "const": "tool.selected" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runId", "toolCallId", "toolId", "version", "displayName"],
+          "properties": {
+            "runId": { "$ref": "#/$defs/runId" },
+            "toolCallId": { "$ref": "#/$defs/toolCallId" },
+            "toolId": { "$ref": "#/$defs/toolId" },
+            "version": { "$ref": "#/$defs/semver" },
+            "displayName": { "type": "string", "minLength": 1, "maxLength": 80, "description": "工具的用户可读名称" }
+          }
+        }
+      }
+    },
+    "toolStarted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "data"],
+      "properties": {
+        "event": { "const": "tool.started" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runId", "toolCallId", "at"],
+          "properties": {
+            "runId": { "$ref": "#/$defs/runId" },
+            "toolCallId": { "$ref": "#/$defs/toolCallId" },
+            "at": { "$ref": "#/$defs/timestamp" }
+          }
+        }
+      }
+    },
+    "toolCompleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "data"],
+      "properties": {
+        "event": { "const": "tool.completed" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runId", "toolCallId", "status", "durationMs"],
+          "properties": {
+            "runId": { "$ref": "#/$defs/runId" },
+            "toolCallId": { "$ref": "#/$defs/toolCallId" },
+            "status": { "type": "string", "enum": ["succeeded", "failed"] },
+            "durationMs": { "type": "integer", "minimum": 0 },
+            "summary": { "type": "string", "maxLength": 200, "description": "面向用户的一句话结果摘要，不含原始输出" }
+          }
+        }
+      }
+    },
+    "uiReplace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "data"],
+      "properties": {
+        "event": { "const": "ui.replace" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runId", "ui"],
+          "properties": {
+            "runId": { "$ref": "#/$defs/runId" },
+            "ui": { "$ref": "https://spark-rooter.local/contracts/v1/ui-schema.schema.json" }
+          }
+        }
+      }
+    },
+    "uiPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "data"],
+      "properties": {
+        "event": { "const": "ui.patch" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runId", "screenId", "components"],
+          "properties": {
+            "runId": { "$ref": "#/$defs/runId" },
+            "screenId": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "components": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 32,
+              "description": "按 id 合并覆盖当前屏中的同 id 组件",
+              "items": { "$ref": "https://spark-rooter.local/contracts/v1/ui-schema.schema.json#/$defs/component" }
+            }
+          }
+        }
+      }
+    },
+    "confirmationRequired": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "data"],
+      "properties": {
+        "event": { "const": "confirmation.required" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runId", "actionId", "expiresAt"],
+          "properties": {
+            "runId": { "$ref": "#/$defs/runId" },
+            "actionId": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "expiresAt": { "$ref": "#/$defs/timestamp" }
+          }
+        }
+      }
+    },
+    "runCompleted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "data"],
+      "properties": {
+        "event": { "const": "run.completed" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runId", "at"],
+          "properties": {
+            "runId": { "$ref": "#/$defs/runId" },
+            "at": { "$ref": "#/$defs/timestamp" }
+          }
+        }
+      }
+    },
+    "runFailed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "data"],
+      "properties": {
+        "event": { "const": "run.failed" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runId", "code", "message", "at"],
+          "properties": {
+            "runId": { "$ref": "#/$defs/runId" },
+            "code": {
+              "type": "string",
+              "enum": ["CONFIRMATION_REJECTED", "TOOL_SELECTION_INVALID", "TOOL_OUTPUT_INVALID", "TOOL_EXECUTION_FAILED", "INTERNAL_ERROR"]
+            },
+            "message": { "type": "string", "minLength": 1, "maxLength": 200, "description": "面向用户的失败说明，不含堆栈" },
+            "at": { "$ref": "#/$defs/timestamp" }
+          }
+        }
+      }
+    }
+  }
+}

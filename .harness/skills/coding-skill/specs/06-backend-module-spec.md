@@ -47,7 +47,7 @@ public class OrderTools {
 - 日志带 MDC `runId` / `toolCallId`。
 
 ## Agent Runtime 专项
-- 领域路由三层：`DomainRouter`（关键词规则，顺序 refund → aftersale → order → product）→ `IntentClassifier`（规则未命中且配置了 LLM 时，只输出可发现领域的枚举或 none）→ 无能力路径。路由后 `ArgumentExtractor`（实体 ID 正则；按 `ToolMetaRegistry` 抽枚举别名 / 数量 / 相对时间；序数指代查会话记忆的最近列表）→ `EntityRequirementCheck` 在规划前拦截「候选全需实体而缺失」→ 记忆懒补位 → 仍缺则 `ClarificationScreen`（调 `clarifiesEntity` 工具投影通用 Table）。规则规划器 `IntentVerbs`：动词 → 目标工具；前置步骤 / 实体参数 / 默认值读 `ToolMetaRegistry`（注解声明，内核表只作手写 Manifest 的回落）。LLM 只在候选集合内选工具，输出经 `ToolSelectionValidator`（候选内、args 在 inputSchema 且值过 JSON Schema、实体参数值 == 已识别实体、需确认步骤前置齐全、不填可信参数）。
+- 模型主导规划、代码负责核实：`RunOrchestrator` 装载会话上下文 → Registry 全部可发现候选 → `LlmClient.plan`（`PromptBuilder` 把注解里的 description / verbs / entity / prerequisites 逐条随候选给出，description 视为不可信文本转义截断）→ `PlanValidator`（候选内、args ⊆ inputSchema 且值过 JSON Schema、实体参数值原样出自原话或上下文并匹配 pattern、需确认步骤前置齐全、不填可信参数、`@SparkDefault` 补齐；不合规喂回模型重试一次）。缺实体 → `Clarify` → `ClarificationScreen`（调 `clarifiesEntity` 工具投影通用 Table）。未配置模型 → `UnavailablePlanner` 直接失败。内核零领域词汇，前置步骤 / 实体 / 默认值只读 `ToolMetaRegistry`（注解声明）。
 - 屏与重校验不在 runtime：`ScreenRegistry` / `RecheckRegistry` 按 toolId 查领域模块提供的 spi `ScreenBuilder` / `ConfirmationRecheck` Bean；runtime 是 ui-schema 契约校验的唯一点。`displayName` 由 Registry 注册时经 spi `ToolNameSink` 回填。
 - LLM 客户端为 `LlmClient` 端口，`infra` 提供 OpenAI 兼容实现；base URL / key 来自环境变量。
 - Run 状态机：`CREATED → PLANNING → EXECUTING → WAITING_CONFIRMATION → EXECUTING → COMPLETED | FAILED`，迁移幂等。

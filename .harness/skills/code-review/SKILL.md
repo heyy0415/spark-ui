@@ -27,7 +27,7 @@ pnpm -C spark-ui run format:check
 pnpm -C spark-ui run verify-examples
 pnpm -C spark-ui run verify-pack
 
-# 2. 后端
+# 2. 后端（verify 含 JUnit 5 单元测试；测试源同受 -Werror 与 spotless 约束）
 node .harness/scripts/mvn.mjs -q -B spotless:check
 node .harness/scripts/mvn.mjs -q -B verify
 

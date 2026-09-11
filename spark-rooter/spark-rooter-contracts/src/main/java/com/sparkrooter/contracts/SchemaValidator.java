@@ -20,7 +20,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 契约校验器：加载 classpath:contracts/*.schema.json（构建时从 .harness/contracts 复制），按契约名校验 JsonNode。
+ * 契约校验器：加载 classpath:contracts/*.schema.json（模块内副本，由 .harness/scripts/sync-contracts.mjs 从
+ * .harness/contracts 真源同步，check-contracts 校验一致），按契约名校验 JsonNode。
  *
  * <p>所有跨边界数据（HTTP 请求体、工具参数 / 输出、LLM 输出、SSE 事件）进入应用前必须经此校验。 本类无 Spring 依赖，可在任意模块使用。
  */

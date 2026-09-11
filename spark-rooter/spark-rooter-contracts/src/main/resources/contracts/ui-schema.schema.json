@@ -1,0 +1,556 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spark-rooter.local/contracts/v1/ui-schema.schema.json",
+  "title": "UiSchema",
+  "description": "Runtime → 前端。声明式 UI 描述：前端只渲染 components[].type 白名单内的组件，actions[] 通过 actionId 提交；confirmationToken 为不透明字符串，前端只回传不解析。禁止出现 URL / HTML / 脚本字段。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "screenId",
+    "title",
+    "components",
+    "actions"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0",
+      "description": "UI Schema 协议版本"
+    },
+    "screenId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "components": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/component"
+      }
+    },
+    "actions": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/action"
+      }
+    }
+  },
+  "$defs": {
+    "componentType": {
+      "description": "前端白名单组件：每个都是 antd（PC）/ antd-mobile（移动）官方组件的直接映射，core 内不得出现业务命名组件。新增 = 改本 enum + 前端注册表 + 后端屏生成，三处同一 change。",
+      "type": "string",
+      "enum": [
+        "Form",
+        "Card",
+        "Table",
+        "Result",
+        "Timeline"
+      ]
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "props"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "type": {
+          "$ref": "#/$defs/componentType"
+        },
+        "props": {
+          "type": "object",
+          "description": "组件专属属性；五个组件的 props 全部由本 Schema 的 if/then 约束（契约级，前端 Zod 同源）"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "Form"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "props": {
+                "$ref": "#/$defs/formProps"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "Card"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "props": {
+                "$ref": "#/$defs/cardProps"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "Table"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "props": {
+                "$ref": "#/$defs/tableProps"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "Result"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "props": {
+                "$ref": "#/$defs/resultProps"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "Timeline"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "props": {
+                "$ref": "#/$defs/timelineProps"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "formProps": {
+      "type": "object",
+      "required": [
+        "fields"
+      ],
+      "properties": {
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/formField"
+          }
+        }
+      }
+    },
+    "formField": {
+      "description": "Form 字段声明。确认时 formData 只允许包含这里声明的 name（agent-safety §3）。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "label"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "text",
+            "select",
+            "number"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "label",
+              "value"
+            ],
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              }
+            }
+          }
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "label",
+        "style"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "submit",
+            "cancel"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "style": {
+          "type": "string",
+          "enum": [
+            "default",
+            "primary",
+            "danger"
+          ]
+        },
+        "confirmationToken": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 256,
+          "description": "后端签发的不透明 Token，绑定 runId / actionId / argsDigest / 过期时间，一次性"
+        }
+      }
+    },
+    "money": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d{1,2})?$",
+      "description": "金额，元，两位小数字符串"
+    },
+    "inlineAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "intent"
+      ],
+      "description": "行内快捷指令：前端点击后把 intent 原样作为一条新的用户消息发送，走完整的路由 / 候选 / 校验 / 确认链路；不是命令、不是 URL、不带 token。",
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "intent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^(?!.*(://|<)).*$"
+        }
+      }
+    },
+    "labelValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "value"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "value": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "tone": {
+          "type": "string",
+          "enum": [
+            "default",
+            "success",
+            "warning",
+            "danger"
+          ],
+          "description": "只影响颜色；danger 用于不可恢复操作的警示文案"
+        }
+      }
+    },
+    "cardProps": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/labelValue"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/inlineAction"
+          },
+          "description": "卡片底部的行内快捷指令（如「返回列表」「查看物流」），与 tableRow.actions 同语义：点击后 intent 原样作为新消息发送"
+        }
+      }
+    },
+    "tableRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "cells"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "行实体 ID（订单号 / 商品编号 / 售后单号）"
+        },
+        "cells": {
+          "type": "object",
+          "maxProperties": 16,
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": "键 ⊆ columns[].key（跨字段约束由 runtime ScreenRegistry 检查）；值已由后端格式化为字符串"
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/inlineAction"
+          }
+        }
+      }
+    },
+    "tableProps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "columns",
+        "rows"
+      ],
+      "properties": {
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "title"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              }
+            }
+          }
+        },
+        "rows": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/tableRow"
+          }
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "筛选后总数；total > rows.length 时前端在表尾显示 emptyText"
+        },
+        "emptyText": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "rows 为空时显示；total > rows.length 时作为表尾说明"
+        }
+      }
+    },
+    "resultProps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "title"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "success",
+            "error",
+            "info",
+            "warning"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "details": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/labelValue"
+          }
+        }
+      }
+    },
+    "timelineProps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "items"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "time",
+              "label"
+            ],
+            "properties": {
+              "time": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 200
+              }
+            }
+          }
+        },
+        "emptyText": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "items 为空时显示（如「暂无物流信息」）"
+        }
+      }
+    }
+  }
+}

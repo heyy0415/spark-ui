@@ -12,7 +12,7 @@ features/{name}/
 │   └── queries.ts        # TanStack Query Hook 定义、queryKeys
 ├── model/
 │   ├── types.ts          # 仅本 feature 用的类型（不属于实体）
-│   └── store.ts          # 必要时的 Zustand 客户端状态
+│   └── runView.ts        # 纯函数归约（如 SSE 事件 → 视图状态）；无全局客户端状态库
 ├── ui/
 │   └── *.tsx             # 不通用、专属于此 feature 的组件
 └── index.ts              # 公共出口

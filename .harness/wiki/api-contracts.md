@@ -10,7 +10,7 @@
 | `/agent/runs/{runId}/actions/{actionId}` | POST | `action-request` | `text/event-stream`，事件按 `sse-events` |
 | `/agent/runs/{runId}` | GET | — | `run-summary`（state、当前 UI Schema） |
 
-请求体只有自然语言 `message` + `conversationId` + `clientCapabilities`，无页面上下文与身份字段。身份与权限完全在宿主工程：宿主实现 `SessionIdResolver` 把自己的登录态映射为 `sessionId`（默认实现回落为 `conversationId`，仅 demo，启动 WARN）；非本 `sessionId` 的 runId → 404（不泄露存在）。可选 `X-Trace-Id`。
+请求体只有自然语言 `message` + `conversationId` + `clientCapabilities`，无页面上下文与身份字段。身份与权限完全在宿主工程：宿主实现 `SessionIdResolver` 把自己的登录态映射为 `sessionId`（缺该 Bean 时 starter 拒绝启动；`spark.runtime.demo-session-resolver=true` 才放行「sessionId = conversationId」的演示实现并 WARN）；非本 `sessionId` 的 runId → 404（不泄露存在）。可选 `X-Trace-Id`。
 
 健康检查：`GET /actuator/health`（仅暴露 health）。前端 dev server 只代理 `/agent/runs` 与 `/actuator` 两个前缀，`/agent` 本身是 SPA 路由。
 

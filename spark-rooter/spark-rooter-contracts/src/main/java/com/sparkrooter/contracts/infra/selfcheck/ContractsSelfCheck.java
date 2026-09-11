@@ -13,8 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 启动自检：9 个契约全部可编译，20 个示例全部通过各自契约校验。 示例文件名规则：{name}.example.json 或 {name}.{variant}.example.json（与
- * check-contracts.mjs 一致）。
+ * 启动自检：9 个契约全部可编译，INDEX 列出的全部示例通过各自契约校验。 示例文件名规则：{name}.example.json 或
+ * {name}.{variant}.example.json（与 check-contracts.mjs 一致）。
  */
 public class ContractsSelfCheck implements SelfCheck {
 
@@ -64,12 +64,12 @@ public class ContractsSelfCheck implements SelfCheck {
     return best;
   }
 
-  /** jar 内无法列目录，构建时由资源插件生成 INDEX 文件（每行一个示例文件名）。 */
+  /** jar 内无法列目录：INDEX（每行一个示例文件名）由 .harness/scripts/sync-contracts.mjs 与契约副本一起生成。 */
   private List<String> listExamples() {
     try (InputStream in = getClass().getClassLoader().getResourceAsStream(INDEX)) {
       if (in == null) {
         throw new IllegalStateException(
-            "missing " + INDEX + "; contracts-java build did not generate it");
+            "missing " + INDEX + "; run pnpm -C .harness run sync-contracts");
       }
       List<String> out = new ArrayList<>();
       for (String line : new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\n")) {

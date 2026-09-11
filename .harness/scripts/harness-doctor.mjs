@@ -49,6 +49,7 @@ const required = [
   'templates/change-template/summary.md',
   'scripts/new-change.mjs',
   'scripts/check-contracts.mjs',
+  'scripts/sync-contracts.mjs',
   'scripts/check-module-deps.mjs',
   'scripts/check-seed.mjs',
   'scripts/gen-seed.mjs',

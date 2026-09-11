@@ -1,0 +1,8 @@
+{
+  "code": "REQUEST_INVALID",
+  "message": "request body does not match schema intent-request",
+  "traceId": "trace_0f1e2d3c4b5a6978",
+  "details": [
+    { "path": "/pageContext/selectedEntity/id", "message": "must be string" }
+  ]
+}

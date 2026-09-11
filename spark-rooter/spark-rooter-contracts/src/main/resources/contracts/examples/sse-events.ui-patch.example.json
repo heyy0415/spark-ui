@@ -1,0 +1,35 @@
+{
+  "event": "ui.patch",
+  "data": {
+    "runId": "run_20260903_000001",
+    "screenId": "refund-confirmation",
+    "components": [
+      {
+        "id": "refund-summary",
+        "type": "Card",
+        "props": {
+          "title": "退款信息",
+          "items": [
+            {
+              "label": "退款金额",
+              "value": "128.00"
+            },
+            {
+              "label": "币种",
+              "value": "CNY"
+            },
+            {
+              "label": "退款资格",
+              "value": "满足",
+              "tone": "success"
+            },
+            {
+              "label": "预计到账",
+              "value": "3 天"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

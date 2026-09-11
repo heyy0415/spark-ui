@@ -11,6 +11,7 @@
     "doctor": "node scripts/harness-doctor.mjs",
     "new-change": "node scripts/new-change.mjs",
     "check-contracts": "node scripts/check-contracts.mjs",
+    "sync-contracts": "node scripts/sync-contracts.mjs",
     "check-module-deps": "node scripts/check-module-deps.mjs",
     "check-rename": "node scripts/check-rename.mjs",
     "ci": "node scripts/ci.mjs",

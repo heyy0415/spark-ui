@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "screenId": "product-detail",
+  "title": "商品 P-1003",
+  "components": [
+    {
+      "id": "product",
+      "type": "Card",
+      "props": {
+        "title": "无线耳机 Pro",
+        "items": [
+          { "label": "编号", "value": "P-1003" },
+          { "label": "价格", "value": "899.00 CNY" },
+          { "label": "库存", "value": "42" },
+          { "label": "分类", "value": "数码" }
+        ],
+        "actions": [{ "label": "返回列表", "intent": "有什么商品" }]
+      }
+    }
+  ],
+  "actions": []
+}

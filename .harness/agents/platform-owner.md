@@ -18,7 +18,7 @@
 | 目录 | 内容 | 技术栈 |
 |---|---|---|
 | `.harness/contracts/` | 前后端共享契约真源：JSON Schema + 示例 | JSON Schema 2020-12 |
-| `spark-ui/` | pnpm workspace：`packages/core`（`@spark-ui/core` Spark UI 渲染引擎，可发包）+ `apps/chat`（唯一应用） | Vite 8 / React 19 / TS 7 / TanStack Query 5 / Zustand 5 / React Router 7 / Zod 4 / antd 6（桌面）/ antd-mobile 5（移动）/ oxlint |
+| `spark-ui/` | pnpm workspace：`packages/core`（`@spark-ui/core` Spark UI 渲染引擎，可发包）+ `apps/chat`（唯一应用） | Vite 8 / React 19 / TS 7 / TanStack Query 5 / React Router 7 / Zod 4 / antd 6（桌面）/ antd-mobile 5（移动）/ oxlint |
 | `spark-rooter/` | Agent Runtime、Tool Registry、Tool Gateway、模拟领域服务 | Java 21 / Spring Boot 3.5 / Maven；LLM 只经 Spring AI 1.1（OpenAI 兼容接口） |
 | `.harness/` | 本体系 | — |
 

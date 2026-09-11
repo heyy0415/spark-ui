@@ -1,0 +1,8 @@
+{
+  "conversationId": "conv_001",
+  "message": "帮我把订单 10001 退款",
+  "clientCapabilities": {
+    "uiSchemaVersion": "1.0",
+    "components": ["Form", "Card", "Table", "Result", "Timeline"]
+  }
+}

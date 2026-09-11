@@ -5,8 +5,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
 /**
- * spark.* 配置（spec §2.3 默认值）。LLM 三项任一为空 → 规则规划器 + noop 分类器；三项同时兼容环境变量 SPARK_LLM_BASE_URL /
- * SPARK_LLM_API_KEY / SPARK_LLM_MODEL（见 {@link RuntimeBeans}），密钥不进日志。
+ * spark.* 配置（spec §2.3 默认值）。LLM 三项任一为空 → {@code UnavailablePlanner}：所有请求直接失败并返回「未配置模型，无法理解请求」，
+ * 不做规则兜底；三项同时兼容环境变量 SPARK_LLM_BASE_URL / SPARK_LLM_API_KEY / SPARK_LLM_MODEL（见 {@link
+ * RuntimeBeans}），密钥不进日志。
  */
 @ConfigurationProperties(prefix = "spark")
 public record SparkRooterProperties(
@@ -30,6 +31,8 @@ public record SparkRooterProperties(
    * @param tokenTtl 确认令牌有效期
    * @param memoryTtl 会话记忆有效期
    * @param runTtl Run 记录保留时间（按 updatedAt；到期后 GET /agent/runs/{id} 404，确认令牌自身有更短的 TTL）
+   * @param demoSessionResolver 宿主未提供 {@code SessionIdResolver} 时是否允许用演示实现（sessionId =
+   *     conversationId，无会话隔离）。 默认 false：缺宿主实现直接拒绝启动，避免 starter「默认不安全」；只在本地演示时显式打开。
    */
   public record Runtime(
       @DefaultValue("8") int runPool,
@@ -37,7 +40,8 @@ public record SparkRooterProperties(
       @DefaultValue("90s") Duration sseTimeout,
       @DefaultValue("10m") Duration tokenTtl,
       @DefaultValue("30m") Duration memoryTtl,
-      @DefaultValue("1h") Duration runTtl) {}
+      @DefaultValue("1h") Duration runTtl,
+      @DefaultValue("false") boolean demoSessionResolver) {}
 
   /** 工具执行线程池大小。 */
   public record Gateway(@DefaultValue("8") int toolPool) {}

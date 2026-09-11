@@ -31,4 +31,4 @@ export function {Name}Page() {
 
 ## 反模式
 - ❌ 在 Page 里 `useEffect(() => fetch(...))`。
-- ❌ 在 Page 里实例化 Zustand store。
+- ❌ 在 Page 里实例化全局客户端状态 store（当前项目无此类状态）。

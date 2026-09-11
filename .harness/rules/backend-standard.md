@@ -8,7 +8,7 @@
 - **Spring Boot 3.5.x**，Maven 多模块，仓库内提供 `mvnw`；所有命令用 `./mvnw`，不依赖全局 mvn 版本。
 - **LLM 接入只用 Spring AI 1.1.x**（`spring-ai-starter-model-openai`，`base-url` 指向 OpenAI 兼容服务）。**禁止**引入 Spring AI Alibaba、LangChain4j 或其他模型 SDK；模型只能"提议"工具调用，`ChatClient` 必须 `internalToolExecutionEnabled(false)`，执行一律经 Tool Gateway。Spring AI 与 Spring Boot 版本通过 BOM 对齐。
 - 编译开启 `-Xlint:all -Werror`；`spotless:check`（google-java-format）作为格式门禁。
-- 后端质量门禁 = `./mvnw -q -B verify`，退出码 0。**首期不把测试作为门禁**，与全仓决策一致；后续如引入以 change 形式追加。
+- 后端质量门禁 = `./mvnw -q -B verify`（含 JUnit 5 单元测试，surefire 执行，任一失败退出码非 0），退出码 0。测试与 `src/main` 同受 `-Xlint:all -Werror` 与 spotless 约束；测试类一律 `final`。
 
 ## 2. 类型与数据
 
@@ -49,9 +49,9 @@
 
 ## 7. 配置与安全
 
-- 密钥、LLM 配置只从环境变量读取（`SPARK_LLM_BASE_URL`、`SPARK_LLM_API_KEY`、`SPARK_LLM_MODEL`）；**禁止**写入代码或 `application.yml`。三者任一缺失时 `LlmClient` 回退为确定性规则实现并在启动日志警告；`IntentClassifier`（意图分类器）与规划器共用同一组变量与 `ChatClient` 装配，缺失时回退为 `NoopIntentClassifier`（恒 none）。
+- 密钥、LLM 配置只从环境变量读取（`SPARK_LLM_BASE_URL`、`SPARK_LLM_API_KEY`、`SPARK_LLM_MODEL`）；**禁止**写入代码或 `application.yml`。三者任一缺失时 `LlmClient` 为 `UnavailablePlanner`：启动 WARN，所有请求直接失败并返回「未配置模型，无法理解请求」，不做规则兜底。内核不做领域路由与规则规划，模型在全部可发现候选里选，`PlanValidator` 做通用校验。
 - Registry 对外返回的工具元数据**不含**内部地址、凭据、Owner 联系方式以外的敏感信息。
-- 对外端点**不带身份头**：内核不识别用户；宿主用自己的拦截器 / 登录态建立上下文，并实现 `SessionIdResolver`（会话隔离键）与 `RunContextPropagator`（跨到 spark 工作线程）。
+- 对外端点**不带身份头**：内核不识别用户；宿主用自己的拦截器 / 登录态建立上下文，并实现 `SessionIdResolver`（会话隔离键）与 `RunContextPropagator`（跨到 spark 工作线程）。**缺 `SessionIdResolver` Bean 时 starter 拒绝启动**；只有本地演示才设 `spark.runtime.demo-session-resolver=true` 放行「sessionId = conversationId」的演示实现（无会话隔离，启动 WARN）。
 
 ## 8. 提交
 

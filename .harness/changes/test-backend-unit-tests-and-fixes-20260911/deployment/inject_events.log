@@ -1,0 +1,1 @@
+{"code":"REQUEST_INVALID","message":"request does not match contract action-request","traceId":"trace_8723e2ef0ca544a9","details":[{"path":"/confirmationToken","message":"/confirmationToken: 长度必须至少为 16 个字符"}]}

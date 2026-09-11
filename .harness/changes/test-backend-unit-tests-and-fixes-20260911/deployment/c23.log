@@ -1,0 +1,6 @@
+event:run.started
+data:{"runId":"run_0a0e86a4c6a94826","conversationId":"c23","at":"2026-09-11T09:19:18.615790Z"}
+
+event:run.failed
+data:{"runId":"run_0a0e86a4c6a94826","code":"INTERNAL_ERROR","message":"未配置模型，无法理解请求","at":"2026-09-11T09:19:18.617404Z"}
+

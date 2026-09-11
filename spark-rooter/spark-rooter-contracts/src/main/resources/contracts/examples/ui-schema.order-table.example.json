@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "1.0",
+  "screenId": "order-list",
+  "title": "我的订单",
+  "components": [
+    {
+      "id": "orders",
+      "type": "Table",
+      "props": {
+        "columns": [
+          {
+            "key": "orderId",
+            "title": "订单号"
+          },
+          {
+            "key": "productName",
+            "title": "商品"
+          },
+          {
+            "key": "quantity",
+            "title": "件数"
+          },
+          {
+            "key": "amount",
+            "title": "金额"
+          },
+          {
+            "key": "status",
+            "title": "状态"
+          },
+          {
+            "key": "createdAt",
+            "title": "下单时间"
+          }
+        ],
+        "rows": [
+          {
+            "id": "10030",
+            "cells": {
+              "orderId": "10030",
+              "productName": "无线耳机 Pro",
+              "quantity": "1",
+              "amount": "899.00 CNY",
+              "status": "SHIPPED",
+              "createdAt": "2026-09-07 10:12"
+            },
+            "actions": [
+              {
+                "label": "查看物流",
+                "intent": "查看订单 10030 的物流"
+              },
+              {
+                "label": "申请售后",
+                "intent": "订单 10030 申请售后"
+              }
+            ]
+          },
+          {
+            "id": "10029",
+            "cells": {
+              "orderId": "10029",
+              "productName": "运动鞋",
+              "quantity": "1",
+              "amount": "459.00 CNY",
+              "status": "COMPLETED",
+              "createdAt": "2026-09-06 08:30"
+            },
+            "actions": [
+              {
+                "label": "查看物流",
+                "intent": "查看订单 10029 的物流"
+              },
+              {
+                "label": "申请售后",
+                "intent": "订单 10029 申请售后"
+              },
+              {
+                "label": "删除订单",
+                "intent": "删除订单 10029"
+              }
+            ]
+          },
+          {
+            "id": "10028",
+            "cells": {
+              "orderId": "10028",
+              "productName": "精品咖啡豆 500g",
+              "quantity": "2",
+              "amount": "256.00 CNY",
+              "status": "PAID",
+              "createdAt": "2026-09-05 02:15"
+            },
+            "actions": [
+              {
+                "label": "退款",
+                "intent": "订单 10028 退款"
+              }
+            ]
+          }
+        ],
+        "total": 30,
+        "emptyText": "共 30 单，仅展示最近 3 单"
+      }
+    }
+  ],
+  "actions": []
+}

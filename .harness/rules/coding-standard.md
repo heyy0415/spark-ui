@@ -27,7 +27,7 @@
 - 组件必须是**纯函数组件**；class 组件除非有 ErrorBoundary 需求否则禁止。
 - 状态管理选型：
   - **服务端状态** → TanStack Query（`useQuery` / `useMutation`），禁止用 useEffect 自行 fetch。
-  - **跨页面客户端状态** → Zustand。
+  - **跨页面客户端状态** → 当前无此类状态；需要时以 change 引入并在此登记选型。
   - **同页面 UI 状态** → `useState` / `useReducer`。
 - **禁止**在组件渲染期间执行副作用（log、读 localStorage、router push）。
 - 避免在依赖数组中放对象字面量；必要时用 `useMemo`。

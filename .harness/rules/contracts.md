@@ -9,7 +9,7 @@
 | 契约 | `.harness/contracts/*.schema.json`（JSON Schema 2020-12） | **真源** |
 | 示例 | `.harness/contracts/examples/*.json` | 每个 Schema ≥ 1 个合法示例，CI 校验 |
 | 前端 | ui-schema：`spark-ui/packages/core/src/schema/uiSchema.ts`；其余 8 个：`spark-ui/apps/chat/src/entities/*/model/types.ts`（Zod） | 投影，字段与约束必须与 Schema 一致 |
-| 后端 | `spark-rooter/spark-rooter-contracts/`（record + 校验器） | 投影 |
+| 后端 | `spark-rooter/spark-rooter-contracts/`（record + 校验器；`src/main/resources/contracts/` 是真源的机械副本，由 `pnpm -C .harness run sync-contracts` 生成、`check-contracts` 校验一致，勿手改） | 投影 |
 
 变更顺序固定：**先改 Schema 与示例 → 跑 `check-contracts` → 再改两端**。
 
@@ -72,7 +72,7 @@
 ## 6. 变更流程
 
 1. 在 change 的 `spec.md` 列出受影响的契约文件。
-2. 修改 `.harness/contracts/`，补示例，`pnpm -C .harness run check-contracts` 通过。
+2. 修改 `.harness/contracts/`，补示例，`pnpm -C .harness run sync-contracts` 同步后端副本，`pnpm -C .harness run check-contracts` 通过（含副本一致性）。
 3. 更新 `.harness/wiki/api-contracts.md` 索引。
 4. 后端实现与校验；前端 Zod 投影。
 5. 评审（execution 模式）逐项比对 Schema 与两端实现。

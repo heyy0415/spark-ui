@@ -12,6 +12,11 @@ spark:
     enabled: true          # 示例宿主打开启动自检（生产建议关）
   web:
     internal-endpoints: true   # 开 /internal/** 供 e2e 直调 Registry / Gateway
+  runtime:
+    # starter 默认拒绝在没有宿主 SessionIdResolver 时启动。示例宿主显式打开演示实现（sessionId = conversationId，无会话隔离）：
+    # 本文档对 default / e2e / e2e-ttl 三种启动都生效；e2e profile 下 DemoSessionIdResolver（@Profile("e2e")）顶替演示实现，
+    # e2e-ttl 与 Docker / deploy-verify 的无 profile 启动依赖这个开关并在日志 WARN。生产宿主不要复制这一行。
+    demo-session-resolver: true
   # 模型是必需依赖：三项任一缺失 → 启动 WARN，所有请求返回「未配置模型，无法理解请求」。
   # 值留空，用环境变量 SPARK_LLM_BASE_URL / SPARK_LLM_API_KEY / SPARK_LLM_MODEL 注入；不要把密钥写进本文件。
   llm:

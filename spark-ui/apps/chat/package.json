@@ -20,8 +20,7 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-router": "7.18.3",
-    "zod": "catalog:",
-    "zustand": "5.0.15"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/react": "catalog:",

@@ -18,47 +18,11 @@
     <dependency><groupId>jakarta.validation</groupId><artifactId>jakarta.validation-api</artifactId></dependency>
     <!-- 仅 infra/selfcheck 用到 @Component；domain / model 包不得 import Spring（check-module-deps 守护） -->
     <dependency><groupId>org.springframework</groupId><artifactId>spring-context</artifactId></dependency>
+    <!-- 单元测试：版本由 spring-boot-dependencies 管理 -->
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.assertj</groupId><artifactId>assertj-core</artifactId><scope>test</scope></dependency>
   </dependencies>
 
-  <build>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-      </resource>
-      <!-- 契约真源在 .harness/contracts/，构建时复制进 jar；契约先改、两端后改 -->
-      <resource>
-        <directory>${project.basedir}/../../.harness/contracts</directory>
-        <targetPath>contracts</targetPath>
-        <includes>
-          <include>*.schema.json</include>
-          <include>examples/*.example.json</include>
-        </includes>
-      </resource>
-    </resources>
-    <plugins>
-      <!-- jar 内无法列目录：把 examples 文件名写成 INDEX，供 ContractsSelfCheck 遍历 -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <version>3.2.0</version>
-        <executions>
-          <execution>
-            <id>examples-index</id>
-            <phase>generate-resources</phase>
-            <goals><goal>run</goal></goals>
-            <configuration>
-              <target>
-                <mkdir dir="${project.build.outputDirectory}/contracts/examples"/>
-                <fileset id="ex" dir="${project.basedir}/../../.harness/contracts/examples" includes="*.example.json"/>
-                <pathconvert property="examples.index" refid="ex" pathsep="${line.separator}">
-                  <mapper type="flatten"/>
-                </pathconvert>
-                <echo file="${project.build.outputDirectory}/contracts/examples/INDEX" message="${examples.index}${line.separator}"/>
-              </target>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
+  <!-- 契约真源在 .harness/contracts/；本模块 src/main/resources/contracts/ 是 sync-contracts 生成的副本（见 CONTRACTS.md），
+       check-contracts 门禁校验二者一致。不再用相对路径引用仓库外目录，模块可独立构建 / 发布。 -->
 </project>

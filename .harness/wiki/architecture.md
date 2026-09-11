@@ -17,7 +17,7 @@ spark-rooter 不是一个独立部署的平台，而是一个 **Starter 依赖**
 │ 宿主拦截器 / 登录态 → SessionIdResolver（会话键）→ RunContextPropagator（跨线程）  │
 │ ┌──────────────────── spark-rooter-spring-boot-starter（自动装配） ──────────┐ │
 │ │ web-mvc：/agent/runs SSE、/internal/**（可选）                              │ │
-│ │ runtime：路由 → 抽取（实体 / 别名 / 数量 / 时间）→ 记忆补位 → 规划 → 编排   │ │
+│ │ runtime：会话装载 → 全部候选 → 模型规划 → PlanValidator 校验 → 编排        │ │
 │ │          → 令牌（conversationId + sessionId）→ 屏 / 澄清屏 → SSE            │ │
 │ │ registry：@SparkTool 推导的 Manifest；按 status（+ 宿主 ToolAccessPolicy）过滤│ │
 │ │ gateway：校验 → 幂等 → 经 Spring 代理调用 @SparkTool 方法 → 校验 → 审计     │ │
@@ -33,9 +33,9 @@ spark-rooter 不是一个独立部署的平台，而是一个 **Starter 依赖**
 ## 运行链路（以「订单 10001 退款」为例）
 
 1. 前端 `POST /agent/runs`，只带 `conversationId` / `message` / `clientCapabilities`。宿主拦截器已把用户放进自己的 ThreadLocal；`SessionIdResolver` 解析出 `sessionId`；`RunContextPropagator.capture()` 后切到 `agent-run-*` 线程 `restore`。
-2. Runtime 创建 Run，SSE 推 `run.started`。领域路由：关键词规则命中 `refund`（未命中时由模型在可发现领域内分类，越界视为 none）。
-3. 抽取：`ArgumentExtractor` 从原话抓 `order=10001`；缺实体时先用会话记忆补位（序数指代「第二个」→ 最近列表行），仍缺则出**澄清屏**（调 `clarifiesEntity=ORDER` 的列表工具，每行按钮 intent 带订单号）。
-4. Registry `search(domain)` 拿候选（不带身份）。规划器（Spring AI 或规则）在候选内选工具；参数 = 实体 + 抽取值 + `@SparkDefault`，值过 JSON Schema，实体参数值必须等于抽到的 ID。
+2. Runtime 创建 Run，SSE 推 `run.started`。装载会话上下文（记忆实体、最近列表行 ID、上一轮挂起原话，只有 ID 与短文本）。
+3. Registry `search`（不带身份，domain 为空 = 全部可发现工具，宿主 `ToolAccessPolicy` 可再过滤）拿候选，连同原话与会话上下文交给模型；模型按注解里的 description / verbs / entity 选工具、填参数（「第二个」直接从最近列表行取 ID）。缺实体则输出 `clarify`，Runtime 出**澄清屏**（调 `clarifiesEntity` 的列表工具，每行按钮 intent 带 ID）。
+4. `PlanValidator` 核实模型输出：toolId ∈ 候选、参数键 ⊆ inputSchema 且值过 JSON Schema、实体参数值原样出自原话或上下文并匹配 pattern、需确认步骤前置齐全且不填可信参数、`@SparkDefault` 补齐；不合规喂回模型重试一次，仍不合规 → `TOOL_SELECTION_INVALID`。
 5. 只读前置步骤经 Gateway 自动执行：Gateway 经 Spring **代理**反射调 `RefundTools.eligibility(in)`，宿主方法级切面照常触发。
 6. 高风险 `refund.create` 需确认：领域 `ScreenBuilder` 出确认屏（Card + Card + Form），令牌绑定 `runId + actionId + argsDigest + conversationId + sessionId`，SSE `ui.replace` + `confirmation.required`。
 7. 用户确认 → 令牌双校验 → 领域 `ConfirmationRecheck` 重校验 → 执行 → 结果屏 → `run.completed` → 会话记忆写入 `{domain, entities, lastTable}`。
@@ -57,14 +57,14 @@ examples/domains/* → spi, contracts, demo-support（@SparkTool；互不 import
 examples/host-demo → starter + examples/domains/*（独立工程，本地仓坐标）
 ```
 
-宿主可替换端口（定义同类型 Bean 即覆盖）：`RunRepository` / `ConfirmationTokenStore` / `IdempotencyStore` / `ToolRegistryRepository` / `ConversationMemory`（默认内存）、`AuditSink`（默认日志）、`LlmClient` / `IntentClassifier`（默认 Spring AI 或规则）、`SessionIdResolver`（默认 = conversationId，仅演示）、`ToolAccessPolicy`（默认全放行）、`RunContextPropagator`（默认 no-op，宿主强烈建议实现）。
+宿主可替换端口（定义同类型 Bean 即覆盖）：`RunRepository` / `ConfirmationTokenStore` / `IdempotencyStore` / `ToolRegistryRepository` / `ConversationMemory`（默认内存）、`AuditSink`（默认日志）、`LlmClient`（默认 Spring AI；未配置模型为 `UnavailablePlanner`，所有请求直接失败）、`SessionIdResolver`（**无默认**：缺 Bean 拒绝启动，`spark.runtime.demo-session-resolver=true` 才放行演示实现）、`ToolAccessPolicy`（默认全放行）、`RunContextPropagator`（默认 no-op，宿主强烈建议实现）。
 
 ## 状态管理边界（前端）
 
 | 状态类型 | 工具 |
 |---|---|
 | 服务端状态（Run、UI Schema） | TanStack Query + SSE 订阅写入 cache |
-| 跨页面客户端状态（当前租户 / 用户、主题） | Zustand |
+| 跨页面客户端状态 | 当前无；需要时以 change 引入 |
 | 同页面 UI 状态 | useState / useReducer |
 | 路由状态 | React Router |
 
@@ -75,5 +75,5 @@ examples/host-demo → starter + examples/domains/*（独立工程，本地仓�
 ## 改动边界
 
 - 改 `.harness/contracts/` → 两端都受影响，先跑 `check-contracts`，再 typecheck / compile 暴露不一致。
-- 新增工具 → 宿主 `@Service` 加一个 `@SparkTool` 方法 + record；Manifest 自动推导，Runtime、Gateway 不需改代码。新领域的路由关键词表本期仍硬编码（已知限制）。
+- 新增工具 → 宿主 `@Service` 加一个 `@SparkTool` 方法 + record；Manifest 自动推导，Runtime、Gateway 不需改代码。内核不含领域词汇（`check-module-deps` 的 `DOMAIN_WORDS` 红线守护），新领域无需改内核。
 - 新增 UI 组件 → Schema enum + 前端注册表 + 后端生成逻辑，三处同 change。

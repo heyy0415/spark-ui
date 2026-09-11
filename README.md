@@ -133,7 +133,7 @@ public class OrderTools {
 内核不认识用户，这部分在宿主：
 
 - 实现 `RunContextPropagator`，把登录态 ThreadLocal 带到 spark 的工作线程。
-- 实现 `SessionIdResolver`，把请求映射成会话隔离键。默认实现直接返回前端传的 conversationId，没有隔离，只能本地演示，启动时会 WARN。
+- 实现 `SessionIdResolver`，把请求映射成会话隔离键。没有这个 Bean 时 starter 会拒绝启动；只有本地演示才设 `spark.runtime.demo-session-resolver=true` 放行「会话即 conversationId」的演示实现（无隔离，启动 WARN）。
 - 权限用方法级切面（`@Aspect`、`@PreAuthorize`）。Controller 拦截器拦不住 spark 的调用，因为 spark 不经过 Controller。示例宿主里有正反两条路径可对照。
 
 完整示例见 [`spark-rooter/examples/host-demo`](spark-rooter/examples/host-demo/README.md)。前端可以直接用 `spark-chat`，或在自己页面里用 `@spark-ui/core` 的 `SchemaRenderer` / `RunStatus` / `SchemaSkeleton`；要带登录态就给 `AgentChatPanel` 传自己的 `fetch`。
@@ -166,7 +166,7 @@ docker stop spark-demo && docker rm spark-demo # 停止并删除
 | `SPARK_LLM_BASE_URL` / `SPARK_LLM_API_KEY` / `SPARK_LLM_MODEL` | **必填**，OpenAI 兼容接口。用 `docker run -e` 传入，不要写进镜像；不传则所有请求返回「未配置模型」 |
 | `SPARK_SELFCHECK_ENABLED=false` | 关闭启动自检，启动更快 |
 
-镜像里的示例宿主用的是 demo 版 `SessionIdResolver`（会话即 conversationId，没有用户隔离），只适合演示，不要直接对公网开放。
+镜像里的示例宿主显式打开了 `spark.runtime.demo-session-resolver=true`（会话即 conversationId，没有用户隔离），只适合演示，不要直接对公网开放。
 
 ## 安全模型
 

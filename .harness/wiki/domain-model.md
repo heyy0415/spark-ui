@@ -25,7 +25,7 @@
 |---|---|---|
 | runId | string | 前缀 `run_` |
 | conversationId | string | |
-| sessionId | string | 宿主 `SessionIdResolver` 产出的会话隔离键；内核不识别用户（默认实现 = conversationId 仅演示） |
+| sessionId | string | 宿主 `SessionIdResolver` 产出的会话隔离键；内核不识别用户（缺该 Bean 拒绝启动，演示实现需显式开关） |
 | state | `CREATED \| PLANNING \| EXECUTING \| WAITING_CONFIRMATION \| COMPLETED \| FAILED` | 迁移幂等 |
 | plan | Step[] | 只存后端 |
 | createdAt / updatedAt | string | ISO-8601 |

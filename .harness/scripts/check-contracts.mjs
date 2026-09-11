@@ -8,10 +8,12 @@
  *   3. examples/invalid/{name}.*.invalid.json 每个都必须被对应 Schema 拒绝（防止 Schema 被放宽而门禁仍绿）
  *   3. 每个示例都能通过对应 Schema 校验
  *   4. Schema 有 $id / title / description
+ *   5. 末尾调用 sync-contracts --check：后端模块内契约副本与真源一致
  *
  * 退出码 0 = 全部通过。
  */
 import { readdir, readFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
@@ -117,3 +119,8 @@ if (errors > 0) {
   process.exit(1);
 }
 console.log(`check-contracts: ${schemas.size} schemas OK`);
+
+// 后端模块内副本必须与真源一致（spark-rooter-contracts 不再用相对路径读仓库外目录）；
+// 放在 check-contracts 末尾而非单列 CI 步骤，让阶段 3 门禁与 contracts.md 的「先改 Schema → 跑 check-contracts」顺序天然覆盖。
+const sync = spawnSync(process.execPath, [join(__dirname, 'sync-contracts.mjs'), '--check'], { stdio: 'inherit' });
+if ((sync.status ?? 1) !== 0) process.exit(sync.status ?? 1);

@@ -38,19 +38,28 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
 /**
- * 决策面（Runtime）装配 + 宿主端口默认实现。默认 SessionIdResolver / RunContextPropagator 只适合本地演示，构造期 WARN（spec §2.3
- * / §2.7）。
+ * 决策面（Runtime）装配 + 宿主端口默认实现。宿主未提供 SessionIdResolver 时默认拒绝启动（starter 不能「默认不安全」）；
+ * spark.runtime.demo-session-resolver=true 才放行演示实现并 WARN。RunContextPropagator 默认 no-op，构造期
+ * WARN（spec §2.3 / §2.7）。
  */
 @Configuration(proxyBeanMethods = false)
 class RuntimeBeans {
 
   private static final Logger log = LoggerFactory.getLogger(RuntimeBeans.class);
 
+  /** 缺宿主 SessionIdResolver 时的启动失败文案：两条出路都写明，避免接入方翻文档。 */
+  static final String SESSION_RESOLVER_REQUIRED =
+      "spark-rooter: no SessionIdResolver bean found. 会话隔离键必须绑定宿主登录态：请实现 com.sparkrooter.spi.SessionIdResolver 并注册为 Bean；"
+          + "仅本地演示可设 spark.runtime.demo-session-resolver=true 使用演示实现（sessionId = conversationId，无会话隔离）。";
+
   // ---- 宿主端口默认实现
 
   @Bean
   @ConditionalOnMissingBean(SessionIdResolver.class)
-  SessionIdResolver sparkRooterSessionIdResolver() {
+  SessionIdResolver sparkRooterSessionIdResolver(SparkRooterProperties props) {
+    if (!props.runtime().demoSessionResolver()) {
+      throw new IllegalStateException(SESSION_RESOLVER_REQUIRED);
+    }
     log.warn("SessionIdResolver 为 demo 实现（sessionId = conversationId，无隔离）；生产必须由宿主实现为绑定自己的登录态");
     return conversationId -> conversationId;
   }

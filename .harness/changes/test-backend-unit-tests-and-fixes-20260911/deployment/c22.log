@@ -1,0 +1,1 @@
+{"code":"REQUEST_INVALID","message":"request does not match contract intent-request","traceId":"trace_bf1f84af35ff45f7","details":[{"path":"/message","message":"/message: 长度必须至少为 1 个字符"}]}

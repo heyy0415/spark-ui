@@ -7,7 +7,7 @@
  *   1. check-contracts      —— .harness/contracts/ Schema 与示例
  *   2. check-module-deps    —— 后端模块依赖红线
  *   3. spark-ui              —— pnpm -C spark-ui run ci（typecheck + lint + format:check + build）
- *   4. spark-rooter          —— ./mvnw -q -B install -DskipTests（verify + 进本地仓；pom.xml 不存在时跳过）
+ *   4. spark-rooter          —— ./mvnw -q -B install（编译 + JUnit 单测 + spotless + 进本地仓；pom.xml 不存在时跳过）
  *   5. host-demo             —— examples/host-demo mvn -q -o package（离线，只依赖本地仓）
  *
  * 任一步骤非 0 立即停止并以该退出码退出。最后打印每步退出码摘要。
@@ -30,7 +30,8 @@ const steps = [
   {
     name: 'spark-rooter',
     cmd: 'node',
-    args: [join(harness, 'scripts', 'mvn.mjs'), '-q', '-B', 'install', '-DskipTests'],
+    // 含单元测试：任一失败 surefire 让 install 非 0（backend-standard §1）
+    args: [join(harness, 'scripts', 'mvn.mjs'), '-q', '-B', 'install'],
     skipIf: () => !existsSync(join(root, 'spark-rooter', 'pom.xml')),
   },
   {

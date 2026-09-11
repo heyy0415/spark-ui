@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spark-rooter.local/contracts/v1/intent-request.schema.json",
+  "title": "IntentRequest",
+  "description": "前端 → Agent Runtime，POST /agent/runs 请求体。前端只发送自然语言：message 即用户原话（按钮 / 行内指令也以自然语言文本发送），实体 ID 必须在 message 内。不含页面上下文、不含任何身份或业务字段；身份由宿主工程在自己的权限体系内解析（spark-rooter 内核不识别用户）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["conversationId", "message", "clientCapabilities"],
+  "properties": {
+    "conversationId": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "message": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "clientCapabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uiSchemaVersion", "components"],
+      "properties": {
+        "uiSchemaVersion": { "const": "1.0" },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "description": "客户端可渲染的组件名；Runtime 只生成交集内的组件"
+        }
+      }
+    }
+  }
+}

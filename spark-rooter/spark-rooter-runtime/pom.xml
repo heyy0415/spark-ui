@@ -26,5 +26,8 @@
          与"无 key 回退规则规划器"冲突；ChatClient 由 LlmConfiguration 手工装配。 -->
     <dependency><groupId>org.springframework.ai</groupId><artifactId>spring-ai-openai</artifactId></dependency>
     <dependency><groupId>org.springframework.ai</groupId><artifactId>spring-ai-client-chat</artifactId></dependency>
+    <!-- 单元测试：版本由 spring-boot-dependencies 管理 -->
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.assertj</groupId><artifactId>assertj-core</artifactId><scope>test</scope></dependency>
   </dependencies>
 </project>
