@@ -33,6 +33,7 @@ export const userQueryKeys = {
 ## 必备
 - 每个 feature 必须有 `index.ts` 公共出口；外部只能 `import { ... } from '@features/{name}'`。
 - Mutation 必须有错误反馈（toast / inline UI）。
+- `model/` 下的纯函数归约与 `api/` 导出的纯函数必须配同目录 `*.test.ts`（coding-standard §9）。
 
 ## 反模式
 - ❌ 在 feature 里直接 `fetch('/api/...')`，应走 entity 的 api 模块。

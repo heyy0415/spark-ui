@@ -22,6 +22,7 @@ pnpm -C .harness run check-contracts
 # 1. 前端
 pnpm -C spark-ui run build:core   # typecheck 不依赖 dist，但 style.css 与 verify-pack 需要
 pnpm -C spark-ui run typecheck
+pnpm -C spark-ui run test         # vitest：core + chat 纯函数 / 传输层单测
 pnpm -C spark-ui run lint         # oxlint --deny-warnings + check-deps + check-registry
 pnpm -C spark-ui run format:check
 pnpm -C spark-ui run verify-examples

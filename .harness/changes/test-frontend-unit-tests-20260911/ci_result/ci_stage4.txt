@@ -1,0 +1,337 @@
+
+> spark-harness@0.1.0 ci /Users/fangtao/strato_ui/.harness
+> node scripts/ci.mjs
+
+
+=== check-rename ===
+✓ check-rename: no strato / fronted / backed left in the tree
+
+=== check-contracts ===
+✓ schema: action-request.schema.json
+✓   example: action-request.example.json
+✓ schema: error-response.schema.json
+✓   example: error-response.example.json
+✓ schema: intent-request.schema.json
+✓   example: intent-request.example.json
+✓ schema: run-summary.schema.json
+✓   example: run-summary.example.json
+✓ schema: sse-events.schema.json
+✓   example: sse-events.confirmation-required.example.json
+✓   example: sse-events.message-delta.example.json
+✓   example: sse-events.run-completed.example.json
+✓   example: sse-events.run-failed.example.json
+✓   example: sse-events.run-started.example.json
+✓   example: sse-events.tool-completed.example.json
+✓   example: sse-events.tool-selected.example.json
+✓   example: sse-events.tool-started.example.json
+✓   example: sse-events.ui-patch.example.json
+✓   example: sse-events.ui-replace.example.json
+✓ schema: tool-invoke.schema.json
+✓   example: tool-invoke.example.json
+✓ schema: tool-manifest.schema.json
+✓   example: tool-manifest.example.json
+✓   example: tool-manifest.refund-create.example.json
+✓ schema: tool-search.schema.json
+✓   example: tool-search.example.json
+✓ schema: ui-schema.schema.json
+✓   example: ui-schema.aftersale-confirm.example.json
+✓   example: ui-schema.delete-confirm.example.json
+✓   example: ui-schema.example.json
+✓   example: ui-schema.logistics.example.json
+✓   example: ui-schema.order-detail.example.json
+✓   example: ui-schema.order-table.example.json
+✓   example: ui-schema.product-detail.example.json
+✓   example: ui-schema.product-table.example.json
+✓   example: ui-schema.result.example.json
+✓   rejected: intent-request.duplicate-components.invalid.json
+✓   rejected: intent-request.page-context.invalid.json
+✓   rejected: tool-invoke.user-id.invalid.json
+✓   rejected: tool-search.principal.invalid.json
+✓   rejected: ui-schema.card-action-url.invalid.json
+✓   rejected: ui-schema.card-actions-7.invalid.json
+
+check-contracts: 9 schemas OK
+✓ sync-contracts: 37 files in sync
+
+=== check-module-deps ===
+✓ check-module-deps: backend module dependency direction OK
+
+=== check-seed ===
+✓ DDL 列 == json 键（6 表）
+✓ 外键全部可解析
+✓ 订单金额 == Σ 行金额；行金额 == 单价×数量
+✓ 状态-物流一致
+✓ created_at 严格递增；手机号已脱敏
+✓ 夹具表与可见区分布
+✓ 售后 / 退款约束
+check-seed: all seed invariants hold
+
+=== spark-ui ===
+
+> spark-ui@0.1.0 ci /Users/fangtao/strato_ui/spark-ui
+> pnpm build:core && pnpm typecheck && pnpm test && pnpm lint && pnpm format:check && pnpm verify-examples && pnpm verify-transport && pnpm build:chat && pnpm verify-pack
+
+
+> spark-ui@0.1.0 build:core /Users/fangtao/strato_ui/spark-ui
+> pnpm --filter @spark-ui/core build
+
+
+> @spark-ui/core@0.1.0 build /Users/fangtao/strato_ui/spark-ui/packages/core
+> vite build && tsc -p tsconfig.build.json
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 32 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/style.css                     0.68 kB │ gzip: 0.36 kB
+dist/chunks/Result-DzFg9VrH.js     0.59 kB │ gzip: 0.35 kB
+dist/chunks/Result-CSxcY-Mr.js     0.62 kB │ gzip: 0.37 kB
+dist/chunks/Timeline-Yw2MKAU1.js   0.74 kB │ gzip: 0.43 kB
+dist/chunks/Timeline-Ce5IZjz3.js   0.83 kB │ gzip: 0.46 kB
+dist/chunks/Form-D0YBOP9e.js       1.04 kB │ gzip: 0.61 kB
+dist/chunks/Form-BWKhP5gq.js       1.05 kB │ gzip: 0.63 kB
+dist/chunks/Table-CzYVpGid.js      1.19 kB │ gzip: 0.66 kB
+dist/chunks/Card-BKV1Y7JD.js       1.24 kB │ gzip: 0.63 kB
+dist/chunks/Table-Ctk43Pn-.js      1.25 kB │ gzip: 0.60 kB
+dist/chunks/Card-DlujmgYg.js       1.29 kB │ gzip: 0.63 kB
+dist/index.js                     13.95 kB │ gzip: 4.29 kB
+
+✓ built in 55ms
+
+> spark-ui@0.1.0 typecheck /Users/fangtao/strato_ui/spark-ui
+> pnpm --filter @spark-ui/core exec tsc -p tsconfig.json --noEmit && pnpm --filter spark-chat exec tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit
+
+
+> spark-ui@0.1.0 test /Users/fangtao/strato_ui/spark-ui
+> pnpm -r run test
+
+Scope: 2 of 3 workspace projects
+packages/core test$ vitest run --passWithNoTests
+packages/core test:  RUN  v4.1.11 /Users/fangtao/strato_ui/spark-ui/packages/core
+packages/core test:  Test Files  3 passed (3)
+packages/core test:       Tests  31 passed (31)
+packages/core test:    Start at  19:19:53
+packages/core test:    Duration  126ms (transform 63ms, setup 0ms, import 134ms, tests 14ms, environment 0ms)
+packages/core test: Done
+apps/chat test$ vitest run --passWithNoTests
+apps/chat test: You or a plugin you are using have set `optimizeDeps.esbuildOptions` but this option is now deprecated. Vite now uses Rolldown to optimize the dependencies. Please use `optimizeDeps.rolldownOptions` instead.
+apps/chat test:  RUN  v4.1.11 /Users/fangtao/strato_ui/spark-ui/apps/chat
+apps/chat test:  Test Files  6 passed (6)
+apps/chat test:       Tests  68 passed (68)
+apps/chat test:    Start at  19:19:53
+apps/chat test:    Duration  800ms (transform 335ms, setup 0ms, import 2.32s, tests 52ms, environment 0ms)
+apps/chat test: Done
+
+> spark-ui@0.1.0 lint /Users/fangtao/strato_ui/spark-ui
+> oxlint --deny-warnings && node scripts/check-deps.mjs && node scripts/check-registry.mjs
+
+✓ FSD dependency direction OK
+✓ check-registry: 5 component types consistent across contract / COMPONENT_TYPES / desktop / mobile / props; component files are official-component mappings
+
+> spark-ui@0.1.0 format:check /Users/fangtao/strato_ui/spark-ui
+> prettier --check .
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> spark-ui@0.1.0 verify-examples /Users/fangtao/strato_ui/spark-ui
+> vite-node -c apps/chat/vite.config.ts scripts/verify-examples.ts
+
+23 examples OK, 4 invalid rejected
+
+> spark-ui@0.1.0 verify-transport /Users/fangtao/strato_ui/spark-ui
+> vite-node -c apps/chat/vite.config.ts scripts/verify-transport.ts
+
+✓ request() prefixes explicit baseUrl
+✓ request() without baseUrl falls back to env (same-origin default)
+✓ consumeSse() prefixes explicit baseUrl
+✓ consumeSse() with baseUrl '' stays same-origin
+verify-transport: OK
+
+> spark-ui@0.1.0 build:chat /Users/fangtao/strato_ui/spark-ui
+> pnpm --filter spark-chat build
+
+
+> spark-chat@0.1.0 prebuild /Users/fangtao/strato_ui/spark-ui/apps/chat
+> node ./scripts/ensure-core-dist.mjs
+
+
+> spark-chat@0.1.0 build /Users/fangtao/strato_ui/spark-ui/apps/chat
+> vite build
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 2478 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                    1.08 kB │ gzip:   0.44 kB
+dist/assets/Card-DlujmgYg-CYazfs0N.css             0.65 kB │ gzip:   0.30 kB
+dist/assets/Result-DzFg9VrH-DAHKRJfY.css           0.89 kB │ gzip:   0.29 kB
+dist/assets/list-DBeo8IEF.css                      2.18 kB │ gzip:   0.63 kB
+dist/assets/es-Cpm4sYMw.css                        2.26 kB │ gzip:   0.83 kB
+dist/assets/Timeline-Yw2MKAU1-BVb1OHe7.css         3.42 kB │ gzip:   0.81 kB
+dist/assets/Form-BWKhP5gq-B9FA8lPF.css             9.52 kB │ gzip:   2.30 kB
+dist/assets/index-BjcJtpdt.css                    10.54 kB │ gzip:   2.73 kB
+dist/assets/extends-CvVTau-c.js                    0.23 kB │ gzip:   0.18 kB
+dist/assets/EllipsisOutlined-Dd2sacpJ.js           0.68 kB │ gzip:   0.43 kB
+dist/assets/PlusOutlined-Ev1816oa.js               0.69 kB │ gzip:   0.47 kB
+dist/assets/Table-Ctk43Pn--TdugSXHx.js             0.93 kB │ gzip:   0.52 kB
+dist/assets/CloseOutlined-BkQlsmqs.js              1.21 kB │ gzip:   0.67 kB
+dist/assets/CloseCircleFilled-DOhMYhhD.js          1.28 kB │ gzip:   0.72 kB
+dist/assets/ExclamationCircleFilled-Ku-IoXwS.js    1.51 kB │ gzip:   0.69 kB
+dist/assets/Card-DlujmgYg-CLDi9U97.js              1.57 kB │ gzip:   0.70 kB
+dist/assets/es-Bw-LvbJP.js                         1.60 kB │ gzip:   0.79 kB
+dist/assets/useBreakpoint-NL-DH5l7.js              1.85 kB │ gzip:   0.89 kB
+dist/assets/CloseCircleFill-DlSao_0D.js            2.01 kB │ gzip:   1.02 kB
+dist/assets/Timeline-Yw2MKAU1-Ce9FQLSJ.js          2.61 kB │ gzip:   1.23 kB
+dist/assets/empty-BeEaJkKw.js                      4.79 kB │ gzip:   2.08 kB
+dist/assets/list-CV_3UtC8.js                       5.17 kB │ gzip:   2.74 kB
+dist/assets/es-C9FugYSP.js                         5.98 kB │ gzip:   1.88 kB
+dist/assets/es-aoC1CIN8.js                         6.24 kB │ gzip:   2.48 kB
+dist/assets/Result-DzFg9VrH-DIyTq3jh.js            7.26 kB │ gzip:   2.21 kB
+dist/assets/createSuper-CZczoEK7.js                7.79 kB │ gzip:   2.84 kB
+dist/assets/descriptions-IEcP3Zf-.js               7.85 kB │ gzip:   2.78 kB
+dist/assets/jsx-runtime-Cltr0gcK.js                8.43 kB │ gzip:   3.21 kB
+dist/assets/es-DJqKzhem.js                        22.94 kB │ gzip:   8.32 kB
+dist/assets/Result-CSxcY-Mr-CxmTfYub.js           34.93 kB │ gzip:  11.02 kB
+dist/assets/Timeline-Ce5IZjz3-D9qhGPJi.js         36.93 kB │ gzip:  10.59 kB
+dist/assets/Card-BKV1Y7JD-BB-qQEEZ.js             44.86 kB │ gzip:  13.72 kB
+dist/assets/Form-D0YBOP9e-Hr9i8xKw.js             52.99 kB │ gzip:  19.47 kB
+dist/assets/space-Dh_wJjAd.js                     56.70 kB │ gzip:  16.73 kB
+dist/assets/Input-Dpy4192w.js                     78.40 kB │ gzip:  27.00 kB
+dist/assets/Form-BWKhP5gq-QRbfqJHc.js            107.42 kB │ gzip:  35.47 kB
+dist/assets/tooltip-znHRRGt7.js                  108.66 kB │ gzip:  37.51 kB
+dist/assets/Table-CzYVpGid-BPMuIaDX.js           219.40 kB │ gzip:  66.55 kB
+dist/assets/useSize-D67bIHRO.js                  252.08 kB │ gzip:  84.47 kB
+dist/assets/index-DNo901ce.js                    353.50 kB │ gzip: 115.10 kB
+
+✓ built in 209ms
+
+> spark-ui@0.1.0 verify-pack /Users/fangtao/strato_ui/spark-ui
+> node scripts/verify-pack.mjs
+
+--- pack
+  ✓ (a) tarball contains only package.json / README.md / dist (43 entries)
+  ✓ (b) exports["."] points to dist (publishConfig applied)
+  ✓ (b) types → ./dist/index.d.ts
+  ✓ (b) peerDependencies = 5 expected peers
+  ✓ (b) peer ranges match catalog major versions
+  ✓ (b) no dependencies
+  ✓ (b) files = [dist, README.md]
+  ✓ (c) runtime exports (19) match spec list
+  ✓ (g) no antd / antd-mobile / @ant-design types leaked into dist .d.ts
+  ✓ (g) antd runtime not bundled (no cssinjs signature)
+  ✓ (d) vite-node loaded dist/index.js (19 exports)
+  ✓ (e) consumer.ts typechecks against dist d.ts (exactOptionalPropertyTypes=true)
+  ✓ (e) consumer.ts typechecks against dist d.ts (exactOptionalPropertyTypes=false)
+  ✓ (f) dist 47 KB ≤ baseline 47 KB × 1.1
+
+verify-pack: all checks passed
+
+=== spark-rooter ===
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+19:20:08.923 [main] WARN com.sparkrooter.starter.RuntimeBeans -- RunContextPropagator 为 no-op：宿主请求线程的 ThreadLocal / SecurityContext 不会传播到 spark 工作线程
+19:20:08.925 [main] INFO com.sparkrooter.gateway.application.InvokeToolUseCase -- gateway handlers registered: []
+19:20:08.928 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'sparkRooterSessionIdResolver' defined in com.sparkrooter.starter.RuntimeBeans: Failed to instantiate [com.sparkrooter.spi.SessionIdResolver]: Factory method 'sparkRooterSessionIdResolver' threw exception with message: spark-rooter: no SessionIdResolver bean found. 会话隔离键必须绑定宿主登录态：请实现 com.sparkrooter.spi.SessionIdResolver 并注册为 Bean；仅本地演示可设 spark.runtime.demo-session-resolver=true 使用演示实现（sessionId = conversationId，无会话隔离）。
+19:20:08.972 [main] WARN com.sparkrooter.starter.RuntimeBeans -- RunContextPropagator 为 no-op：宿主请求线程的 ThreadLocal / SecurityContext 不会传播到 spark 工作线程
+19:20:08.972 [main] INFO com.sparkrooter.gateway.application.InvokeToolUseCase -- gateway handlers registered: []
+19:20:08.973 [main] WARN com.sparkrooter.starter.RuntimeBeans -- SessionIdResolver 为 demo 实现（sessionId = conversationId，无隔离）；生产必须由宿主实现为绑定自己的登录态
+19:20:08.977 [main] WARN com.sparkrooter.runtime.infra.llm.LlmFactory -- spark.llm.base-url / api-key / model (or SPARK_LLM_*) not fully set; planner UNAVAILABLE — every request will fail until a model is configured
+19:20:08.996 [main] INFO com.sparkrooter.starter.tool.SparkToolScanner -- spark-rooter: 0 tools registered from 0 beans
+19:20:09.019 [main] WARN com.sparkrooter.starter.RuntimeBeans -- RunContextPropagator 为 no-op：宿主请求线程的 ThreadLocal / SecurityContext 不会传播到 spark 工作线程
+19:20:09.020 [main] INFO com.sparkrooter.gateway.application.InvokeToolUseCase -- gateway handlers registered: []
+19:20:09.021 [main] WARN com.sparkrooter.runtime.infra.llm.LlmFactory -- spark.llm.base-url / api-key / model (or SPARK_LLM_*) not fully set; planner UNAVAILABLE — every request will fail until a model is configured
+19:20:09.024 [main] INFO com.sparkrooter.starter.tool.SparkToolScanner -- spark-rooter: 0 tools registered from 0 beans
+
+=== host-demo ===
+
+--- ci summary ---
+check-rename       0
+check-contracts    0
+check-module-deps  0
+check-seed         0
+spark-ui           0
+spark-rooter       0
+host-demo          0
+ci: all steps passed (exit 0)
+CI_EXIT=0
+
+> spark-harness@0.1.0 doctor /Users/fangtao/strato_ui/.harness
+> node scripts/harness-doctor.mjs
+
+✓ dir: spark-ui/
+✓ dir: spark-rooter/
+✓ dir: .harness/contracts/
+✓ repo root: no project files
+✓ README.md free of slogan-style words
+✓ sparkUiDir: pnpm-workspace.yaml
+✓ sparkUiDir: .npmrc
+✓ sparkUiDir: packages/core/package.json
+✓ sparkUiDir: apps/chat/package.json
+✓ sparkUiDir: no legacy src/
+✓ required: agents/platform-owner.md
+✓ required: rules/project-structure.md
+✓ required: rules/coding-standard.md
+✓ required: rules/backend-standard.md
+✓ required: rules/contracts.md
+✓ required: rules/agent-safety.md
+✓ required: rules/dev-workflow.md
+✓ required: wiki/architecture.md
+✓ required: wiki/domain-model.md
+✓ required: wiki/api-contracts.md
+✓ required: mcp/servers.json
+✓ required: templates/change-template/summary.md
+✓ required: scripts/new-change.mjs
+✓ required: scripts/check-contracts.mjs
+✓ required: scripts/sync-contracts.mjs
+✓ required: scripts/check-module-deps.mjs
+✓ required: scripts/check-seed.mjs
+✓ required: scripts/gen-seed.mjs
+✓ required: scripts/mvn.mjs
+✓ required: scripts/check-rename.mjs
+✓ required: scripts/ci.mjs
+✓ required: scripts/sse-parse.mjs
+✓ required: scripts/e2e-backend.sh
+✓ required: scripts/e2e-frontend.mjs
+✓ required: scripts/deploy-verify.sh
+✓ required: scripts/preview-console.mjs
+✓ required: scripts/lib/change-dir.mjs
+✓ required: scripts/lib/change-dir.sh
+✓ required: package.json
+✓ skill: code-review
+✓ skill: coding-skill
+✓ skill: deploy-verify
+✓ skill: expert-reviewer
+✓ skill: frontend-doctor
+✓ skill: project-analysis
+✓ skill: request-analysis
+✓ pnpm command form: all use "pnpm -C .harness run <script>"
+✓ doc paths: every `sparkUiDir/...` reference exists
+✓ scripts: no hard-coded change directory
+✓ L1 antd constraint consistent across CLAUDE.md / AGENTS.md / platform-owner.md
+✓ changes/** free of secret-shaped literals (LLM key / gateway host / model name)
+✓ change: feat-agent-tool-platform-20260903 (0 TODO)
+✓ change: feat-chat-conversation-ui-20260910 (0 TODO)
+✓ change: feat-commerce-domains-20260908 (0 TODO)
+✓ change: feat-intent-routing-20260908 (0 TODO)
+✓ change: feat-strato-ui-monorepo-20260904 (0 TODO)
+✓ change: fix-order-id-bare-number-20260910 (0 TODO)
+✓ change: refactor-llm-planner-domain-free-20260910 (2 TODO)
+✓ change: refactor-spark-embedded-starter-20260909 (0 TODO)
+✓ change: test-backend-unit-tests-and-fixes-20260911 (0 TODO)
+✓ change: test-frontend-unit-tests-20260911 (5 TODO)
+
+harness-doctor: 0 errors, 0 warnings
+DOCTOR_EXIT=0

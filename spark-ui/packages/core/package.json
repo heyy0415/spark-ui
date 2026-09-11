@@ -32,7 +32,8 @@
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "prepublishOnly": "node ../../scripts/verify-pack.mjs"
+    "prepublishOnly": "node ../../scripts/verify-pack.mjs",
+    "test": "vitest run --passWithNoTests"
   },
   "peerDependencies": {
     "antd": "^6",
@@ -51,6 +52,7 @@
     "react-dom": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vitest": "catalog:",
     "zod": "catalog:"
   }
 }

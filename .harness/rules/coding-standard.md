@@ -57,7 +57,15 @@
 
 - **禁止** `console.log`（lint 报错）。允许 `console.warn` / `console.error`，且必须带语义前缀，如 `console.error('[user-api]', err)`。
 
-## 9. 提交与变更
+## 9. 单元测试
+
+- 框架 vitest（版本钉在 `pnpm-workspace.yaml` catalog，与 Node 20 / `@types/node ^20` 兼容），`environment: node`，不引入 jsdom / testing-library；React 组件渲染由 e2e 与 `/dev/schema` playground 覆盖。
+- 测试文件与被测源码同目录、`*.test.ts` 后缀；`packages/core/tsconfig.build.json` 排除测试，d.ts 不进 dist；`check-deps.mjs` 跳过测试文件。测试代码同受 strict / `exactOptionalPropertyTypes` / oxlint / prettier 约束，禁 `any`、禁非空断言。
+- **必测**：纯函数归约（如 `runView.ts`）、传输层（`sseClient.ts` / `httpClient.ts`）、契约投影与请求构造、`@spark-ui/core` 的 schema / lib / registry。断言精确到值，不用 `toBeDefined` 之类弱断言；假 `fetch` 用 `ReadableStream` 推 chunk，不用计时。
+- 夹具：core 测试用相对路径静态 import `.harness/contracts/examples/*.json`；chat 测试手写 `satisfies` 夹具（chat 的 oxlint 禁 `../../*` 与 `@contracts/*`，不为测试放宽）。两个包的 tsconfig 都没有 `@types/node`，测试不得 import `node:*`。
+- `pnpm -C spark-ui run test` 是 `ci` 的一步，任一失败退出码非 0。
+
+## 10. 提交与变更
 
 - Commit message 遵循 Conventional Commits：`feat(user): add list filter`。
 - 每个 commit 关联一个 `.harness/changes/` 变更目录（在 message footer 标注 `Change: feat-user-list-20260507`）。

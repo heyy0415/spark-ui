@@ -1,6 +1,7 @@
 import { fileURLToPath, URL } from 'node:url';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+// vitest/config 的 defineConfig 是 vite 的超集，带 test 字段类型；serve / build 行为不变
+import { defineConfig } from 'vitest/config';
 
 const abs = (p: string): string => fileURLToPath(new URL(p, import.meta.url));
 
@@ -45,5 +46,21 @@ export default defineConfig(({ command }) => ({
     port: 4173,
     strictPort: true,
     proxy,
+  },
+  // 单元测试只测纯函数与传输层（environment: node，不引入 jsdom）。测试经 @spark-ui/core 入口连带引入 antd-mobile，
+  // 其 CJS 入口 require("./global.css") 在 Node 里无法加载；用 vitest 的 ssr 依赖预打包把它交给 esbuild，并把 .css 置为空模块。
+  // 试过 server.deps.inline / ssr.noExternal 都不生效（vitest 4.1），只有这一组合可行。
+  test: {
+    environment: 'node',
+    css: false,
+    deps: {
+      optimizer: {
+        ssr: {
+          enabled: true,
+          include: ['antd-mobile'],
+          esbuildOptions: { loader: { '.css': 'empty' } },
+        },
+      },
+    },
   },
 }));

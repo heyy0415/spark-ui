@@ -7,7 +7,7 @@ pnpm workspace，两个包：
 | `@spark-ui/core` | `packages/core` | **Spark UI 渲染引擎**，可 npm 发包。把后端下发的 UI Schema 渲染为白名单组件（antd 桌面 / antd-mobile 移动）。见 [packages/core/README.md](packages/core/README.md) |
 | `spark-chat`     | `apps/chat`     | 唯一应用：一个聊天页（路由 `/`）。每条用户消息一个回合：右侧用户气泡，左侧助手气泡内是 core 的 `RunStatus` → 骨架 → 屏；历史回合只读保留，会话只在内存             |
 
-React 19 / TypeScript 7 strict / Vite 8 / TanStack Query / Zod 4 / antd 6 / antd-mobile 5 / oxlint / prettier。版本由 `pnpm-workspace.yaml` 的 `catalog` 统一。
+React 19 / TypeScript 7 strict / Vite 8 / TanStack Query / Zod 4 / antd 6 / antd-mobile 5 / oxlint / prettier / vitest。版本由 `pnpm-workspace.yaml` 的 `catalog` 统一。
 
 > 一句话：前端只负责交互。它**始终只发自然语言**（输入框、示例 chip、Table / Card 的行内指令都原样作为一条新消息发送）给 Agent Runtime，消费 SSE 事件流，并**只渲染白名单组件**描述的 UI Schema；不发页面上下文 / 身份 / 业务字段，不执行任何模型生成的代码，不自行决定调用哪个工具。多级界面（列表 → 详情 → 返回）由后端在屏里预写的 `intent` 驱动。
 
@@ -18,7 +18,8 @@ pnpm install
 pnpm run dev              # apps/chat dev server http://localhost:5173（自动检查 core dist，缺失则提示先 build:core）
 pnpm run build:core       # packages/core → dist（vite lib + tsc d.ts）
 pnpm run build            # build:core → build:chat
-pnpm run ci               # build:core → typecheck → lint → format:check → verify-examples → build:chat → verify-pack
+pnpm run test             # vitest：core + chat 单元测试（纯函数 / 传输层，无 DOM）
+pnpm run ci               # build:core → typecheck → test → lint → format:check → verify-examples → verify-transport → build:chat → verify-pack
 pnpm run verify-examples  # 用 Zod 投影校验 .harness/contracts/examples（27 examples OK）
 pnpm run verify-pack      # pnpm pack 解包后断言：文件清单 / exports / 17 导出名 / d.ts 双 EOPT 消费 / antd 未打包 / 体积基线
 ```

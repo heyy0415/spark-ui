@@ -20,6 +20,10 @@
 - forwardRef 必须正确传递 ref（输入 / 按钮组件）。
 - 所有交互组件必须可键盘操作（Tab / Enter / Esc）。
 
+## 测试
+
+- `shared/api` / `shared/lib` 的纯函数与传输层必须配同目录 `*.test.ts`，假 `fetch` 驱动、不起服务（coding-standard §9）。
+
 ## 反模式
 - ❌ 把"用户卡片"放进 `shared/ui`——它依赖 User 类型，应进 `entities/user/ui`。
 - ❌ 把只有一处使用的 hook 上提到 shared——等有第二处再说。

@@ -14,6 +14,8 @@ catalog:
   vite: 8.2.2
   '@vitejs/plugin-react': ^6.1.1
   typescript: 7.0.2
+  # 单元测试：vitest 5 要求 Node 22+（engines 与 optional peer @types/node），本仓库 Node 20 / @types/node ^20，钉 4.1.x
+  vitest: 4.1.11
 
 # strict-peer-dependencies=true 下的已知例外：antd-mobile 5.42 的传递依赖（@react-spring/*、staged-components）只声明 react ≤18，
 # 实际在 React 19 上可用（首期已验证）。放行 react / react-dom 的 peer 版本判定；本仓库自己包的其它 peer 仍然严格。

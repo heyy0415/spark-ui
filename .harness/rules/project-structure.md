@@ -56,6 +56,7 @@ spark-ui/
 - 包内 CSS 只允许 `--spark-*` 变量且带 fallback；不读宿主 CSS 变量、不 `getComputedStyle`；公共 d.ts 不得暴露 antd / antd-mobile 类型。
 - 端型由宿主挂载 `SparkDeviceProvider` 一次性决定，组件内不各自判断。
 - 安全边界分工（随包走 / 留在宿主）见 `spark-ui/packages/core/README.md`。
+- 单元测试与被测源码同目录（`*.test.ts`，vitest）；`packages/core/tsconfig.build.json` 排除测试，`scripts/check-deps.mjs` 跳过测试文件。见 `coding-standard.md` §9。
 
 ## 2. 后端模块分层（Maven 多模块 + Starter）
 
