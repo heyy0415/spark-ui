@@ -6,7 +6,6 @@ import com.sparkrooter.examples.refund.domain.Refund;
 import com.sparkrooter.examples.support.DemoUserContext;
 import com.sparkrooter.spi.ToolContext;
 import com.sparkrooter.spi.annotation.Confirmation;
-import com.sparkrooter.spi.annotation.EntityType;
 import com.sparkrooter.spi.annotation.Idempotency;
 import com.sparkrooter.spi.annotation.ParamFormat;
 import com.sparkrooter.spi.annotation.RiskLevel;
@@ -44,7 +43,12 @@ public class RefundTools {
   }
 
   public record OrderIdIn(
-      @SparkParam(description = "订单号", entity = EntityType.ORDER, minLength = 1, maxLength = 64)
+      @SparkParam(
+              description = "订单号",
+              entity = "order",
+              label = "订单",
+              minLength = 1,
+              maxLength = 64)
           String orderId) {}
 
   public record EligibilityOut(
@@ -65,7 +69,12 @@ public class RefundTools {
       @SparkParam(min = 0) int estimatedDays) {}
 
   public record CreateIn(
-      @SparkParam(description = "订单号", entity = EntityType.ORDER, minLength = 1, maxLength = 64)
+      @SparkParam(
+              description = "订单号",
+              entity = "order",
+              label = "订单",
+              minLength = 1,
+              maxLength = 64)
           String orderId,
       @SparkParam(description = "退款金额（由后端试算覆盖，模型不得填写）", format = ParamFormat.MONEY) String amount,
       @SparkParam(
@@ -93,6 +102,7 @@ public class RefundTools {
 
   @SparkTool(
       id = "refund.eligibility.check",
+      verbs = {"能不能退款", "退款资格"},
       version = "1.3.0",
       domain = "refund",
       name = "检查退款资格",
@@ -114,6 +124,7 @@ public class RefundTools {
 
   @SparkTool(
       id = "refund.preview",
+      verbs = {"退多少钱", "退款试算"},
       version = "1.3.0",
       domain = "refund",
       name = "退款试算",
@@ -126,6 +137,7 @@ public class RefundTools {
   /** 高风险、有副作用；幂等键来自 ToolContext。 */
   @SparkTool(
       id = "refund.create",
+      verbs = {"退款", "退钱", "申请退款", "把钱退给我"},
       version = "2.1.0",
       domain = "refund",
       name = "创建退款",
@@ -153,6 +165,7 @@ public class RefundTools {
 
   @SparkTool(
       id = "refund.status.get",
+      verbs = {"退款进度", "退款状态", "退款到哪了"},
       version = "1.0.0",
       domain = "refund",
       name = "查询退款状态",

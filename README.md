@@ -30,13 +30,13 @@ Spark 让业务系统能听懂自然语言。用户在聊天框里输入「最�
 ## 功能
 
 - **方法级注解声明工具**：`@SparkTool` + record 参数，inputSchema / outputSchema / 风险等级 / 幂等策略自动推导并按 JSON Schema 契约校验。
-- **确定性参数抽取**：订单号、枚举别名（「已发货」→ `SHIPPED`）、数量（「最近 5 单」）、相对时间（「最近一周」）由规则抽取，模型只在剩余空位里填。
+- **模型读注解理解意图**：内核不含任何业务词汇。工具的用途、同义说法、参数含义、实体类型全部写在 `@SparkTool` / `@SparkParam` 上，模型据此选工具、填参数。宿主新增一个领域不用改内核一行代码。
 - **多轮会话**：会话记忆记住上一轮的实体和列表，支持「第二个」「最后一个」这类指代；缺实体时给一张澄清列表让用户点选。
 - **高风险操作确认**：需确认的工具先走只读前置步骤，出确认卡片，后端签发一次性令牌，用户确认后重校验再执行。
 - **生成式 UI**：后端下发 UI Schema，前端只渲染 5 个白名单组件（Form / Card / Table / Result / Timeline，antd 与 antd-mobile 双端），表格行和卡片上的按钮都是预写好的自然语言。
 - **聊天式界面**：每条消息一个回合，加载期骨架屏 + 状态文案，历史回合保留可回看。
 - **身份留在宿主**：内核不认识用户。登录态、权限、租户全由宿主服务通过两个接口和方法级切面接入。
-- **不接模型也能跑**：没有配置 LLM 时走规则规划器，整条链路和全部 e2e 照常通过。
+- **模型输出必须过校验**：只能选候选里的工具，只能填 schema 里的字段，值要过 JSON Schema，实体 ID 必须原样出自用户原话或会话上下文——模型负责理解，代码负责核实。
 
 ## 架构
 
@@ -79,13 +79,17 @@ pnpm -C spark-ui run dev        # http://localhost:5173，代理到 8080
 
 试几句：「看看我的订单」→ 点某一行的「查看物流」→「有什么商品」→ 点「查看商品」→ 点卡片底部「返回列表」。直接说「申请售后」会得到一张订单列表让你选。
 
-接真实模型只用环境变量，不要写进任何文件：
+**模型是必需的**：意图理解、工具选择、参数填写全靠它，没配置时所有请求都会返回「未配置模型，无法理解请求」。任何 OpenAI 兼容接口都行。
+
+配置只走环境变量，不要写进任何文件（`application.yml` 里已用 `${SPARK_LLM_*:}` 预留了占位）：
 
 ```bash
-export SPARK_LLM_BASE_URL=https://your-openai-compatible-endpoint/v1
+export SPARK_LLM_BASE_URL=https://your-openai-compatible-endpoint/v1   # baseUrl 以 /v{n} 结尾时不会再拼一层 /v1
 export SPARK_LLM_API_KEY=...
 export SPARK_LLM_MODEL=...
 ```
+
+建议用响应快的小模型：每轮对话至少一次规划调用，慢模型会明显拖长等待。
 
 ## 接入你的服务
 
@@ -159,7 +163,7 @@ docker stop spark-demo && docker rm spark-demo # 停止并删除
 | 变量 | 说明 |
 |---|---|
 | `JAVA_TOOL_OPTIONS` | 镜像默认 `-Xmx300m -XX:+UseSerialGC`，内存紧就改小 |
-| `SPARK_LLM_BASE_URL` / `SPARK_LLM_API_KEY` / `SPARK_LLM_MODEL` | 接 OpenAI 兼容模型；用 `docker run -e` 传入，不要写进镜像。不传则走规则规划器 |
+| `SPARK_LLM_BASE_URL` / `SPARK_LLM_API_KEY` / `SPARK_LLM_MODEL` | **必填**，OpenAI 兼容接口。用 `docker run -e` 传入，不要写进镜像；不传则所有请求返回「未配置模型」 |
 | `SPARK_SELFCHECK_ENABLED=false` | 关闭启动自检，启动更快 |
 
 镜像里的示例宿主用的是 demo 版 `SessionIdResolver`（会话即 conversationId，没有用户隔离），只适合演示，不要直接对公网开放。
@@ -167,7 +171,7 @@ docker stop spark-demo && docker rm spark-demo # 停止并删除
 ## 安全模型
 
 - 前端只发自然语言。输入框、示例按钮、表格行和卡片上的按钮，点了都是一条新消息。不发页面上下文，不发用户信息，不发业务字段。
-- 参数值先由确定性规则抽取，再用 `@SparkDefault` 补默认；模型只能在候选工具里选，只能填 schema 里有的字段，值必须过 JSON Schema，订单号必须来自用户原话。
+- 模型只能在候选工具里选，只能填 schema 里声明的字段，值必须过 JSON Schema；标了 `entity` 的 ID 参数，值必须原样出现在用户原话或会话上下文里，否则一律当作「缺实体」走澄清，不会拿一个编造的 ID 去执行。
 - 高风险工具必须经后端签发的一次性令牌确认。令牌绑定 runId、actionId、参数摘要、conversationId、sessionId。确认后由领域自己的重校验逻辑再看一遍才执行。
 - Gateway 通过 Spring 代理调宿主方法，宿主的方法级切面正常触发。每次调用一条审计，不含参数原文。
 - 会话记忆只存 ID，只在成功结束时写。日志不含用户原文、模型网关地址、密钥、模型名。
@@ -190,9 +194,9 @@ SPARK_FRONT_BASE=http://localhost:5199 node .harness/scripts/e2e-frontend.mjs   
 
 ## 已知限制
 
+- **模型是硬依赖，没有规则兜底**。三项 `SPARK_LLM_*` 任一缺失，所有请求都返回「未配置模型，无法理解请求」。模型或网关不可用时同样无法工作。
 - 只有进程内模式。远程工具和服务发现只留了 `ToolTransport` / `ToolProviderDiscovery` 两个接口。
 - 存储全是内存实现（带 TTL）。多实例部署要自己替换成 Redis 等，端口都是 `@ConditionalOnMissingBean`。
-- 领域路由关键词表写死 4 个领域（order / product / aftersale / refund），宿主新增领域目前只能靠 LLM 分类到达。
 - 文案全中文，没有 i18n。
 - 聊天记录只在内存里，刷新页面即清空。
 

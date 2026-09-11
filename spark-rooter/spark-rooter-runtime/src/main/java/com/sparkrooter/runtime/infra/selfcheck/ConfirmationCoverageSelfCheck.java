@@ -24,8 +24,8 @@ public class ConfirmationCoverageSelfCheck implements com.sparkrooter.spi.SelfCh
 
   private static final Logger log = LoggerFactory.getLogger(ConfirmationCoverageSelfCheck.class);
 
-  /** 生成试探确认屏用的参数；当前三个需确认工具都以 orderId 为主键，用自检专用订单 10003。 */
-  private static final Map<String, String> PROBE_ARGS = Map.of("orderId", "10003");
+  /** 生成试探确认屏用的实体参数占位值：确认屏只用它拼标题，不查数据（数据来自 probeOutputs）。 */
+  private static final String PROBE_ID = "probe";
 
   private final ToolRegistryClient registry;
   private final ScreenRegistry screens;
@@ -51,8 +51,8 @@ public class ConfirmationCoverageSelfCheck implements com.sparkrooter.spi.SelfCh
   @Override
   public void run() {
     int count = 0;
-    for (String domain : registry.domains()) {
-      ToolSearch.Response found = registry.search(new ToolSearch.Request(domain, null, null), null);
+    ToolSearch.Response found = registry.search(new ToolSearch.Request(null, null, null), null);
+    {
       for (ToolSearch.ToolCandidate c : found.tools()) {
         boolean confirm =
             c.confirmation() == ToolManifest.Confirmation.required
@@ -60,14 +60,16 @@ public class ConfirmationCoverageSelfCheck implements com.sparkrooter.spi.SelfCh
         if (!confirm) {
           continue;
         }
-        verify(c.toolId());
+        Map<String, String> probe = new java.util.LinkedHashMap<>();
+        c.inputSchema().path("required").forEach(n -> probe.put(n.asText(), PROBE_ID));
+        verify(c.toolId(), probe);
         count++;
       }
     }
     log.info("selfcheck: confirmation coverage OK ({} tools)", count);
   }
 
-  private void verify(String toolId) {
+  private void verify(String toolId, Map<String, String> probeArgs) {
     if (!screens.coversConfirmation(toolId)) {
       throw new IllegalStateException("no confirmation ScreenBuilder for " + toolId);
     }
@@ -78,7 +80,7 @@ public class ConfirmationCoverageSelfCheck implements com.sparkrooter.spi.SelfCh
     UiSchema ui =
         screens.confirmation(
             toolId,
-            PROBE_ARGS,
+            probeArgs,
             screens.probeOutputs(toolId),
             ScreenRegistry.PLACEHOLDER_TOKEN,
             new ScreenContext("run_selfcheck"));

@@ -67,6 +67,7 @@
 | `tool-invoke.executionContext` | 删 `userId / tenantId`，增 `sessionId` | 令牌 / 审计按宿主 `SessionIdResolver` 的会话键隔离 |
 | `tool-manifest.authorization` | `permission` 改可选 | 推导 Manifest 无权限语义 |
 | `ui-schema.cardProps` | 增 `actions[]`（`inlineAction`，≤ 6） | 详情屏二级导航 |
+| `tool-search.request` | `domain` 改可选（refactor-llm-planner-domain-free） | 内核不做领域路由，模型在全部可发现工具里选 |
 
 ## 6. 变更流程
 

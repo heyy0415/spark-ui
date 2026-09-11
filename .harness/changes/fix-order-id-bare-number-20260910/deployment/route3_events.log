@@ -1,0 +1,26 @@
+event:run.started
+data:{"runId":"run_5a401b0391cc4b83","conversationId":"conv_r3","at":"2026-09-10T12:32:44.134440Z"}
+
+:ping
+
+:ping
+
+:ping
+
+:ping
+
+event:tool.selected
+data:{"runId":"run_5a401b0391cc4b83","toolCallId":"tc_000012","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
+
+event:tool.started
+data:{"runId":"run_5a401b0391cc4b83","toolCallId":"tc_000012","at":"2026-09-10T12:33:50.939270Z"}
+
+event:tool.completed
+data:{"runId":"run_5a401b0391cc4b83","toolCallId":"tc_000012","status":"succeeded","durationMs":3,"summary":"订单 10002 SHIPPED"}
+
+event:ui.replace
+data:{"runId":"run_5a401b0391cc4b83","ui":{"schemaVersion":"1.0","screenId":"order-detail","title":"订单 10002","components":[{"id":"order","type":"Card","props":{"title":"订单 10002","items":[{"label":"商品","value":"蓝牙耳机 × 1 = 299.00"},{"label":"订单金额","value":"299.00 CNY"},{"label":"状态","value":"SHIPPED"},{"label":"收货人","value":"陈静"},{"label":"手机","value":"181****8161"},{"label":"地区","value":"上海市 浦东新区"},{"label":"下单时间","value":"2026-08-04 03:59"}],"actions":[{"label":"查看物流","intent":"查看订单 10002 的物流"}]}},{"id":"logistics","type":"Card","props":{"title":"订单 10002 物流","items":[{"label":"承运商","value":"京东物流"},{"label":"运单号","value":"JD10002241546"},{"label":"状态","value":"OUT_FOR_DELIVERY"}]}},{"id":"logistics-events","type":"Timeline","props":{"items":[],"emptyText":"点击「查看物流」查看完整轨迹"}}],"actions":[]}}
+
+event:run.completed
+data:{"runId":"run_5a401b0391cc4b83","at":"2026-09-10T12:33:50.948980Z"}
+

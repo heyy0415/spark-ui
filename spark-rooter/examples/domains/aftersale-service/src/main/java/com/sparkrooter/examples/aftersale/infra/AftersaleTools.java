@@ -6,7 +6,6 @@ import com.sparkrooter.examples.support.DemoUserContext;
 import com.sparkrooter.examples.support.OrderSnapshot;
 import com.sparkrooter.spi.ToolContext;
 import com.sparkrooter.spi.annotation.Confirmation;
-import com.sparkrooter.spi.annotation.EntityType;
 import com.sparkrooter.spi.annotation.Idempotency;
 import com.sparkrooter.spi.annotation.RiskLevel;
 import com.sparkrooter.spi.annotation.SparkParam;
@@ -36,7 +35,8 @@ public class AftersaleTools {
   public record ListIn(
       @SparkParam(
               description = "订单号；给定时只返回该订单的售后单",
-              entity = EntityType.ORDER,
+              entity = "order",
+              label = "订单",
               minLength = 1,
               maxLength = 64)
           Optional<String> orderId) {}
@@ -61,7 +61,12 @@ public class AftersaleTools {
   public record ListOut(List<Item> items, Optional<OrderSummary> order) {}
 
   public record CreateIn(
-      @SparkParam(description = "订单号", entity = EntityType.ORDER, minLength = 1, maxLength = 64)
+      @SparkParam(
+              description = "订单号",
+              entity = "order",
+              label = "订单",
+              minLength = 1,
+              maxLength = 64)
           String orderId,
       @SparkParam(
               description = "售后类型",
@@ -71,6 +76,7 @@ public class AftersaleTools {
 
   @SparkTool(
       id = "aftersale.list.get",
+      verbs = {"售后记录", "售后单", "售后进度"},
       version = "1.0.0",
       domain = "aftersale",
       name = "查询售后单",
@@ -86,6 +92,7 @@ public class AftersaleTools {
   /** 有副作用；幂等键由 Gateway 透传。 */
   @SparkTool(
       id = "aftersale.create",
+      verbs = {"申请售后", "售后", "退货", "换货", "维修"},
       version = "1.0.0",
       domain = "aftersale",
       name = "申请售后",

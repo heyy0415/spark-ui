@@ -96,6 +96,8 @@ const STEREOTYPES =
   /@(?:org\.springframework\.(?:stereotype|context\.annotation)\.)?(Component|Service|Repository|Configuration|ComponentScan)\b/;
 // 身份归宿主（spec §2.5）：平台模块源码禁 userId / tenantId / Principal 标识符
 const IDENTITY = /\b(userId|tenantId|Principal)\b/;
+// 领域知识归宿主注解（spec refactor-llm-planner-domain-free）：平台模块源码禁示例领域词汇与 toolId 片段
+const DOMAIN_WORDS = /订单|商品|退款|售后|物流|\b(order|product|refund|aftersale)\.[a-z]+\.[a-z]+\b/;
 const PLATFORM_SRC = ['spark-rooter-spi', 'spark-rooter-contracts', 'spark-rooter-runtime', 'spark-rooter-registry', 'spark-rooter-gateway', 'spark-rooter-web-mvc', 'spark-rooter-spring-boot-starter'];
 
 async function* walk(dir) {
@@ -116,6 +118,7 @@ for (const mod of PLATFORM_SRC) {
     const text = await readFile(file, 'utf-8');
     if (mod !== 'spark-rooter-spring-boot-starter' && STEREOTYPES.test(text)) fail(`${relative(root, file)}: platform module must not use Spring stereotype annotations (beans are assembled by the starter)`);
     if (IDENTITY.test(text)) fail(`${relative(root, file)}: platform module must not reference userId / tenantId / Principal (identity belongs to the host)`);
+    if (DOMAIN_WORDS.test(text)) fail(`${relative(root, file)}: platform module must not contain domain vocabulary (order/product/refund/aftersale words or toolIds belong to host annotations)`);
   }
 }
 
@@ -125,6 +128,8 @@ const selfTests = [
   [fresh(STEREOTYPES), '@org.springframework.stereotype.Service\npublic class X {}', 'stereo-fqn'],
   [fresh(STEREOTYPES), '  @Component\npublic class X {}', 'stereo-simple'],
   [fresh(IDENTITY), 'String tenantId', 'identity'],
+  [fresh(DOMAIN_WORDS), '"order.list.search"', 'domain-toolid'],
+  [fresh(DOMAIN_WORDS), '「订单」', 'domain-word'],
   [peerRule('gateway'), 'import com.sparkrooter.gateway.infra.LogAuditSink;', 'peer'],
   [fresh(EXAMPLES_REF), 'import com.sparkrooter.examples.order.domain.Order;', 'examples'],
   [fresh(BOTTOM_DEP), '<dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-runtime</artifactId></dependency>', 'bottom-dep'],

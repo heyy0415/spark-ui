@@ -14,9 +14,9 @@
     "request": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["domain"],
+      "required": [],
       "properties": {
-        "domain": { "type": "string", "pattern": "^[a-z][a-z0-9]*$", "maxLength": 32 },
+        "domain": { "type": "string", "pattern": "^[a-z][a-z0-9]*$", "maxLength": 32, "description": "可选；缺省返回全部可发现工具（模型在全部候选里选，内核不做领域路由）" },
         "intent": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 64, "description": "可选的意图提示，仅用于排序" },
         "context": {
           "type": "object",

@@ -1,24 +1,24 @@
 event:tool.selected
-data:{"runId":"run_b0e5f24d0cf140dd","toolCallId":"tc_000021","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
+data:{"runId":"run_b5b578bca7334627","toolCallId":"tc_000019","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
 
 event:tool.started
-data:{"runId":"run_b0e5f24d0cf140dd","toolCallId":"tc_000021","at":"2026-09-10T12:07:03.699234Z"}
+data:{"runId":"run_b5b578bca7334627","toolCallId":"tc_000019","at":"2026-09-10T12:39:40.079575Z"}
 
 event:tool.completed
-data:{"runId":"run_b0e5f24d0cf140dd","toolCallId":"tc_000021","status":"succeeded","durationMs":0,"summary":"订单 10005 COMPLETED"}
+data:{"runId":"run_b5b578bca7334627","toolCallId":"tc_000019","status":"succeeded","durationMs":0,"summary":"订单 10005 COMPLETED"}
 
 event:tool.selected
-data:{"runId":"run_b0e5f24d0cf140dd","toolCallId":"tc_000022","toolId":"order.delete","version":"1.0.0","displayName":"删除订单"}
+data:{"runId":"run_b5b578bca7334627","toolCallId":"tc_000020","toolId":"order.delete","version":"1.0.0","displayName":"删除订单"}
 
 event:tool.started
-data:{"runId":"run_b0e5f24d0cf140dd","toolCallId":"tc_000022","at":"2026-09-10T12:07:03.700579Z"}
+data:{"runId":"run_b5b578bca7334627","toolCallId":"tc_000020","at":"2026-09-10T12:39:40.080743Z"}
 
 event:tool.completed
-data:{"runId":"run_b0e5f24d0cf140dd","toolCallId":"tc_000022","status":"succeeded","durationMs":0,"summary":"订单 10005 已删除"}
+data:{"runId":"run_b5b578bca7334627","toolCallId":"tc_000020","status":"succeeded","durationMs":1,"summary":"订单 10005 已删除"}
 
 event:ui.replace
-data:{"runId":"run_b0e5f24d0cf140dd","ui":{"schemaVersion":"1.0","screenId":"delete-result","title":"订单已删除","components":[{"id":"result","type":"Result","props":{"status":"success","title":"订单已删除","description":"该订单已从列表中移除。","details":[{"label":"订单号","value":"10005"},{"label":"删除时间","value":"2026-09-10 20:07"}]}}],"actions":[]}}
+data:{"runId":"run_b5b578bca7334627","ui":{"schemaVersion":"1.0","screenId":"delete-result","title":"订单已删除","components":[{"id":"result","type":"Result","props":{"status":"success","title":"订单已删除","description":"该订单已从列表中移除。","details":[{"label":"订单号","value":"10005"},{"label":"删除时间","value":"2026-09-10 20:39"}]}}],"actions":[]}}
 
 event:run.completed
-data:{"runId":"run_b0e5f24d0cf140dd","at":"2026-09-10T12:07:03.702073Z"}
+data:{"runId":"run_b5b578bca7334627","at":"2026-09-10T12:39:40.082553Z"}
 

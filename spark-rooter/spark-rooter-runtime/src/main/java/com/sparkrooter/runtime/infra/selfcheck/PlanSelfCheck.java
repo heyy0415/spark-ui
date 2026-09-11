@@ -6,101 +6,29 @@ import com.sparkrooter.runtime.application.ToolDisplayNames;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.runtime.application.port.LlmClient;
 import com.sparkrooter.runtime.application.port.ToolRegistryClient;
-import com.sparkrooter.runtime.domain.Plan;
 import com.sparkrooter.runtime.domain.RunFailure;
-import com.sparkrooter.runtime.domain.Step;
-import com.sparkrooter.runtime.infra.llm.IntentVerbs;
-import com.sparkrooter.runtime.infra.llm.LlmPlanDraft;
-import com.sparkrooter.runtime.infra.llm.ToolSelectionValidator;
-import java.util.HashSet;
+import com.sparkrooter.runtime.infra.llm.PlanDraft;
+import com.sparkrooter.runtime.infra.llm.PlanValidator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 规划自检（spec §2.4.3）：① IntentVerbs 表引用的 toolId 都已注册；② 规则规划器对 5 条核心消息各断言 toolId 序列； ③ 候选外 toolId
- * 被校验器拒绝；④ 需确认步骤缺前置被拒绝。真模型模式跳过 ②。
+ * 规划校验自检：不调模型，只验证 PlanValidator 这道硬边界对模型输出的四类越界都拒绝（候选外 toolId / 缺前置 / 实体值不在原话与上下文 / 值不合
+ * schema），且正常草案能通过。全部用 Registry 里实际注册的工具与其注解元数据构造用例，不含任何内核写死的领域词。
  */
 public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
 
   private static final Logger log = LoggerFactory.getLogger(PlanSelfCheck.class);
 
-  /** 一条核心消息：领域、消息、已识别实体、期望 toolId 序列、期望最后一步的参数（null 不断言）。 */
-  record Case(
-      String domain,
-      String message,
-      Map<String, String> entities,
-      List<String> expect,
-      Map<String, String> expectArgs) {
-    Case(String domain, String message, Map<String, String> entities, List<String> expect) {
-      this(domain, message, entities, expect, null);
-    }
-  }
-
-  private static final List<Case> CASES =
-      List.of(
-          new Case(
-              "refund",
-              "帮我把这个订单退款",
-              Map.of("order", "10001"),
-              List.of("refund.eligibility.check", "refund.preview", "refund.create")),
-          new Case(
-              "order", "查看订单 10002 的物流", Map.of("order", "10002"), List.of("order.logistics.get")),
-          new Case(
-              "aftersale",
-              "订单 10002 申请售后",
-              Map.of("order", "10002"),
-              List.of("aftersale.list.get", "aftersale.create")),
-          new Case(
-              "order",
-              "删除订单 10005",
-              Map.of("order", "10005"),
-              List.of("order.detail.get", "order.delete")),
-          new Case("product", "有什么商品", Map.of(), List.of("product.list.search")),
-          // 评审 S-3：路由领域内的动词优先（「退货」在售后表更靠前，但路由到 refund 就该选 refund.create）
-          new Case(
-              "refund",
-              "订单 10002 退货退款",
-              Map.of("order", "10002"),
-              List.of("refund.eligibility.check", "refund.preview", "refund.create")),
-          // change 5 T11：抽取层 —— 枚举别名 + 数量；数量截断到 max；实体消息里的数字不当数量
-          new Case(
-              "order",
-              "最近 5 单已发货的订单",
-              Map.of(),
-              List.of("order.list.search"),
-              Map.of("status", "SHIPPED", "limit", "5")),
-          new Case(
-              "order", "最近 100 单", Map.of(), List.of("order.list.search"), Map.of("limit", "50")),
-          new Case(
-              "order",
-              "订单 10002 的详情",
-              Map.of("order", "10002"),
-              List.of("order.detail.get"),
-              Map.of("orderId", "10002")),
-          new Case(
-              "order", "我想查看最近订单", Map.of(), List.of("order.list.search"), Map.of("limit", "20")),
-          // fix-order-id-bare-number：不带「订单」前缀的裸 5 位号也算订单号
-          new Case(
-              "order",
-              "10030查看物流",
-              Map.of("order", "10030"),
-              List.of("order.logistics.get"),
-              Map.of("orderId", "10030")),
-          new Case(
-              "order",
-              "10002 的详情",
-              Map.of("order", "10002"),
-              List.of("order.detail.get"),
-              Map.of("orderId", "10002")));
-
-  private final LlmClient llm;
   private final ToolRegistryClient registry;
   private final ToolDisplayNames names;
   private final ToolMetaRegistry meta;
   private final SchemaValidator validator;
+  private final LlmClient llm;
 
   public PlanSelfCheck(
       LlmClient llm,
@@ -117,117 +45,134 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
 
   @Override
   public String name() {
-    return "plan";
+    return "plan validator";
   }
 
   @Override
   public void run() {
-    Set<String> registered = new HashSet<>();
-    for (String d : registry.domains()) {
-      candidates(d).forEach(c -> registered.add(c.toolId()));
+    log.info("selfcheck: planner={}", llm.name());
+    List<ToolSearch.ToolCandidate> all =
+        registry.search(new ToolSearch.Request(null, null, null), null).tools();
+    if (all.isEmpty()) {
+      log.info("selfcheck: no tools registered, plan validator skipped");
+      return;
     }
-    for (String id : IntentVerbs.referencedToolIds()) {
-      if (!registered.contains(id)) {
-        throw new IllegalStateException("IntentVerbs references unregistered tool " + id);
-      }
-    }
-    log.info("selfcheck: intent verbs reference registered tools OK");
+    // 找一个需确认且有前置的工具、一个带实体参数的工具，用注解元数据而不是写死的 toolId
+    Optional<ToolMetaRegistry.ToolMeta> confirmTool =
+        meta.all().stream().filter(m -> !m.prerequisites().isEmpty()).findFirst();
+    Optional<ToolMetaRegistry.ParamMeta> entityParam =
+        meta.all().stream()
+            .flatMap(m -> m.params().values().stream())
+            .filter(ToolMetaRegistry.ParamMeta::isEntity)
+            .findFirst();
 
-    if (llm.name().equals("rule-based")) {
-      for (Case c : CASES) {
-        Plan p =
-            llm.plan(
-                new LlmClient.PlanRequest(
-                    c.message(), c.domain(), candidates(c.domain()), c.entities()));
-        List<String> got = p.steps().stream().map(Step::toolId).toList();
-        if (!got.equals(c.expect())) {
-          throw new IllegalStateException(
-              "rule planner mismatch for domain " + c.domain() + ": " + got + " != " + c.expect());
-        }
-        Step last = p.steps().get(p.steps().size() - 1);
-        if (c.expectArgs() != null && !c.expectArgs().equals(last.fixedArgs())) {
-          throw new IllegalStateException(
-              "rule planner args mismatch for "
-                  + last.toolId()
-                  + ": "
-                  + last.fixedArgs()
-                  + " != "
-                  + c.expectArgs());
-        }
-        boolean writes = !meta.prerequisites(last.toolId()).isEmpty();
-        if (writes != last.requiresConfirmation()) {
-          throw new IllegalStateException("confirmation flag wrong for " + last.toolId());
-        }
-      }
-      log.info("selfcheck: plan 12 messages OK");
-    } else {
-      log.info("selfcheck: plan skipped (live LLM {}), validator check only", llm.name());
-    }
+    expectReject(
+        () ->
+            PlanValidator.validate(
+                draft("no.such.tool", Map.of()),
+                "x",
+                LlmClient.Context.empty(),
+                all,
+                names,
+                meta,
+                Set.of(),
+                validator),
+        "invalid toolId rejected OK");
 
-    List<ToolSearch.ToolCandidate> refund = candidates("refund");
-    try {
-      ToolSelectionValidator.validate(
-          new LlmPlanDraft(
-              List.of(new LlmPlanDraft.DraftStep("refund.delete.everything", Map.of()))),
-          "refund",
-          refund,
-          names,
-          Map.of(),
-          meta,
-          validator);
-      throw new IllegalStateException("validator accepted a toolId outside candidates");
-    } catch (RunFailure expected) {
-      log.info("selfcheck: invalid toolId rejected OK");
-    }
-    try {
-      ToolSelectionValidator.validate(
-          new LlmPlanDraft(
-              List.of(new LlmPlanDraft.DraftStep("refund.create", Map.of("orderId", "10003")))),
-          "refund",
-          refund,
-          names,
-          Map.of("order", "10003"),
-          meta,
-          validator);
-      throw new IllegalStateException("validator accepted confirmation step without prerequisites");
-    } catch (RunFailure expected) {
-      log.info("selfcheck: missing prerequisite rejected OK");
-    }
-    try {
-      // 评审 S-5：模型把实体参数换成别的订单号必须被拒
-      ToolSelectionValidator.validate(
-          new LlmPlanDraft(
-              List.of(new LlmPlanDraft.DraftStep("refund.status.get", Map.of("orderId", "10009")))),
-          "refund",
-          refund,
-          names,
-          Map.of("order", "10001"),
-          meta,
-          validator);
-      throw new IllegalStateException(
-          "validator accepted an entity arg that differs from recognized entity");
-    } catch (RunFailure expected) {
-      log.info("selfcheck: foreign entity arg rejected OK");
-    }
-    try {
-      // change 5 T11：值必须满足 inputSchema（status enum）
-      ToolSelectionValidator.validate(
-          new LlmPlanDraft(
-              List.of(
-                  new LlmPlanDraft.DraftStep("order.list.search", Map.of("status", "DELETED")))),
-          "order",
-          candidates("order"),
-          names,
-          Map.of(),
-          meta,
-          validator);
-      throw new IllegalStateException("validator accepted an enum value outside inputSchema");
-    } catch (RunFailure expected) {
-      log.info("selfcheck: schema-violating arg rejected OK");
-    }
+    confirmTool.ifPresent(
+        ct -> {
+          Map<String, String> args = new java.util.HashMap<>();
+          entityParamOf(ct).ifPresent(p -> args.put(p.name(), "99999"));
+          expectReject(
+              () ->
+                  PlanValidator.validate(
+                      draft(ct.toolId(), args),
+                      "99999",
+                      LlmClient.Context.empty(),
+                      all,
+                      names,
+                      meta,
+                      Set.of(),
+                      validator),
+              "missing prerequisite rejected OK");
+        });
+
+    entityParam.ifPresent(
+        p -> {
+          String toolId =
+              meta.all().stream()
+                  .filter(m -> m.params().containsKey(p.name()) && m.prerequisites().isEmpty())
+                  .map(ToolMetaRegistry.ToolMeta::toolId)
+                  .findFirst()
+                  .orElse(null);
+          if (toolId == null) {
+            return;
+          }
+          try {
+            PlanValidator.validate(
+                draft(toolId, Map.of(p.name(), "10009")),
+                "id 10001",
+                LlmClient.Context.empty(),
+                all,
+                names,
+                meta,
+                Set.of(),
+                validator);
+            throw new IllegalStateException(
+                "validator accepted an entity value absent from message");
+          } catch (PlanValidator.EntityMissing expected) {
+            log.info("selfcheck: foreign entity arg rejected OK");
+          }
+        });
+
+    // 值不合 schema：任一带 enum 参数的工具
+    all.stream()
+        .filter(
+            c ->
+                c.inputSchema().path("properties").properties().stream()
+                    .anyMatch(e -> e.getValue().has("enum")))
+        .findFirst()
+        .ifPresent(
+            c -> {
+              String key =
+                  c.inputSchema().path("properties").properties().stream()
+                      .filter(e -> e.getValue().has("enum"))
+                      .findFirst()
+                      .get()
+                      .getKey();
+              expectReject(
+                  () ->
+                      PlanValidator.validate(
+                          draft(c.toolId(), Map.of(key, "__NOT_AN_ENUM__")),
+                          "x",
+                          LlmClient.Context.empty(),
+                          all,
+                          names,
+                          meta,
+                          Set.of(),
+                          validator),
+                  "schema-violating arg rejected OK");
+            });
   }
 
-  private List<ToolSearch.ToolCandidate> candidates(String domain) {
-    return registry.search(new ToolSearch.Request(domain, null, null), null).tools();
+  private static Optional<ToolMetaRegistry.ParamMeta> entityParamOf(ToolMetaRegistry.ToolMeta m) {
+    return m.params().values().stream().filter(ToolMetaRegistry.ParamMeta::isEntity).findFirst();
+  }
+
+  private static PlanDraft draft(String toolId, Map<String, String> args) {
+    return new PlanDraft("plan", List.of(new PlanDraft.DraftStep(toolId, args)), List.of(), null);
+  }
+
+  private static void expectReject(Runnable r, String okText) {
+    try {
+      r.run();
+    } catch (RunFailure expected) {
+      log.info("selfcheck: {}", okText);
+      return;
+    } catch (PlanValidator.EntityMissing expected) {
+      log.info("selfcheck: {}", okText);
+      return;
+    }
+    throw new IllegalStateException("plan validator accepted invalid draft: " + okText);
   }
 }

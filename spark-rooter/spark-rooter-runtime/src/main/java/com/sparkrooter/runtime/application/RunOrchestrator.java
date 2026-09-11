@@ -24,7 +24,6 @@ import com.sparkrooter.runtime.domain.RunFailure;
 import com.sparkrooter.runtime.domain.RunRepository;
 import com.sparkrooter.runtime.domain.RunState;
 import com.sparkrooter.runtime.domain.Step;
-import com.sparkrooter.runtime.infra.llm.IntentVerbs;
 import com.sparkrooter.spi.ConfirmationRecheck;
 import com.sparkrooter.spi.ConversationMemory;
 import com.sparkrooter.spi.ScreenContext;
@@ -57,7 +56,7 @@ import org.slf4j.MDC;
  * ConfirmationRecheck）；需确认工具缺任一者 → fail-closed INTERNAL_ERROR。
  *
  * <p>确认路径按 runId 互斥：并发 / 重放的确认请求要么等待，要么因令牌已消费被拒绝，且这类前置拒绝不改变 Run 状态， 保证成功执行的写操作不会被并发请求报告为
- * FAILED。可信参数（如退款金额）一律取重校验结果并与确认屏展示值比对，模型或前端都无法决定。
+ * FAILED。可信参数（如金额）一律取重校验结果并与确认屏展示值比对，模型或前端都无法决定。
  */
 public class RunOrchestrator {
 
@@ -65,10 +64,9 @@ public class RunOrchestrator {
   private static final String NO_CAPABILITY_TEXT = "当前没有可用能力处理该请求";
 
   /** 领域重校验策略拒绝时的用户文案（区分于令牌 / 并发拒绝）。 */
-  private static final String POLICY_REJECTED_TEXT = "订单状态已变化，本次操作未执行";
+  private static final String POLICY_REJECTED_TEXT = "对象状态已变化，本次操作未执行";
 
   private final RunRepository runs;
-  private final DomainResolver resolver;
   private final ToolRegistryClient registry;
   private final ToolGatewayClient gateway;
   private final LlmClient llm;
@@ -89,7 +87,7 @@ public class RunOrchestrator {
   /** 候选工具的 inputSchema（toolId → schema），按 runId；参数值在 Step 里是字符串，调用前按 schema 类型化。 */
   private final Map<String, Map<String, JsonNode>> inputSchemas = new ConcurrentHashMap<>();
 
-  /** 确认屏所需的中间结果缓存（订单详情 / 资格 / 试算），按 runId。 */
+  /** 确认屏所需的中间结果缓存（前置只读步骤的输出），按 runId。 */
   private final Map<String, Map<String, JsonNode>> stepOutputs = new ConcurrentHashMap<>();
 
   /** 本 Run 已出澄清屏（记忆已由 clarify 写入，终态不再覆盖）。 */
@@ -100,7 +98,6 @@ public class RunOrchestrator {
 
   public RunOrchestrator(
       RunRepository runs,
-      DomainResolver resolver,
       ToolRegistryClient registry,
       ToolGatewayClient gateway,
       LlmClient llm,
@@ -113,7 +110,6 @@ public class RunOrchestrator {
       SchemaValidator validator,
       Clock clock) {
     this.runs = runs;
-    this.resolver = resolver;
     this.registry = registry;
     this.gateway = gateway;
     this.llm = llm;
@@ -145,33 +141,23 @@ public class RunOrchestrator {
           new SseEvent.RunStartedData(runId, intent.conversationId(), now()));
       run.transition(RunState.PLANNING, now());
 
-      DomainResolver.RouteDecision route = resolver.resolve(intent.message());
-      Optional<String> domain = route.domain();
+      // ① 会话装载：记忆实体、最近列表行 ID、上一轮挂起的原话（只有 ID 与短文本）
       Optional<ConversationMemory.Memory> remembered =
           memory.find(sessionId, intent.conversationId());
-      String source = route.source();
-      if (domain.isEmpty()) {
-        // 纯序数指代（「第二个」「最后一个」）没有领域词：沿用会话记忆里的领域（记忆按 session 隔离，评审 M-4）
-        Optional<String> fromMemory =
-            remembered
-                .filter(m -> ArgumentExtractor.isOrdinalReference(intent.message()))
-                .map(ConversationMemory.Memory::domain)
-                .filter(d -> !d.isBlank());
-        if (fromMemory.isPresent()) {
-          domain = fromMemory;
-          source = "memory";
-        }
-      }
-      log.info("route runId={} domain={} source={}", runId, domain.orElse("-"), source);
-      if (domain.isEmpty()) {
-        emit(
-            sink, SseEvent.MESSAGE_DELTA, new SseEvent.MessageDeltaData(runId, NO_CAPABILITY_TEXT));
-        complete(run, sink);
-        return runId;
-      }
+      LlmClient.Context ctx =
+          remembered
+              .map(
+                  m ->
+                      new LlmClient.Context(
+                          m.entities(),
+                          m.lastTable() == null ? List.of() : m.lastTable().rowIds(),
+                          Optional.ofNullable(
+                              m.lastTable() == null ? null : m.lastTable().pendingMessage())))
+              .orElse(LlmClient.Context.empty());
 
+      // ② 候选发现：全部可发现工具（不按领域筛，内核不认识领域）；宿主 ToolAccessPolicy 按 sessionId 过滤
       ToolSearch.Response found =
-          registry.search(new ToolSearch.Request(domain.get(), null, null), sessionId);
+          registry.search(new ToolSearch.Request(null, null, null), sessionId);
       if (found.tools().isEmpty()) {
         emit(
             sink, SseEvent.MESSAGE_DELTA, new SseEvent.MessageDeltaData(runId, NO_CAPABILITY_TEXT));
@@ -182,66 +168,35 @@ public class RunOrchestrator {
       found.tools().forEach(c -> schemas.put(c.toolId(), c.inputSchema()));
       inputSchemas.put(runId, schemas);
 
-      // 实体抽取（只从消息正则）；序数指代（「第二个」）按最近列表立即解析；其余记忆补位只在目标确实缺实体时才用（懒补位，
-      // 否则「有什么商品」会被上一轮的商品号变成详情）。日志只记类型与 ID 与来源，不记原文
-      Map<String, String> entities =
-          new LinkedHashMap<>(ArgumentExtractor.extractEntities(intent.message()));
-      remembered.ifPresent(m -> fillOrdinal(intent.message(), entities, m, runId));
-      log.info("entities runId={} {}", runId, entities);
+      // ③ 模型规划 + ④ 通用校验（都在 LlmClient 内）；日志不记原话
+      LlmClient.Decision decision =
+          llm.plan(new LlmClient.PlanRequest(intent.message(), found.tools(), ctx));
+      log.info(
+          "decision runId={} kind={} planner={}",
+          runId,
+          decision.getClass().getSimpleName(),
+          llm.name());
 
-      // 规划前拦截：领域内全部候选都需要实体而没有 → 记忆补位 → 仍缺则澄清屏（有候选源）或提示，不进规划
-      Optional<String> needEntity =
-          EntityRequirementCheck.check(domain.get(), found.tools(), entities, meta);
-      if (needEntity.isPresent()) {
-        String missingType =
-            EntityRequirementCheck.missingType(found.tools(), entities, meta).orElse(null);
-        if (!fillMissingFromMemory(missingType, entities, remembered, runId)) {
-          log.info("entity required but missing runId={} domain={}", runId, domain.get());
-          if (!clarify(run, intent.message(), domain.get(), missingType, traceId, sink)) {
-            emit(
-                sink,
-                SseEvent.MESSAGE_DELTA,
-                new SseEvent.MessageDeltaData(runId, needEntity.get()));
+      Plan plan;
+      switch (decision) {
+        case LlmClient.NoCapability n -> {
+          emit(sink, SseEvent.MESSAGE_DELTA, new SseEvent.MessageDeltaData(runId, n.reply()));
+          complete(run, sink);
+          return runId;
+        }
+        case LlmClient.Clarify c -> {
+          // ⑤ 缺实体：有澄清候选源 → 列表让用户点选；否则把模型的追问回给用户
+          if (!clarify(run, intent.message(), c.entityType(), traceId, sink)) {
+            emit(sink, SseEvent.MESSAGE_DELTA, new SseEvent.MessageDeltaData(runId, c.reply()));
           }
           complete(run, sink);
           return runId;
         }
-      }
-
-      Plan plan;
-      try {
-        plan =
-            planWithMemory(
-                effectiveMessage(intent.message(), domain.get(), remembered),
-                intent,
-                domain.get(),
-                found,
-                entities,
-                remembered,
-                runId);
-      } catch (LlmClient.MissingEntity e) {
-        // 动词命中但目标工具缺实体（如无号码的「删除订单」）且记忆也没有：澄清屏（有候选源）或友好提示，不算失败
-        log.info(
-            "target entity missing runId={} domain={} entity={}",
-            runId,
-            domain.get(),
-            e.entityType());
-        if (!clarify(run, intent.message(), domain.get(), e.entityType(), traceId, sink)) {
-          emit(
-              sink,
-              SseEvent.MESSAGE_DELTA,
-              new SseEvent.MessageDeltaData(runId, EntityRequirementCheck.text(domain.get())));
-        }
-        complete(run, sink);
-        return runId;
+        case LlmClient.Planned p -> plan = p.plan();
       }
       run.attachPlan(plan, now());
       log.info(
-          "plan attached runId={} domain={} steps={} planner={}",
-          runId,
-          domain.get(),
-          plan.steps().size(),
-          llm.name());
+          "plan attached runId={} steps={} planner={}", runId, plan.steps().size(), llm.name());
 
       run.transition(RunState.EXECUTING, now());
       runSteps(run, traceId, sink);
@@ -526,96 +481,19 @@ public class RunOrchestrator {
     sink.close();
   }
 
-  /** 序数指代（「第二个」「最后一个」）→ 最近列表 rowIds；用户明确指代，立即解析。补来的实体日志标 source=memory(ordinal)。 */
-  private void fillOrdinal(
-      String message, Map<String, String> entities, ConversationMemory.Memory m, String runId) {
-    if (m.lastTable() == null || m.lastTable().rowIds().isEmpty()) {
-      return;
-    }
-    String type =
-        meta.find(m.lastTable().toolId())
-            .map(t -> ToolMetaRegistry.typeName(t.clarifiesEntity()))
-            .filter(t -> !"none".equals(t))
-            .orElse(null);
-    if (type == null || entities.containsKey(type)) {
-      return;
-    }
-    ArgumentExtractor.ordinalReference(message, m.lastTable().rowIds())
-        .ifPresent(
-            id -> {
-              entities.put(type, id);
-              log.info("entity runId={} type={} id={} source=memory(ordinal)", runId, type, id);
-            });
-  }
-
-  /** 懒补位：目标确实缺某类型实体时，用记忆里同类型实体补；补上返回 true。日志标 source=memory。 */
-  private boolean fillMissingFromMemory(
-      String type,
-      Map<String, String> entities,
-      Optional<ConversationMemory.Memory> remembered,
-      String runId) {
-    if (type == null || entities.containsKey(type) || remembered.isEmpty()) {
-      return false;
-    }
-    String id = remembered.get().entities().get(type);
-    if (id == null) {
-      return false;
-    }
-    entities.put(type, id);
-    log.info("entity runId={} type={} id={} source=memory", runId, type, id);
-    return true;
-  }
-
-  /** 规划；目标缺实体时先试记忆补位再规划一次，仍缺则把 MissingEntity 抛给调用方走澄清屏。 */
-  /**
-   * 纯序数指代且上一屏是澄清屏 → 规划消息 = 挂起原话 + 当前消息（「申请售后 第二个」），动词表才能命中。 当前消息自带动词（「第二个的物流」）时不拼：用户已换了意图，
-   * 拼回去会让旧动词（如「删除」）抢先命中（评审 v2 N-2）。
-   */
-  private static String effectiveMessage(
-      String message, String domain, Optional<ConversationMemory.Memory> remembered) {
-    boolean ownVerb = IntentVerbs.target(message, domain).isPresent();
-    return remembered
-        .map(ConversationMemory.Memory::lastTable)
-        .map(ConversationMemory.LastTable::pendingMessage)
-        .filter(p -> p != null && !ownVerb && ArgumentExtractor.isOrdinalReference(message))
-        .map(p -> p + " " + message)
-        .orElse(message);
-  }
-
-  private Plan planWithMemory(
-      String planMessage,
-      IntentRequest intent,
-      String domain,
-      ToolSearch.Response found,
-      Map<String, String> entities,
-      Optional<ConversationMemory.Memory> remembered,
-      String runId) {
-    try {
-      return llm.plan(new LlmClient.PlanRequest(planMessage, domain, found.tools(), entities));
-    } catch (LlmClient.MissingEntity e) {
-      if (!fillMissingFromMemory(e.entityType(), entities, remembered, runId)) {
-        throw e;
-      }
-      return llm.plan(new LlmClient.PlanRequest(planMessage, domain, found.tools(), entities));
-    }
-  }
-
   /**
    * 澄清屏：查 clarifiesEntity == 缺失类型的工具 → 经 Gateway 调它（无参，全默认）拿原始输出 → ClarificationScreen 投影 → 契约校验 →
    * ui.replace + message.delta。无候选源 / 输出空 / 调用失败 → false，调用方走现状提示。
    */
   private boolean clarify(
-      Run run,
-      String message,
-      String domain,
-      String entityType,
-      String traceId,
-      RunEventSink sink) {
+      Run run, String message, String entityType, String traceId, RunEventSink sink) {
     if (entityType == null) {
+      log.info("clarify: no entityType, falling back to message.delta");
       return false;
     }
     Optional<ToolMetaRegistry.ToolMeta> clarifier = meta.clarifierFor(entityType);
     if (clarifier.isEmpty()) {
+      log.info("clarify: no clarifier registered for entity={}", entityType);
       return false;
     }
     ToolMetaRegistry.ToolMeta c = clarifier.get();
@@ -626,14 +504,10 @@ public class RunOrchestrator {
       log.warn("clarification list failed runId={} tool={}", run.runId(), c.toolId());
       return false;
     }
-    Optional<ObjectNode> screen =
-        ClarificationScreen.build(
-            entityType,
-            ClarificationScreen.label(entityType),
-            IntentVerbs.verbLabel(message, domain),
-            message,
-            out);
+    String label = meta.entityLabel(entityType);
+    Optional<ObjectNode> screen = ClarificationScreen.build(entityType, label, "选择", message, out);
     if (screen.isEmpty()) {
+      log.info("clarification screen: output empty or parse failed for entity={}", entityType);
       return false;
     }
     UiSchema ui = screens.toUi(screen.get());
@@ -642,8 +516,8 @@ public class RunOrchestrator {
     emit(
         sink,
         SseEvent.MESSAGE_DELTA,
-        new SseEvent.MessageDeltaData(run.runId(), ClarificationScreen.TEXT));
-    // 澄清屏也算「最近一次列表」：用户下一句「第二个」即指它的行
+        new SseEvent.MessageDeltaData(run.runId(), "请选择要操作的" + label));
+    // 澄清屏也算「最近一次列表」并挂起原话：用户下一句「第二个」由模型结合上下文解析
     List<String> ids = new java.util.ArrayList<>();
     screen
         .get()
@@ -656,7 +530,10 @@ public class RunOrchestrator {
         run.sessionId(),
         run.conversationId(),
         new ConversationMemory.Memory(
-            domain, Map.of(), new ConversationMemory.LastTable(c.toolId(), ids, message), now()));
+            c.domain(),
+            Map.of(),
+            new ConversationMemory.LastTable(c.toolId(), ids, message),
+            now()));
     clarified.add(run.runId());
     log.info(
         "clarification screen runId={} entity={} tool={}", run.runId(), entityType, c.toolId());
@@ -697,13 +574,25 @@ public class RunOrchestrator {
         }
       }
     }
-    if (ents.isEmpty() && lastTable == null) {
+    // 按字段合并而不是整体覆盖：本轮没出列表屏时，上一轮的 lastTable（供「第二个」指代）必须保留；
+    // 实体也是叠加（新值覆盖同类型旧值），否则一轮查详情就会把上一轮列表的行 ID 全丢掉
+    Optional<ConversationMemory.Memory> prev = memory.find(run.sessionId(), run.conversationId());
+    Map<String, String> mergedEnts = new LinkedHashMap<>();
+    prev.ifPresent(m -> mergedEnts.putAll(m.entities()));
+    mergedEnts.putAll(ents);
+    ConversationMemory.LastTable mergedTable =
+        lastTable != null ? lastTable : prev.map(ConversationMemory.Memory::lastTable).orElse(null);
+    String domain =
+        plan.map(Plan::domain)
+            .filter(d -> !d.isBlank())
+            .orElseGet(() -> prev.map(ConversationMemory.Memory::domain).orElse(""));
+    if (mergedEnts.isEmpty() && mergedTable == null) {
       return;
     }
     memory.put(
         run.sessionId(),
         run.conversationId(),
-        new ConversationMemory.Memory(plan.map(Plan::domain).orElse(""), ents, lastTable, now()));
+        new ConversationMemory.Memory(domain, mergedEnts, mergedTable, now()));
   }
 
   private static ScreenContext screenContext(Run run) {

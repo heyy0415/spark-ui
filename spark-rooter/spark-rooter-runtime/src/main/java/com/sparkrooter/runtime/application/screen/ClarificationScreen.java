@@ -3,7 +3,6 @@ package com.sparkrooter.runtime.application.screen;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.spi.UiNodes;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,14 +18,12 @@ public final class ClarificationScreen {
   /** 契约 Table.cells 最多 16 键；这里只取前几个标量列，保证屏可读。 */
   static final int MAX_COLUMNS = 6;
 
-  public static final String TEXT = "请选择要操作的对象";
-
   private ClarificationScreen() {}
 
   /**
    * @param entityType 缺失的实体类型（小写，如 order）
-   * @param entityLabel 该实体的中文名（如「订单」），拼进 intent 让下一轮能抽到 ID
-   * @param verbLabel 用户原动词的按钮文案（如「申请售后」）
+   * @param entityLabel 该实体的用户可读名（来自 @SparkParam.label），拼进 intent 让下一轮能抽到 ID
+   * @param verbLabel 按钮文案前缀（如「选择」），与 entityLabel 拼成按钮文案
    * @param originalMessage 用户原话（只用于日志语义，不拼进 intent：原话可能含 `<` / `://` 或超长把 id 截掉）
    * @param listOutput 澄清列表工具的原始输出（含 items[]）
    * @return 屏树；items 为空返回 empty
@@ -57,7 +54,7 @@ public final class ClarificationScreen {
     if (!columns.contains(idField)) {
       return Optional.empty();
     }
-    ObjectNode screen = UiNodes.screen("clarify-" + entityType, TEXT);
+    ObjectNode screen = UiNodes.screen("clarify-" + entityType, "请选择" + entityLabel);
     ObjectNode table = UiNodes.component(screen, "clarify", "Table");
     ArrayNode cols = table.putArray("columns");
     for (String c : columns) {
@@ -78,7 +75,6 @@ public final class ClarificationScreen {
       for (String c : columns) {
         cells.put(c, UiNodes.truncate(it.path(c).asText(""), 200));
       }
-      // intent = 「<动词标签> <实体名> <id>」（如「申请售后 订单 10002」）：下一轮动词表与实体正则都能命中；不回拼原话
       UiNodes.inlineAction(
           row.putArray("actions"),
           UiNodes.truncate(verbLabel, 32),
@@ -91,17 +87,10 @@ public final class ClarificationScreen {
     return Optional.of(screen);
   }
 
-  /** 实体类型 → 中文名（拼进 intent 供下一轮正则抽取）；与 ArgumentExtractor 的实体正则前缀同源。 */
-  public static String label(String entityType) {
-    return switch (entityType) {
-      case "order" -> "订单";
-      case "product" -> "商品";
-      default -> entityType;
-    };
-  }
-
-  /** 供 ToolMetaRegistry 查澄清工具后的日志。 */
-  public static String describe(ToolMetaRegistry.ToolMeta m) {
-    return m.toolId() + "@" + m.version();
+  /** 契约 inlineAction.intent 禁 `://` 与 `<`。 */
+  static String sanitizeIntent(String s) {
+    return s == null
+        ? ""
+        : s.replace("://", " ").replace("<", "＜").replace("\r", " ").replace("\n", " ");
   }
 }

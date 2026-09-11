@@ -46,11 +46,19 @@ public class SearchToolsUseCase implements ToolSearchPort {
    * @param sessionId 宿主会话键（可空：进程内自检 / 无会话的内部查询），透传给 ToolAccessPolicy
    */
   public ToolSearch.Response execute(ToolSearch.Request req, String sessionId) {
+    // domain 为空 → 全部工具：模型在全部候选里选，内核不做领域路由
+    List<ToolManifest> pool =
+        req.domain() == null || req.domain().isBlank()
+            ? repo.findAll()
+            : repo.findByDomain(req.domain());
     List<ToolManifest> visible =
-        DiscoveryPolicy.filter(repo.findByDomain(req.domain())).stream()
+        DiscoveryPolicy.filter(pool).stream()
             .filter(m -> access.allowed(m.toolId(), sessionId))
             .toList();
-    log.info("search domain={} candidates={}", req.domain(), visible.size());
+    log.info(
+        "search domain={} candidates={}",
+        req.domain() == null ? "*" : req.domain(),
+        visible.size());
     return new ToolSearch.Response(visible.stream().map(ToolSearch.ToolCandidate::from).toList());
   }
 }

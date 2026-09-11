@@ -103,7 +103,10 @@ class SelfCheckBeans {
 
   @Bean
   SelfCheck sparkRooterInlineActionSelfCheck(
-      ToolGatewayClient gateway, ScreenRegistry screens, SchemaValidator validator) {
-    return new InlineActionSelfCheck(gateway, screens, validator.mapper());
+      ToolGatewayClient gateway,
+      ScreenRegistry screens,
+      SchemaValidator validator,
+      ToolMetaRegistry meta) {
+    return new InlineActionSelfCheck(gateway, screens, validator.mapper(), meta);
   }
 }

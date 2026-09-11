@@ -50,6 +50,12 @@ public @interface SparkParam {
   /** JSON Schema const（字符串形态，按组件类型转换，如布尔 "true"）；空表示无。 */
   String constant() default "";
 
-  /** 标记为实体 ID 参数（订单号 / 商品编号）：值只能来自用户原话或会话记忆，规划器不得编造。 */
-  EntityType entity() default EntityType.NONE;
+  /**
+   * 标记为实体 ID 参数，值为宿主自定义的实体类型名（小写，如 "order" / "coupon"；空 = 非实体参数）。
+   * 实体参数的值只能来自用户原话或会话记忆，模型不得编造；内核对类型名本身没有任何理解。
+   */
+  String entity() default "";
+
+  /** 实体 / 参数的用户可读名称，用于澄清屏按钮文案与模型提示；空则用参数名。 */
+  String label() default "";
 }

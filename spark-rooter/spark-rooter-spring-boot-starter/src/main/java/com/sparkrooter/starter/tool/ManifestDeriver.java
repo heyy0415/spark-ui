@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sparkrooter.contracts.SchemaValidator;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
-import com.sparkrooter.spi.annotation.EntityType;
 import com.sparkrooter.spi.annotation.ParamFormat;
 import com.sparkrooter.spi.annotation.SparkDefault;
 import com.sparkrooter.spi.annotation.SparkParam;
@@ -102,6 +101,7 @@ public final class ManifestDeriver {
             tool.domain(),
             pre == null ? List.of() : Arrays.asList(pre.value()),
             tool.clarifiesEntity(),
+            Arrays.asList(tool.verbs()),
             params);
     return new Derived(m, meta);
   }
@@ -260,20 +260,12 @@ public final class ManifestDeriver {
 
   private static ToolMetaRegistry.ParamMeta paramMeta(
       String name, SparkParam p, SparkDefault def, Type t) {
-    Map<String, String> aliases = new LinkedHashMap<>();
-    for (String a : p.aliases()) {
-      int eq = a.indexOf('=');
-      if (eq <= 0) {
-        throw new IllegalStateException("@SparkParam.aliases entry must be VALUE=别名: " + a);
-      }
-      aliases.put(a.substring(eq + 1), a.substring(0, eq));
-    }
     boolean integer = t == int.class || t == Integer.class || t == long.class || t == Long.class;
     return new ToolMetaRegistry.ParamMeta(
         name,
-        p.entity() == null ? EntityType.NONE : p.entity(),
-        aliases,
-        Arrays.asList(p.unit()),
+        p.entity(),
+        p.label(),
+        p.pattern().isEmpty() ? null : p.pattern(),
         p.min() == Long.MIN_VALUE ? null : p.min(),
         p.max() == Long.MAX_VALUE ? null : p.max(),
         p.format(),

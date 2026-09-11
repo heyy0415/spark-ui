@@ -18,7 +18,7 @@ public interface ConversationMemory {
   record Memory(String domain, Map<String, String> entities, LastTable lastTable, Instant at) {}
 
   /**
-   * @param pendingMessage 澄清屏挂起的用户原话（如「申请售后」）：用户下一句只答「第二个」时，把原话拼回去规划；普通列表屏为 null
+   * @param pendingMessage 澄清屏挂起的用户原话：用户下一句只答「第二个」时，把原话拼回去规划；普通列表屏为 null
    */
   record LastTable(String toolId, List<String> rowIds, String pendingMessage) {}
 

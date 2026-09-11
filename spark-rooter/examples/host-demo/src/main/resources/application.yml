@@ -12,7 +12,12 @@ spark:
     enabled: true          # 示例宿主打开启动自检（生产建议关）
   web:
     internal-endpoints: true   # 开 /internal/** 供 e2e 直调 Registry / Gateway
-  # llm.base-url / api-key / model 缺省从环境变量 SPARK_LLM_* 取；任一缺失 → 规则规划器
+  # 模型是必需依赖：三项任一缺失 → 启动 WARN，所有请求返回「未配置模型，无法理解请求」。
+  # 值留空，用环境变量 SPARK_LLM_BASE_URL / SPARK_LLM_API_KEY / SPARK_LLM_MODEL 注入；不要把密钥写进本文件。
+  llm:
+    base-url: ${SPARK_LLM_BASE_URL:}      # OpenAI 兼容接口，如 https://api.openai.com/v1 或网关地址
+    api-key: ${SPARK_LLM_API_KEY:}
+    model: ${SPARK_LLM_MODEL:}
 
 ---
 spring:

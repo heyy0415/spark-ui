@@ -1,18 +1,24 @@
 event:run.started
-data:{"runId":"run_76a5d033e2a04e46","conversationId":"c8b","at":"2026-09-10T12:07:03.129660Z"}
+data:{"runId":"run_8f794d3a3c9c40b8","conversationId":"c8b","at":"2026-09-10T12:34:38.761411Z"}
+
+:ping
+
+:ping
+
+:ping
 
 event:tool.selected
-data:{"runId":"run_76a5d033e2a04e46","toolCallId":"tc_000014","toolId":"order.logistics.get","version":"1.0.0","displayName":"查询订单物流"}
+data:{"runId":"run_8f794d3a3c9c40b8","toolCallId":"tc_000015","toolId":"order.logistics.get","version":"1.0.0","displayName":"查询订单物流"}
 
 event:tool.started
-data:{"runId":"run_76a5d033e2a04e46","toolCallId":"tc_000014","at":"2026-09-10T12:07:03.130463Z"}
+data:{"runId":"run_8f794d3a3c9c40b8","toolCallId":"tc_000015","at":"2026-09-10T12:35:34.263626Z"}
 
 event:tool.completed
-data:{"runId":"run_76a5d033e2a04e46","toolCallId":"tc_000014","status":"succeeded","durationMs":0,"summary":"物流状态 OUT_FOR_DELIVERY"}
+data:{"runId":"run_8f794d3a3c9c40b8","toolCallId":"tc_000015","status":"succeeded","durationMs":1,"summary":"物流状态 OUT_FOR_DELIVERY"}
 
 event:ui.replace
-data:{"runId":"run_76a5d033e2a04e46","ui":{"schemaVersion":"1.0","screenId":"logistics","title":"物流轨迹","components":[{"id":"logistics","type":"Card","props":{"title":"订单 10030 物流","items":[{"label":"承运商","value":"中通快递"},{"label":"运单号","value":"ZT10030521045"},{"label":"状态","value":"OUT_FOR_DELIVERY"}]}},{"id":"logistics-events","type":"Timeline","props":{"items":[{"time":"2026-09-08T19:10:11Z","label":"已揽收","description":"深圳"},{"time":"2026-09-09T04:10:11Z","label":"已发出","description":"深圳转运中心"},{"time":"2026-09-09T13:10:11Z","label":"到达","description":"上海转运中心"},{"time":"2026-09-09T18:10:11Z","label":"派送中","description":"上海市 浦东新区"}]}}],"actions":[]}}
+data:{"runId":"run_8f794d3a3c9c40b8","ui":{"schemaVersion":"1.0","screenId":"logistics","title":"物流轨迹","components":[{"id":"logistics","type":"Card","props":{"title":"订单 10030 物流","items":[{"label":"承运商","value":"中通快递"},{"label":"运单号","value":"ZT10030521045"},{"label":"状态","value":"OUT_FOR_DELIVERY"}]}},{"id":"logistics-events","type":"Timeline","props":{"items":[{"time":"2026-09-08T19:10:11Z","label":"已揽收","description":"深圳"},{"time":"2026-09-09T04:10:11Z","label":"已发出","description":"深圳转运中心"},{"time":"2026-09-09T13:10:11Z","label":"到达","description":"上海转运中心"},{"time":"2026-09-09T18:10:11Z","label":"派送中","description":"上海市 浦东新区"}]}}],"actions":[]}}
 
 event:run.completed
-data:{"runId":"run_76a5d033e2a04e46","at":"2026-09-10T12:07:03.131482Z"}
+data:{"runId":"run_8f794d3a3c9c40b8","at":"2026-09-10T12:35:34.266180Z"}
 

@@ -1,46 +1,44 @@
 package com.sparkrooter.runtime.application.meta;
 
-import com.sparkrooter.spi.annotation.EntityType;
 import com.sparkrooter.spi.annotation.ParamFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 工具元数据注册表：@SparkTool 扫描出的前置步骤、实体参数、枚举别名、单位词、缺省值、澄清候选源。规划器 / 校验器 / 抽取器读它而不再读内核硬编码表； 手写
- * Manifest（迁移期）没有元数据，回落到构造时注入的内核默认表（IntentVerbs.PREREQUISITES /
- * EntityRequirementCheck.ENTITY_ARGS）。 starter 启动期写入，之后只读。
+ * 工具元数据注册表：@SparkTool / @SparkParam 扫描出的前置步骤、实体参数（类型名 / ID 格式 / 中文名）、同义动词、缺省值、澄清候选源。
+ * 规划器与校验器只读它——内核不含任何领域默认表，实体类型名是宿主自定义字符串。starter 启动期写入，之后只读。
  */
 public final class ToolMetaRegistry {
 
   /**
    * 一个 inputSchema 参数的元数据。
    *
-   * @param aliases 别名 → 枚举值（如 已发货 → SHIPPED）
-   * @param units 数量参数的单位词
-   * @param min 整型下界，null 不限
-   * @param max 整型上界，null 不限
+   * @param entity 实体类型名（小写）；null / 空 = 非实体参数
+   * @param label 用户可读名（澄清屏按钮 / 提示）；空则用参数名
+   * @param pattern 实体 ID 格式正则（复核用）；null 不校
    * @param defaultValue @SparkDefault 字面量，null 表示无
-   * @param integer 是否整型参数
    */
   public record ParamMeta(
       String name,
-      EntityType entity,
-      Map<String, String> aliases,
-      List<String> units,
+      String entity,
+      String label,
+      String pattern,
       Long min,
       Long max,
       ParamFormat format,
       String defaultValue,
       boolean integer) {
-    public ParamMeta {
-      aliases = Map.copyOf(aliases);
-      units = List.copyOf(units);
+    public boolean isEntity() {
+      return entity != null && !entity.isBlank();
+    }
+
+    public String displayLabel() {
+      return label == null || label.isBlank() ? name : label;
     }
   }
 
@@ -50,51 +48,43 @@ public final class ToolMetaRegistry {
       String version,
       String domain,
       List<String> prerequisites,
-      EntityType clarifiesEntity,
+      String clarifiesEntity,
+      List<String> verbs,
       Map<String, ParamMeta> params) {
     public ToolMeta {
       prerequisites = List.copyOf(prerequisites);
+      verbs = List.copyOf(verbs);
       params = Collections.unmodifiableMap(new LinkedHashMap<>(params));
+    }
+
+    public boolean clarifies() {
+      return clarifiesEntity != null && !clarifiesEntity.isBlank();
     }
   }
 
   private final Map<String, ToolMeta> byId = new ConcurrentHashMap<>();
 
-  /** 参数名 → 实体类型（小写），register 时增量维护；同名不同类型 → 启动失败。 */
+  /** 参数名 → 实体类型名，register 时增量维护；同名不同类型 → 启动失败。 */
   private final Map<String, String> entityArgs = new ConcurrentHashMap<>();
 
-  private final Map<String, List<String>> defaultPrerequisites;
-  private final Map<String, String> defaultEntityArgs;
-
-  /**
-   * @param defaultPrerequisites 内核默认前置表（toolId → 前置 toolId 列表），供手写 Manifest 工具
-   * @param defaultEntityArgs 内核默认实体参数表（参数名 → 实体类型小写）
-   */
-  public ToolMetaRegistry(
-      Map<String, List<String>> defaultPrerequisites, Map<String, String> defaultEntityArgs) {
-    this.defaultPrerequisites = Map.copyOf(defaultPrerequisites);
-    this.defaultEntityArgs = Map.copyOf(defaultEntityArgs);
-  }
-
-  /** 同 toolId 二次注册 → 启动失败（注解来源与手写来源冲突、两方法同 id 都落在这里）。 */
+  /** 同 toolId 二次注册 → 启动失败。 */
   public void register(ToolMeta meta) {
     if (byId.putIfAbsent(meta.toolId(), meta) != null) {
       throw new IllegalStateException("duplicate @SparkTool id: " + meta.toolId());
     }
     for (ParamMeta p : meta.params().values()) {
-      if (p.entity() == EntityType.NONE) {
+      if (!p.isEntity()) {
         continue;
       }
-      String type = typeName(p.entity());
-      String prev = entityArgs.putIfAbsent(p.name(), type);
-      if (prev != null && !prev.equals(type)) {
+      String prev = entityArgs.putIfAbsent(p.name(), p.entity());
+      if (prev != null && !prev.equals(p.entity())) {
         throw new IllegalStateException(
             "@SparkParam.entity conflict for parameter '"
                 + p.name()
                 + "': "
                 + prev
                 + " vs "
-                + type
+                + p.entity()
                 + " ("
                 + meta.toolId()
                 + "); same parameter name must map to one entity type");
@@ -110,36 +100,80 @@ public final class ToolMetaRegistry {
     return Collections.unmodifiableCollection(byId.values());
   }
 
-  /** 目标工具的前置只读步骤：注解声明优先，否则内核默认表，否则空。 */
+  /** 目标工具的前置只读步骤（注解声明），无则空。 */
   public List<String> prerequisites(String toolId) {
     ToolMeta m = byId.get(toolId);
-    if (m != null) {
-      return m.prerequisites();
-    }
-    return defaultPrerequisites.getOrDefault(toolId, List.of());
+    return m == null ? List.of() : m.prerequisites();
   }
 
-  /** 参数名 → 实体类型（小写）：内核默认表 + 注册时增量维护的注解声明（同名冲突已在 register 拒绝）。 */
+  /** 参数名 → 实体类型名。 */
   public Map<String, String> entityArgs() {
-    Map<String, String> merged = new LinkedHashMap<>(defaultEntityArgs);
-    merged.putAll(entityArgs);
-    return merged;
+    return Collections.unmodifiableMap(entityArgs);
   }
 
-  /** 参数名对应的实体类型（小写），非实体参数返回 null。 */
+  /** 参数名对应的实体类型名，非实体参数返回 null。 */
   public String entityTypeOf(String argName) {
-    return entityArgs().get(argName);
+    return entityArgs.get(argName);
+  }
+
+  /** 某工具某参数的元数据；不存在返回 null。 */
+  public ParamMeta param(String toolId, String argName) {
+    ToolMeta m = byId.get(toolId);
+    return m == null ? null : m.params().get(argName);
+  }
+
+  /** 某实体类型的用户可读名：取任一声明了该类型的参数的 label；没有则用类型名。 */
+  public String entityLabel(String entityType) {
+    for (ToolMeta m : byId.values()) {
+      for (ParamMeta p : m.params().values()) {
+        if (entityType.equals(p.entity()) && p.label() != null && !p.label().isBlank()) {
+          return p.label();
+        }
+      }
+    }
+    return entityType;
+  }
+
+  /** 某实体类型的 ID 格式正则：取任一声明；没有返回 null。 */
+  public String entityPattern(String entityType) {
+    for (ToolMeta m : byId.values()) {
+      for (ParamMeta p : m.params().values()) {
+        if (entityType.equals(p.entity()) && p.pattern() != null && !p.pattern().isBlank()) {
+          return p.pattern();
+        }
+      }
+    }
+    return null;
+  }
+
+  /** 把模型给出的实体标识规范化为已注册的类型名：先按类型名精确匹配，再按 label 匹配（模型常把中文 label 当类型名写回来）。 都不中返回 empty。 */
+  public Optional<String> normalizeEntityType(String raw) {
+    if (raw == null || raw.isBlank()) {
+      return Optional.empty();
+    }
+    String v = raw.trim();
+    for (ToolMeta m : byId.values()) {
+      for (ParamMeta p : m.params().values()) {
+        if (p.isEntity() && p.entity().equalsIgnoreCase(v)) {
+          return Optional.of(p.entity());
+        }
+      }
+    }
+    for (ToolMeta m : byId.values()) {
+      for (ParamMeta p : m.params().values()) {
+        if (p.isEntity() && v.equals(p.label())) {
+          return Optional.of(p.entity());
+        }
+      }
+    }
+    return Optional.empty();
   }
 
   /** 可作某实体类型澄清候选源的工具（@SparkTool(clarifiesEntity=…)）；无则 empty。 */
   public Optional<ToolMeta> clarifierFor(String entityType) {
     return byId.values().stream()
-        .filter(m -> m.clarifiesEntity() != EntityType.NONE)
-        .filter(m -> typeName(m.clarifiesEntity()).equals(entityType))
+        .filter(ToolMeta::clarifies)
+        .filter(m -> m.clarifiesEntity().equals(entityType))
         .findFirst();
-  }
-
-  public static String typeName(EntityType type) {
-    return type.name().toLowerCase(Locale.ROOT);
   }
 }

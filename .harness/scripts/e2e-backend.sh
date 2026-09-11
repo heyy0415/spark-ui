@@ -240,7 +240,7 @@ run_msg c13 "删除订单 10001"
 check "⑬ confirmation shown" 1 "$(events "$DEPLOY/c13.log" | grep -c 'confirmation.required$')"
 confirm_run c13 '{}' c13b
 check "⑬ code" CONFIRMATION_REJECTED "$(data "$DEPLOY/c13b.log" run.failed | json "d['code']")"
-check "⑬ message" "订单状态已变化，本次操作未执行" "$(data "$DEPLOY/c13b.log" run.failed | json "d['message']")"
+check "⑬ message" "对象状态已变化，本次操作未执行" "$(data "$DEPLOY/c13b.log" run.failed | json "d['message']")"
 check "⑬ order.delete audit in run" 0 "$(grep -c "audit runId=$(runid_of c13) .*toolId=order.delete" "$DEPLOY/backend.log")"
 echo "--- ⑬' Gateway 直调 order.delete 10001 → 502 HANDLER_ERROR"
 code=$(gwc order.delete 1.0.0 '{"orderId":"10001"}'); check "⑬' http" 502 "$code"; check "⑬' code" INTERNAL_ERROR "$(json "d['code']" < /tmp/gwc.json)"

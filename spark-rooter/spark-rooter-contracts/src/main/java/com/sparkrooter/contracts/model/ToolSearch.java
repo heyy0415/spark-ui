@@ -3,7 +3,6 @@ package com.sparkrooter.contracts.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 
 /** 契约 tool-search：Runtime ↔ Registry。请求不带身份（内核不识别用户）；响应项只含六字段（agent-safety §2）。 */
@@ -12,7 +11,8 @@ public final class ToolSearch {
   private ToolSearch() {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record Request(@NotBlank String domain, String intent, @Valid Context context) {}
+  /** domain 可空 = 全部可发现工具（内核不按领域筛，由模型在全部候选里选）。 */
+  public record Request(String domain, String intent, @Valid Context context) {}
 
   public record Context(String entityType) {}
 

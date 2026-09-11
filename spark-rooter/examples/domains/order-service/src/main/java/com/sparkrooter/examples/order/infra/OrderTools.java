@@ -8,7 +8,6 @@ import com.sparkrooter.examples.order.domain.OrderRepository;
 import com.sparkrooter.examples.support.DemoUserContext;
 import com.sparkrooter.spi.ToolContext;
 import com.sparkrooter.spi.annotation.Confirmation;
-import com.sparkrooter.spi.annotation.EntityType;
 import com.sparkrooter.spi.annotation.Idempotency;
 import com.sparkrooter.spi.annotation.RiskLevel;
 import com.sparkrooter.spi.annotation.SparkDefault;
@@ -103,7 +102,12 @@ public class OrderTools {
   public record ListOut(List<ListItem> items, @SparkParam(min = 0) int total) {}
 
   public record OrderIdIn(
-      @SparkParam(description = "订单号", entity = EntityType.ORDER, minLength = 1, maxLength = 64)
+      @SparkParam(
+              description = "订单号",
+              entity = "order",
+              label = "订单",
+              minLength = 1,
+              maxLength = 64)
           String orderId) {}
 
   public record Item(
@@ -146,12 +150,13 @@ public class OrderTools {
 
   @SparkTool(
       id = "order.list.search",
+      verbs = {"订单", "我的订单", "最近的单", "买过什么"},
       version = "1.1.0",
       domain = "order",
       name = "搜索订单",
       description =
           "按状态筛选当前租户下的订单列表，按下单时间倒序（最新在前），默认返回前 20 条（limit 最大 50）；已删除订单不返回。total 为筛选后总数。只读，无副作用。",
-      clarifiesEntity = EntityType.ORDER)
+      clarifiesEntity = "order")
   public ListOut list(ListIn in) {
     List<Order> matched =
         orders.findByTenant(DemoUserContext.tenantId()).stream()
@@ -165,6 +170,7 @@ public class OrderTools {
 
   @SparkTool(
       id = "order.detail.get",
+      verbs = {"订单详情", "看看这单", "订单信息"},
       version = "1.1.0",
       domain = "order",
       name = "查询订单详情",
@@ -205,6 +211,7 @@ public class OrderTools {
 
   @SparkTool(
       id = "order.logistics.get",
+      verbs = {"物流", "快递", "到哪了", "发货了吗", "运单"},
       version = "1.0.0",
       domain = "order",
       name = "查询订单物流",
@@ -224,6 +231,7 @@ public class OrderTools {
   /** 软删；handler 自身再过一次 DeletionPolicy 作第二道保险（第一道是 runtime 确认后的重校验）；幂等由 Gateway 保证。 */
   @SparkTool(
       id = "order.delete",
+      verbs = {"删除订单", "删掉", "删除这单"},
       version = "1.0.0",
       domain = "order",
       name = "删除订单",

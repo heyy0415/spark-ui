@@ -34,6 +34,12 @@ public @interface SparkTool {
   /** 给规划模型看的描述，≤ 500 字符，视为不可信文本。 */
   String description();
 
-  /** 该工具（须为无必填参数的列表工具）可作为某实体类型的澄清候选源：用户消息缺该实体时，Runtime 调它拿列表让用户点选。 默认 NONE。 */
-  EntityType clarifiesEntity() default EntityType.NONE;
+  /**
+   * 该工具（须为无必填参数的列表工具）可作为某实体类型的澄清候选源：用户消息缺该实体时，Runtime 调它拿列表让用户点选。 值为宿主自定义实体类型名（与 @SparkParam.entity
+   * 同一命名空间）；空 = 不作候选源。
+   */
+  String clarifiesEntity() default "";
+
+  /** 给模型的同义动词 / 触发短语提示（同义表达列表）。纯提示，内核不据此做任何规则匹配。 */
+  String[] verbs() default {};
 }

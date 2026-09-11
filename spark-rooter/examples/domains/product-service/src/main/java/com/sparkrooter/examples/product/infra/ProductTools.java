@@ -2,7 +2,6 @@ package com.sparkrooter.examples.product.infra;
 
 import com.sparkrooter.examples.product.domain.Product;
 import com.sparkrooter.examples.product.domain.ProductRepository;
-import com.sparkrooter.spi.annotation.EntityType;
 import com.sparkrooter.spi.annotation.SparkDefault;
 import com.sparkrooter.spi.annotation.SparkParam;
 import com.sparkrooter.spi.annotation.SparkTool;
@@ -50,7 +49,12 @@ public class ProductTools {
   public record ListOut(List<ListItem> items, @SparkParam(min = 0) int total) {}
 
   public record ProductIdIn(
-      @SparkParam(description = "商品编号", entity = EntityType.PRODUCT, minLength = 1, maxLength = 64)
+      @SparkParam(
+              description = "商品编号",
+              entity = "product",
+              label = "商品",
+              minLength = 1,
+              maxLength = 64)
           String productId) {}
 
   public record Spec(String name, String value) {}
@@ -70,11 +74,12 @@ public class ProductTools {
 
   @SparkTool(
       id = "product.list.search",
+      verbs = {"商品", "有什么卖的", "商品列表", "搜商品"},
       version = "1.0.0",
       domain = "product",
       name = "搜索商品",
       description = "按关键词（标题 / 描述包含）与分类筛选商品目录，默认返回前 20 条（limit 最大 50）。只读，无副作用。",
-      clarifiesEntity = EntityType.PRODUCT)
+      clarifiesEntity = "product")
   public ListOut list(ListIn in) {
     String keyword = in.keyword().map(k -> k.trim().toLowerCase(Locale.ROOT)).orElse("");
     List<Product> matched =
@@ -89,6 +94,7 @@ public class ProductTools {
 
   @SparkTool(
       id = "product.detail.get",
+      verbs = {"商品详情", "查看商品", "这个商品"},
       version = "1.0.0",
       domain = "product",
       name = "查询商品详情",

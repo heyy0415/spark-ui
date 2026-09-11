@@ -1,9 +1,11 @@
 event:run.started
-data:{"runId":"run_08c505f11b914700","conversationId":"conv_r2","at":"2026-09-10T12:07:02.810715Z"}
+data:{"runId":"run_a603d85eec5842c5","conversationId":"conv_r2","at":"2026-09-10T12:32:25.848350Z"}
+
+:ping
 
 event:message.delta
-data:{"runId":"run_08c505f11b914700","text":"当前没有可用能力处理该请求"}
+data:{"runId":"run_a603d85eec5842c5","text":"当前没有可用能力处理该请求"}
 
 event:run.completed
-data:{"runId":"run_08c505f11b914700","at":"2026-09-10T12:07:02.811744Z"}
+data:{"runId":"run_a603d85eec5842c5","at":"2026-09-10T12:32:44.082613Z"}
 

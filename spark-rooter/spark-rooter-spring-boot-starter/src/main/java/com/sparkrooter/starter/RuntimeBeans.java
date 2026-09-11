@@ -4,13 +4,10 @@ import com.sparkrooter.contracts.SchemaValidator;
 import com.sparkrooter.gateway.api.ToolInvokePort;
 import com.sparkrooter.registry.api.ToolSearchPort;
 import com.sparkrooter.runtime.application.ConfirmationTokenService;
-import com.sparkrooter.runtime.application.DomainResolver;
-import com.sparkrooter.runtime.application.EntityRequirementCheck;
 import com.sparkrooter.runtime.application.RecheckRegistry;
 import com.sparkrooter.runtime.application.RunOrchestrator;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
-import com.sparkrooter.runtime.application.port.IntentClassifier;
 import com.sparkrooter.runtime.application.port.LlmClient;
 import com.sparkrooter.runtime.application.port.ToolGatewayClient;
 import com.sparkrooter.runtime.application.port.ToolRegistryClient;
@@ -22,7 +19,6 @@ import com.sparkrooter.runtime.infra.InMemoryConversationMemory;
 import com.sparkrooter.runtime.infra.InMemoryRunRepository;
 import com.sparkrooter.runtime.infra.inprocess.InProcessToolGatewayClient;
 import com.sparkrooter.runtime.infra.inprocess.InProcessToolRegistryClient;
-import com.sparkrooter.runtime.infra.llm.IntentVerbs;
 import com.sparkrooter.runtime.infra.llm.LlmFactory;
 import com.sparkrooter.spi.ConfirmationRecheck;
 import com.sparkrooter.spi.ConversationMemory;
@@ -30,6 +26,7 @@ import com.sparkrooter.spi.RunContextPropagator;
 import com.sparkrooter.spi.ScreenBuilder;
 import com.sparkrooter.spi.SessionIdResolver;
 import java.time.Clock;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.slf4j.Logger;
@@ -115,11 +112,11 @@ class RuntimeBeans {
   }
 
   /**
-   * @SparkTool 元数据表；内核默认表供手写 Manifest 工具回落。
+   * @SparkTool 元数据表（内核无默认表：全部领域语义来自注解）。
    */
   @Bean
   ToolMetaRegistry sparkRooterToolMetaRegistry() {
-    return new ToolMetaRegistry(IntentVerbs.PREREQUISITES, EntityRequirementCheck.ENTITY_ARGS);
+    return new ToolMetaRegistry();
   }
 
   @Bean
@@ -144,30 +141,21 @@ class RuntimeBeans {
         pick(props.llm().model(), env, "SPARK_LLM_MODEL"));
   }
 
+  /** 规划器：模型主导；未配置模型 → UnavailablePlanner（任何请求直接失败，不做规则兜底）。可信参数集合 = 各领域 recheck 声明的并集。 */
   @Bean
   @ConditionalOnMissingBean(LlmClient.class)
   LlmClient sparkRooterLlmClient(
       LlmFactory.SharedChat chat,
       ToolDisplayNames names,
       ToolMetaRegistry meta,
-      Clock sparkRooterClock,
       SchemaValidator validator,
+      ObjectProvider<ConfirmationRecheck> rechecks,
       SparkRooterProperties props,
       Environment env) {
+    Set<String> trusted = new java.util.HashSet<>();
+    rechecks.orderedStream().forEach(r -> trusted.addAll(r.trustedArgKeys()));
     return LlmFactory.llmClient(
-        chat,
-        names,
-        meta,
-        sparkRooterClock,
-        validator,
-        pick(props.llm().model(), env, "SPARK_LLM_MODEL"));
-  }
-
-  @Bean
-  @ConditionalOnMissingBean(IntentClassifier.class)
-  IntentClassifier sparkRooterIntentClassifier(
-      LlmFactory.SharedChat chat, SparkRooterProperties props, Environment env) {
-    return LlmFactory.intentClassifier(chat, pick(props.llm().model(), env, "SPARK_LLM_MODEL"));
+        chat, names, meta, validator, trusted, pick(props.llm().model(), env, "SPARK_LLM_MODEL"));
   }
 
   private static String pick(String fromProps, Environment env, String envVar) {
@@ -188,12 +176,6 @@ class RuntimeBeans {
   }
 
   @Bean
-  DomainResolver sparkRooterDomainResolver(
-      IntentClassifier classifier, ToolRegistryClient registry) {
-    return new DomainResolver(classifier, registry);
-  }
-
-  @Bean
   ConfirmationTokenService sparkRooterConfirmationTokenService(
       ConfirmationTokenStore store, Clock sparkRooterClock, SparkRooterProperties props) {
     return new ConfirmationTokenService(store, sparkRooterClock, props.runtime().tokenTtl());
@@ -202,7 +184,6 @@ class RuntimeBeans {
   @Bean
   RunOrchestrator sparkRooterRunOrchestrator(
       RunRepository runs,
-      DomainResolver resolver,
       ToolRegistryClient registry,
       ToolGatewayClient gateway,
       LlmClient llm,
@@ -216,7 +197,6 @@ class RuntimeBeans {
       Clock sparkRooterClock) {
     return new RunOrchestrator(
         runs,
-        resolver,
         registry,
         gateway,
         llm,
