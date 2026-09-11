@@ -4,10 +4,10 @@
 |---|---|
 | Change ID | test-frontend-unit-tests-20260911 |
 | 类型 | test |
-| 状态 | REVIEWED |
+| 状态 | PUSHED |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | spark-ui / harness（契约无变更） |
-| 起止时间 | 2026-09-11 ~ — |
+| 起止时间 | 2026-09-11 ~ 2026-09-11 |
 | Spec | [request_analysis/spec.md](request_analysis/spec.md) |
 | Tasks | [request_analysis/tasks.md](request_analysis/tasks.md) |
 
@@ -19,10 +19,10 @@
 | 2 | 需求评审 | DONE | 2/3 | spec_review_v1.md（REVISION REQUIRED：vitest 5 不兼容 Node 20、node:fs 不可用）→ v2（APPROVED） | 2026-09-11 |
 | 3 | 编码实现 | DONE | — | coding_report_v1.md（9 文件 / 99 用例，spark-ui ci 0） | 2026-09-11 |
 | 4 | 编码评审 | DONE | 1/2 | code_review_v1.md（APPROVED，0 MUST FIX；3 SHOULD 已吸收）；ci_result/ci_stage4.txt | 2026-09-11 |
-| 5 | 代码推送 | TODO | — | — | — |
-| 6 | CI 验证 | TODO | — | — | — |
-| 7 | 部署验证 | TODO | — | — | — |
-| 8 | 用户确认 | TODO | — | — | — |
+| 5 | 代码推送 | DONE | — | eef46d5 | 2026-09-11 |
+| 6 | CI 验证 | SKIP | — | 未配置 GitHub Actions（改造第 4 项）；本地 ci 退出 0 见 ci_result/ci_stage4.txt | 2026-09-11 |
+| 7 | 部署验证 | SKIP | — | 本 change 不改运行时产物（build:chat 同 hash 同体积，评审 INFO 已核对），沿用上一 change 的 deploy-verify 结论 | 2026-09-11 |
+| 8 | 用户确认 | PENDING | — | 待用户书面「确认交付」 | — |
 
 ## 契约变更
 - NONE
