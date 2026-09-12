@@ -1,17 +1,18 @@
-package com.sparkrooter.starter.tool;
+package com.sparkrooter.contracts.tool;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sparkrooter.contracts.SchemaValidator;
-import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.spi.annotation.ParamFormat;
 import com.sparkrooter.spi.annotation.SparkDefault;
 import com.sparkrooter.spi.annotation.SparkParam;
 import com.sparkrooter.spi.annotation.SparkPrerequisite;
 import com.sparkrooter.spi.annotation.SparkRisk;
 import com.sparkrooter.spi.annotation.SparkTool;
+import com.sparkrooter.spi.tool.ParamMeta;
+import com.sparkrooter.spi.tool.ToolMeta;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.RecordComponent;
@@ -56,7 +57,7 @@ public final class ManifestDeriver {
   }
 
   /** 推导结果：契约校验过的 Manifest JSON + 供规划器的元数据。 */
-  public record Derived(JsonNode manifest, ToolMetaRegistry.ToolMeta meta) {}
+  public record Derived(JsonNode manifest, ToolMeta meta) {}
 
   public Derived derive(Method method, Class<?> in, Class<?> out) {
     SparkTool tool = method.getAnnotation(SparkTool.class);
@@ -80,7 +81,7 @@ public final class ManifestDeriver {
     m.put("name", tool.name());
     m.put("description", tool.description());
     m.put("protocol", "in-process");
-    Map<String, ToolMetaRegistry.ParamMeta> params = new LinkedHashMap<>();
+    Map<String, ParamMeta> params = new LinkedHashMap<>();
     m.set("inputSchema", inputSchema(in, params, where));
     m.set("outputSchema", recordSchema(out, true, where));
     m.set("risk", riskNode(risk));
@@ -94,8 +95,8 @@ public final class ManifestDeriver {
     m.put("status", tool.domain().equals(SELFCHECK_DOMAIN) ? "draft" : "active");
     validator.assertValid("tool-manifest", m);
 
-    ToolMetaRegistry.ToolMeta meta =
-        new ToolMetaRegistry.ToolMeta(
+    ToolMeta meta =
+        new ToolMeta(
             tool.id(),
             tool.version(),
             tool.domain(),
@@ -116,8 +117,7 @@ public final class ManifestDeriver {
   }
 
   /** inputSchema：只收 @SparkParam 组件；无 @SparkDefault 且非可空 → required。 */
-  private ObjectNode inputSchema(
-      Class<?> in, Map<String, ToolMetaRegistry.ParamMeta> params, String where) {
+  private ObjectNode inputSchema(Class<?> in, Map<String, ParamMeta> params, String where) {
     ObjectNode schema = mapper.createObjectNode();
     schema.put("type", "object");
     schema.put("additionalProperties", false);
@@ -258,10 +258,9 @@ public final class ManifestDeriver {
     }
   }
 
-  private static ToolMetaRegistry.ParamMeta paramMeta(
-      String name, SparkParam p, SparkDefault def, Type t) {
+  private static ParamMeta paramMeta(String name, SparkParam p, SparkDefault def, Type t) {
     boolean integer = t == int.class || t == Integer.class || t == long.class || t == Long.class;
-    return new ToolMetaRegistry.ParamMeta(
+    return new ParamMeta(
         name,
         p.entity(),
         p.label(),

@@ -1,0 +1,18 @@
+event:run.started
+data:{"runId":"run_199fc63e32e64b35","conversationId":"c10","at":"2026-09-12T15:47:32.600264Z"}
+
+event:tool.selected
+data:{"runId":"run_199fc63e32e64b35","toolCallId":"tc_000016","toolId":"product.detail.get","version":"1.0.0","displayName":"查询商品详情"}
+
+event:tool.started
+data:{"runId":"run_199fc63e32e64b35","toolCallId":"tc_000016","at":"2026-09-12T15:47:32.601066Z"}
+
+event:tool.completed
+data:{"runId":"run_199fc63e32e64b35","toolCallId":"tc_000016","status":"succeeded","durationMs":1,"summary":"商品 无线耳机 Pro"}
+
+event:ui.replace
+data:{"runId":"run_199fc63e32e64b35","ui":{"schemaVersion":"1.0","screenId":"product-detail","title":"商品详情","components":[{"id":"product","type":"Card","props":{"title":"无线耳机 Pro","description":"无线耳机 Pro，数码品类热销款，支持 7 天无理由退换。","items":[{"label":"编号","value":"P-1003"},{"label":"价格","value":"899.00 CNY"},{"label":"库存","value":"120","tone":"default"},{"label":"分类","value":"数码"},{"label":"销量","value":"4118"},{"label":"颜色","value":"黑"},{"label":"保修","value":"12 个月"}],"actions":[{"label":"返回列表","intent":"有什么商品"}]}}],"actions":[]}}
+
+event:run.completed
+data:{"runId":"run_199fc63e32e64b35","at":"2026-09-12T15:47:32.603629Z"}
+

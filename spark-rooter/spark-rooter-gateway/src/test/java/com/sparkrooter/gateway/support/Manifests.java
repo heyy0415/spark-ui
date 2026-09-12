@@ -40,6 +40,7 @@ public final class Manifests {
         m.name(),
         m.description(),
         m.protocol(),
+        m.provider(),
         m.inputSchema(),
         m.outputSchema(),
         new ToolManifest.Risk(

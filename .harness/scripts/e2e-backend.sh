@@ -39,7 +39,7 @@ check "tools registered (12 domain + demo.whoami + selfcheck echo)" 1 "$(grep -c
 echo "--- selfchecks"
 # 各检查类自己打的明细行（不含 SelfCheckRunner 汇总行）。
 # PlanSelfCheck 改为测通用校验器后不再调模型，规则 / LLM 两种模式断言相同。
-for s in "contracts 9 schemas, 27 examples OK" "refund.create idempotent OK" "invalid toolId rejected OK" "missing prerequisite rejected OK" "foreign entity arg rejected OK" "schema-violating arg rejected OK" "token expired/replayed/digest-mismatch/extra-key/session-mismatch rejected OK" "gateway idempotency claim OK" "confirmation coverage OK" "inline actions OK" "proxy invocation OK (aspect fired once)" "manifest parity"; do
+for s in "contracts 9 schemas, 28 examples OK" "refund.create idempotent OK" "invalid toolId rejected OK" "missing prerequisite rejected OK" "foreign entity arg rejected OK" "schema-violating arg rejected OK" "token expired/replayed/digest-mismatch/extra-key/session-mismatch rejected OK" "gateway idempotency claim OK" "confirmation coverage OK" "inline actions OK" "proxy invocation OK (aspect fired once)" "manifest parity"; do
   check "selfcheck: $s" 1 "$(grep -v SelfCheckRunner "$DEPLOY/backend.log" | grep -c "selfcheck: $s")"
 done
 # SelfCheckRunner 汇总行：9 项全过（含 plan validator / confirmation token 两项只在汇总行出现）

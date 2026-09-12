@@ -43,12 +43,39 @@ spark-rooter 不是一个独立部署的平台，而是一个 **Starter 依赖**
 
 ## 前端 FSD 分层
 
-`spark-ui/` 是 pnpm workspace：`packages/core`（`@spark-ui/core`，Spark UI 渲染引擎，可发包）+ `apps/chat`（唯一应用，FSD `app → pages → features → entities → shared` 单向）。Renderer、ComponentRegistry 与全部白名单封装位于 `spark-ui/packages/core/src/`，按端型分 `components/desktop/`（antd）与 `components/mobile/`（antd-mobile）；端型由宿主挂载的 `SparkDeviceProvider` 一次性决定；ui-schema 的 Zod 投影真源也在 core，chat 的其余契约投影组合引用它。
+`spark-ui/` 是 pnpm workspace：`packages/core`（`@spark-ui/core`）+ `apps/chat`（参考宿主，FSD `app → pages → features → shared` 单向）。
+
+`@spark-ui/core` 有三个入口，依赖单向 `./react → ./client`、`. → schema/registry`：
+
+| 入口 | 内容 | 依赖 |
+|---|---|---|
+| `./client` | **headless**：契约 Zod 投影、`request` / `consumeSse`、事件归约 `reduceEvent`、状态容器 `createRunStore` | 仅 zod |
+| `./react` | `useSparkRun`（`createRunStore` + `useSyncExternalStore`） | + react |
+| `.` | Renderer、ComponentRegistry、白名单封装（`components/desktop` antd、`components/mobile` antd-mobile）、主题与端型 Provider | + react、antd、antd-mobile |
+
+全部前端契约投影（ui-schema 在 `src/schema/`，其余在 `src/client/contracts.ts`）与运行时状态都在 core，`apps/chat` 不再有 `entities/` 与 `shared/api/`——它只剩路由、页面与一个 `AgentChatPanel`。宿主自带渲染时只装 `./client`，不会被拖进 React / antd（`scripts/check-deps.mjs` 守护：`client/` 禁 react、禁 `import.meta.env`；`client/` 与 `react/` 都禁 import 渲染层入口 `../index`）。端型由宿主挂载的 `SparkDeviceProvider` 一次性决定。
+
+## 两种部署拓扑
+
+| | 单体内嵌 | 分布式微服务 |
+|---|---|---|
+| 领域服务 | 与内核同进程 | 独立进程（provider） |
+| Manifest 的 `protocol` | `in-process` | `http` + `provider` 坐标 |
+| 引入坐标 | `spark-rooter-spring-boot-starter` | provider 侧 `spark-provider-spring-boot-starter` |
+| 工具调用 | 进程内反射（`InProcessToolTransport`） | HTTP（`HttpToolTransport`） |
+| 示例 | `examples/host-demo` | `examples/provider-demo` + host-demo 当 hub |
+
+两者可**同时存在于一个 hub**：Gateway 按 `manifest.protocol()` 分派，未装配对应协议时 `TOOL_NOT_FOUND` 而**绝不回落本地**（否则远程工具会被就近执行成同名本地工具）。
+
+hub 没配 `spark.providers.tokens.*` 时不接受远程工具，也不装配 HTTP 客户端——单体宿主行为与引入本能力之前完全一致。
+
+规划、治理、确认链全在 hub；provider 只做「声明工具 + 执行工具」，不含 Agent Runtime、Registry、Gateway、LLM 客户端。跨进程的安全边界见 `rules/agent-safety.md` §8。
 
 ## 后端模块依赖
 
 ```
 starter → web-mvc, runtime, registry, gateway, contracts, spi（AutoConfiguration.imports；全部默认实现 @ConditionalOnMissingBean，Bean 名前缀 sparkRooter*）
+provider-starter → spi, contracts（薄依赖：不含 Spring AI / runtime / registry / gateway / web 栈）
 web-mvc → runtime, registry, gateway
 runtime → { registry(api), gateway(api) }, contracts, spi
 gateway → spi（ToolResolver / ToolHandler / AuditSink / ToolAccessPolicy / RunContextPropagator）, contracts
@@ -57,13 +84,13 @@ examples/domains/* → spi, contracts, demo-support（@SparkTool；互不 import
 examples/host-demo → starter + examples/domains/*（独立工程，本地仓坐标）
 ```
 
-宿主可替换端口（定义同类型 Bean 即覆盖）：`RunRepository` / `ConfirmationTokenStore` / `IdempotencyStore` / `ToolRegistryRepository` / `ConversationMemory`（默认内存）、`AuditSink`（默认日志）、`LlmClient`（默认 Spring AI；未配置模型为 `UnavailablePlanner`，所有请求直接失败）、`SessionIdResolver`（**无默认**：缺 Bean 拒绝启动，`spark.runtime.demo-session-resolver=true` 才放行演示实现）、`ToolAccessPolicy`（默认全放行）、`RunContextPropagator`（默认 no-op，宿主强烈建议实现）。
+宿主可替换端口（定义同类型 Bean 即覆盖）：`RunRepository` / `ConfirmationTokenStore` / `IdempotencyStore` / `ToolRegistryRepository` / `ConversationMemory`（默认内存）、`AuditSink`（默认日志）、`LlmClient`（默认 Spring AI；未配置模型为 `UnavailablePlanner`，所有请求直接失败）、`SessionIdResolver`（**无默认**：缺 Bean 拒绝启动，`spark.runtime.demo-session-resolver=true` 才放行演示实现）、`ToolAccessPolicy`（默认全放行）、`RunContextPropagator`（默认 no-op，宿主强烈建议实现）、`ProviderAuth`（**无默认**：不配 `spark.providers.tokens.*` 则不接受远程工具）、`ProviderEndpointResolver`（默认取 Manifest 的 `baseUrl`；接注册中心的宿主自行替换）、`ProviderIdempotencyStore`（provider 侧，默认进程内；多实例部署要强一致需换共享存储）。
 
 ## 状态管理边界（前端）
 
 | 状态类型 | 工具 |
 |---|---|
-| 服务端状态（Run、UI Schema） | TanStack Query + SSE 订阅写入 cache |
+| 运行时会话状态（Run、UI Schema） | `@spark-ui/core/client` 的 `createRunStore()`，SSE 事件经 `reduceEvent` 归约后 dispatch；React 侧 `useSyncExternalStore` 订阅。**不用 TanStack Query**：SSE 是推送模型，视图状态由事件序列唯一决定，无「数据过期需重取」语义 |
 | 跨页面客户端状态 | 当前无；需要时以 change 引入 |
 | 同页面 UI 状态 | useState / useReducer |
 | 路由状态 | React Router |

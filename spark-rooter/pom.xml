@@ -18,6 +18,8 @@
     <module>spark-rooter-runtime</module>
     <module>spark-rooter-web-mvc</module>
     <module>spark-rooter-spring-boot-starter</module>
+    <!-- 微服务形态：领域服务侧的薄 starter（JDK 17 下限，不含 Spring AI / runtime / gateway） -->
+    <module>spark-provider-spring-boot-starter</module>
     <module>examples/demo-support</module>
     <module>examples/domains/order-service</module>
     <module>examples/domains/product-service</module>
@@ -93,7 +95,9 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.16.0</version>
         <configuration>
-          <release>21</release>
+          <!-- 取 maven.compiler.release 属性，子模块可覆盖：共享契约层（spi / contracts）降为 17
+               以便 provider 跑在 JDK 17 的业务服务里；hub 侧模块继承默认 21 -->
+          <release>${maven.compiler.release}</release>
           <parameters>true</parameters>
           <compilerArgs>
             <arg>-Xlint:all</arg>

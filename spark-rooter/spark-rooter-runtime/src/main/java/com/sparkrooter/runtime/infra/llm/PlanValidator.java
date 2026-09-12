@@ -10,6 +10,7 @@ import com.sparkrooter.runtime.application.port.LlmClient;
 import com.sparkrooter.runtime.domain.Plan;
 import com.sparkrooter.runtime.domain.RunFailure;
 import com.sparkrooter.runtime.domain.Step;
+import com.sparkrooter.spi.tool.ParamMeta;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -150,7 +151,7 @@ public final class PlanValidator {
               "TOOL_SELECTION_INVALID", "arg not in inputSchema of " + d.toolId() + ": " + k);
         }
         assertValueMatches(props.path(k), k, e.getValue(), d.toolId(), validator);
-        ToolMetaRegistry.ParamMeta pm = meta.param(c.toolId(), k);
+        ParamMeta pm = meta.param(c.toolId(), k);
         if (pm != null && pm.isEntity()) {
           verifyEntity(pm, e.getValue(), knownIds, d.toolId());
         }
@@ -193,7 +194,7 @@ public final class PlanValidator {
       // 必填实体参数缺失 → 缺实体（不是校验失败）
       for (JsonNode n : c.inputSchema().path("required")) {
         String k = n.asText();
-        ToolMetaRegistry.ParamMeta pm = meta.param(c.toolId(), k);
+        ParamMeta pm = meta.param(c.toolId(), k);
         if (pm != null && pm.isEntity() && !args.containsKey(k)) {
           throw new EntityMissing(pm.entity(), "required entity arg " + k + " missing");
         }
@@ -212,8 +213,7 @@ public final class PlanValidator {
     return ids;
   }
 
-  static void verifyEntity(
-      ToolMetaRegistry.ParamMeta pm, String value, Set<String> knownIds, String toolId) {
+  static void verifyEntity(ParamMeta pm, String value, Set<String> knownIds, String toolId) {
     if (pm.pattern() != null && !Pattern.compile(pm.pattern()).matcher(value).matches()) {
       throw new EntityMissing(
           pm.entity(), "entity arg " + pm.name() + " of " + toolId + " does not match pattern");
@@ -291,7 +291,7 @@ public final class PlanValidator {
     Map<String, String> args = step.args() == null ? Map.of() : step.args();
     for (JsonNode n : c.inputSchema().path("required")) {
       String k = n.asText();
-      ToolMetaRegistry.ParamMeta pm = meta.param(c.toolId(), k);
+      ParamMeta pm = meta.param(c.toolId(), k);
       if (pm != null && pm.isEntity() && !args.containsKey(k)) {
         return Optional.of(pm.entity());
       }

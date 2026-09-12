@@ -1,0 +1,18 @@
+server:
+  port: ${PROVIDER_PORT:8092}
+
+spark:
+  provider:
+    # hub 地址：Manifest 推送目标
+    hub-url: ${SPARK_HUB_URL:http://127.0.0.1:8091}
+    # 逻辑服务名，与 hub 侧的认证密钥绑定（防服务 A 注册服务 B 的工具）
+    service-name: inventory-service
+    # 本服务对 hub 可见的地址，写进 Manifest 的 provider.baseUrl
+    base-url: ${SPARK_PROVIDER_BASE_URL:http://127.0.0.1:8092}
+    # 与 hub 的共享密钥；未配置则拒绝启动（安全缺省不能是宽松的）
+    token: ${SPARK_PROVIDER_TOKEN:demo-provider-token}
+    owner-team: order-platform
+
+logging:
+  level:
+    com.sparkrooter.provider: INFO

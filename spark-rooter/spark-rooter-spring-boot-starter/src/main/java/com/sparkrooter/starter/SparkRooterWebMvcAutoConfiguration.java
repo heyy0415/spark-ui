@@ -3,6 +3,7 @@ package com.sparkrooter.starter;
 import com.sparkrooter.contracts.SchemaValidator;
 import com.sparkrooter.gateway.application.InvokeToolUseCase;
 import com.sparkrooter.registry.application.RegisterToolUseCase;
+import com.sparkrooter.registry.application.RegistrationGuard;
 import com.sparkrooter.registry.application.SearchToolsUseCase;
 import com.sparkrooter.registry.domain.ToolRegistryRepository;
 import com.sparkrooter.runtime.application.RunOrchestrator;
@@ -81,8 +82,9 @@ public class SparkRooterWebMvcAutoConfiguration {
         RegisterToolUseCase register,
         SearchToolsUseCase search,
         ToolRegistryRepository repo,
-        SchemaValidator validator) {
-      return new ToolRegistryController(register, search, repo, validator);
+        SchemaValidator validator,
+        RegistrationGuard guard) {
+      return new ToolRegistryController(register, search, repo, validator, guard);
     }
 
     @Bean

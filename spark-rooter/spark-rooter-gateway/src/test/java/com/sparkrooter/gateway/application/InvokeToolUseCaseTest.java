@@ -9,6 +9,7 @@ import com.sparkrooter.contracts.model.SseEvent;
 import com.sparkrooter.contracts.model.ToolInvoke;
 import com.sparkrooter.gateway.domain.GatewayException;
 import com.sparkrooter.gateway.infra.InMemoryIdempotencyStore;
+import com.sparkrooter.gateway.infra.transport.InProcessToolTransport;
 import com.sparkrooter.gateway.support.Manifests;
 import com.sparkrooter.gateway.support.Providers;
 import com.sparkrooter.spi.AuditSink;
@@ -306,12 +307,17 @@ final class InvokeToolUseCaseTest {
 
   @Test
   void duplicateHandlerRegistrationFailsFast() {
+    // handler 注册表在 InProcessToolTransport（T04 起）：重复注册仍启动期失败，只是守卫点下移
     ToolHandler h = handler(args -> Manifests.okOutput());
     assertThatThrownBy(() -> gateway(null, h, h))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("duplicate tool handler");
-    InvokeToolUseCase gw = gateway(null, h);
-    assertThatThrownBy(() -> gw.registerHandler(h)).isInstanceOf(IllegalStateException.class);
+
+    InProcessToolTransport transport = new InProcessToolTransport();
+    transport.register(h);
+    assertThatThrownBy(() -> transport.register(h))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("duplicate tool handler");
   }
 
   // ---------------------------------------------------------------- helpers
@@ -323,6 +329,10 @@ final class InvokeToolUseCaseTest {
   }
 
   private InvokeToolUseCase gateway(ToolAccessPolicy policy, ToolHandler... handlers) {
+    InProcessToolTransport transport = new InProcessToolTransport();
+    for (ToolHandler h : handlers) {
+      transport.register(h);
+    }
     return new InvokeToolUseCase(
         resolver,
         Providers.of(policy),
@@ -330,8 +340,8 @@ final class InvokeToolUseCaseTest {
         idempotency,
         audit,
         Manifests.VALIDATOR,
-        List.of(handlers),
-        executor);
+        executor,
+        List.of(transport));
   }
 
   private static ToolHandler handler(Function<JsonNode, JsonNode> fn) {

@@ -10,9 +10,18 @@
   <artifactId>spark-rooter-contracts</artifactId>
   <name>spark-rooter-contracts</name>
 
+  <properties>
+    <!-- 共享契约层取两边下限：provider 可能跑在 JDK 17 的业务服务里（企业存量大量停在 17），
+         而 21 字节码（major 65）在 17 上会 UnsupportedClassVersionError。hub 侧模块仍为 21。 -->
+    <maven.compiler.release>17</maven.compiler.release>
+  </properties>
+
   <dependencies>
     <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-spi</artifactId></dependency>
     <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId></dependency>
+    <!-- PlatformMapper 显式注册：时间不用时间戳；record 组件 Optional<T> 缺键 → empty -->
+    <dependency><groupId>com.fasterxml.jackson.datatype</groupId><artifactId>jackson-datatype-jsr310</artifactId></dependency>
+    <dependency><groupId>com.fasterxml.jackson.datatype</groupId><artifactId>jackson-datatype-jdk8</artifactId></dependency>
     <dependency><groupId>com.networknt</groupId><artifactId>json-schema-validator</artifactId></dependency>
     <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-api</artifactId></dependency>
     <dependency><groupId>jakarta.validation</groupId><artifactId>jakarta.validation-api</artifactId></dependency>

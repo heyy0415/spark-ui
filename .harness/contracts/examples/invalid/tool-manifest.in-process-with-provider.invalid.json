@@ -1,0 +1,76 @@
+{
+  "toolId": "refund.eligibility.check",
+  "version": "1.2.0",
+  "domain": "refund",
+  "name": "检查退款资格",
+  "description": "invalid: protocol=in-process 却带了 provider 坐标 —— 单体形态无远程坐标概念，属配置错误，必须被拒。",
+  "protocol": "in-process",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "orderId"
+    ],
+    "properties": {
+      "orderId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "orderId",
+      "eligible",
+      "refundableAmount",
+      "currency"
+    ],
+    "properties": {
+      "orderId": {
+        "type": "string"
+      },
+      "eligible": {
+        "type": "boolean"
+      },
+      "refundableAmount": {
+        "type": "string",
+        "pattern": "^-?\\d+(\\.\\d{1,2})?$"
+      },
+      "currency": {
+        "type": "string",
+        "enum": [
+          "CNY"
+        ]
+      },
+      "reason": {
+        "type": "string",
+        "maxLength": 200
+      }
+    }
+  },
+  "risk": {
+    "level": "low",
+    "sideEffect": false,
+    "reversible": true,
+    "confirmation": "never"
+  },
+  "authorization": {
+    "permission": "refund:read"
+  },
+  "execution": {
+    "timeoutMs": 3000,
+    "maxRetries": 1,
+    "idempotency": "none"
+  },
+  "owner": {
+    "team": "refund-platform"
+  },
+  "status": "active",
+  "provider": {
+    "serviceName": "refund-service",
+    "baseUrl": "http://refund-service.internal:8080"
+  }
+}

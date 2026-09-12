@@ -1,9 +1,9 @@
 package com.sparkrooter.runtime.application.meta;
 
-import com.sparkrooter.spi.annotation.ParamFormat;
+import com.sparkrooter.spi.tool.ParamMeta;
+import com.sparkrooter.spi.tool.ToolMeta;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -12,55 +12,11 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 工具元数据注册表：@SparkTool / @SparkParam 扫描出的前置步骤、实体参数（类型名 / ID 格式 / 中文名）、同义动词、缺省值、澄清候选源。
  * 规划器与校验器只读它——内核不含任何领域默认表，实体类型名是宿主自定义字符串。starter 启动期写入，之后只读。
+ *
+ * <p>数据载体 {@link ToolMeta} / {@link ParamMeta} 在 spi（纯数据，两侧共用）；本容器留在 runtime，因为只有规划链路读它 —— provider
+ * 不做规划，无需这个容器。
  */
 public final class ToolMetaRegistry {
-
-  /**
-   * 一个 inputSchema 参数的元数据。
-   *
-   * @param entity 实体类型名（小写）；null / 空 = 非实体参数
-   * @param label 用户可读名（澄清屏按钮 / 提示）；空则用参数名
-   * @param pattern 实体 ID 格式正则（复核用）；null 不校
-   * @param defaultValue @SparkDefault 字面量，null 表示无
-   */
-  public record ParamMeta(
-      String name,
-      String entity,
-      String label,
-      String pattern,
-      Long min,
-      Long max,
-      ParamFormat format,
-      String defaultValue,
-      boolean integer) {
-    public boolean isEntity() {
-      return entity != null && !entity.isBlank();
-    }
-
-    public String displayLabel() {
-      return label == null || label.isBlank() ? name : label;
-    }
-  }
-
-  /** 一个工具的元数据；params 按 inputSchema 参数名。 */
-  public record ToolMeta(
-      String toolId,
-      String version,
-      String domain,
-      List<String> prerequisites,
-      String clarifiesEntity,
-      List<String> verbs,
-      Map<String, ParamMeta> params) {
-    public ToolMeta {
-      prerequisites = List.copyOf(prerequisites);
-      verbs = List.copyOf(verbs);
-      params = Collections.unmodifiableMap(new LinkedHashMap<>(params));
-    }
-
-    public boolean clarifies() {
-      return clarifiesEntity != null && !clarifiesEntity.isBlank();
-    }
-  }
 
   private final Map<String, ToolMeta> byId = new ConcurrentHashMap<>();
 

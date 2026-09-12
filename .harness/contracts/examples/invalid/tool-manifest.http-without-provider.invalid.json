@@ -1,0 +1,70 @@
+{
+  "toolId": "order.detail.get",
+  "version": "1.0.0",
+  "domain": "order",
+  "name": "查询订单详情",
+  "description": "invalid: protocol=http 但没有 provider 坐标 —— Gateway 无法寻址，必须被拒。",
+  "protocol": "http",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "orderId"
+    ],
+    "properties": {
+      "orderId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "orderId",
+      "status",
+      "totalAmount",
+      "currency"
+    ],
+    "properties": {
+      "orderId": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string"
+      },
+      "totalAmount": {
+        "type": "string",
+        "pattern": "^-?\\d+(\\.\\d{1,2})?$"
+      },
+      "currency": {
+        "type": "string",
+        "enum": [
+          "CNY"
+        ]
+      },
+      "createdAt": {
+        "type": "string",
+        "format": "date-time"
+      }
+    }
+  },
+  "risk": {
+    "level": "low",
+    "sideEffect": false,
+    "reversible": true,
+    "confirmation": "never"
+  },
+  "authorization": {},
+  "execution": {
+    "timeoutMs": 3000,
+    "maxRetries": 1,
+    "idempotency": "none"
+  },
+  "owner": {
+    "team": "order-platform"
+  },
+  "status": "active"
+}

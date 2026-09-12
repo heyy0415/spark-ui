@@ -1,11 +1,11 @@
 package com.sparkrooter.starter;
 
 import com.sparkrooter.contracts.SchemaValidator;
-import com.sparkrooter.gateway.application.InvokeToolUseCase;
+import com.sparkrooter.contracts.tool.ManifestDeriver;
+import com.sparkrooter.gateway.infra.transport.InProcessToolTransport;
 import com.sparkrooter.registry.application.RegisterToolUseCase;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.spi.ToolNameSink;
-import com.sparkrooter.starter.tool.ManifestDeriver;
 import com.sparkrooter.starter.tool.SparkToolScanner;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
@@ -31,10 +31,10 @@ class ToolBeans {
       ApplicationContext context,
       ManifestDeriver deriver,
       RegisterToolUseCase register,
-      InvokeToolUseCase gateway,
+      InProcessToolTransport transport,
       ToolMetaRegistry meta,
       ObjectProvider<ToolNameSink> nameSinks) {
     return new SparkToolScanner(
-        context, deriver, register, gateway, meta, nameSinks.orderedStream().toList());
+        context, deriver, register, transport, meta, nameSinks.orderedStream().toList());
   }
 }

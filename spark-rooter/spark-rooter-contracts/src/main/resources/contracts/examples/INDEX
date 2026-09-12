@@ -14,6 +14,7 @@ sse-events.ui-patch.example.json
 sse-events.ui-replace.example.json
 tool-invoke.example.json
 tool-manifest.example.json
+tool-manifest.http-provider.example.json
 tool-manifest.refund-create.example.json
 tool-search.example.json
 ui-schema.aftersale-confirm.example.json

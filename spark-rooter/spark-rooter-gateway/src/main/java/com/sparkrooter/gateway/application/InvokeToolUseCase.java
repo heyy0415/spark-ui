@@ -6,6 +6,8 @@ import com.networknt.schema.ValidationMessage;
 import com.sparkrooter.contracts.SchemaValidator;
 import com.sparkrooter.contracts.model.ToolInvoke;
 import com.sparkrooter.contracts.model.ToolManifest;
+import com.sparkrooter.contracts.tool.ToolTransport;
+import com.sparkrooter.contracts.tool.ToolTransportException;
 import com.sparkrooter.gateway.api.ToolInvokePort;
 import com.sparkrooter.gateway.domain.ArgsDigest;
 import com.sparkrooter.gateway.domain.GatewayException;
@@ -16,7 +18,6 @@ import com.sparkrooter.spi.AuditSink;
 import com.sparkrooter.spi.ExecutionContext;
 import com.sparkrooter.spi.RunContextPropagator;
 import com.sparkrooter.spi.ToolAccessPolicy;
-import com.sparkrooter.spi.ToolHandler;
 import com.sparkrooter.spi.ToolResolver;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +39,13 @@ import org.springframework.beans.factory.ObjectProvider;
  * 执行面唯一入口（agent-safety §5）。顺序固定： 寻址 → 输入 Schema 校验 → 宿主访问策略（可选）→ 幂等 → 调用（超时 / 重试按 Manifest）→ 输出
  * Schema 校验 → 脱敏 → 审计。内核不做用户鉴权：宿主的方法级切面在反射调用时照常触发，宿主 ThreadLocal 经 RunContextPropagator 带到工具线程。
  *
- * <p>Gateway 不做规划、不选工具；ToolHandler 由 Spring 注入，pom 不依赖任何领域模块。
+ * <p>Gateway 不做规划、不选工具；pom 不依赖任何领域模块。
+ *
+ * <p>按 {@code manifest.protocol()} 分派到 {@link ToolTransport}：transport 只负责「把参数送到工具、把结果拿回来」，
+ * 上述治理一项都不下放——否则远程工具会绕过执行面。未装配对应协议时 TOOL_NOT_FOUND，<b>绝不回落本地</b> （否则远程工具会被就近执行成同名本地工具）。
+ *
+ * <p>重试判据是「这次调用有没有碰到工具」而非「错误严不严重」：传输层报 {@link ToolTransportException#retryable()} 为 false（远端超时 /
+ * 远端已失败）时立即停止重试—— 跨进程超时只能中断本地等待，远端可能已执行成功，重试会造成重复副作用。
  */
 public class InvokeToolUseCase implements ToolInvokePort {
 
@@ -51,8 +58,15 @@ public class InvokeToolUseCase implements ToolInvokePort {
   private final IdempotencyStore idempotency;
   private final AuditSink audit;
   private final SchemaValidator validator;
-  private final Map<String, ToolHandler> handlers = new ConcurrentHashMap<>();
   private final ExecutorService executor;
+
+  /**
+   * 按协议分派的传输实现。进程内传输必定存在（单体形态的唯一路径）；HTTP 传输只在宿主装配了 provider 支持时出现。
+   *
+   * <p>治理不下放：本类仍负责校验 / 策略 / 幂等 / 超时 / 重试 / 脱敏 / 审计，transport 只管把参数送到工具。
+   */
+  private final Map<ToolManifest.Protocol, ToolTransport> transports =
+      new ConcurrentHashMap<>(ToolManifest.Protocol.values().length);
 
   /** pipeline 的结果：response + 是否为重放 / 等待得到（审计口径用，契约 status 不变）。 */
   private record Outcome(ToolInvoke.Response response, boolean replayed) {}
@@ -64,8 +78,8 @@ public class InvokeToolUseCase implements ToolInvokePort {
       IdempotencyStore idempotency,
       AuditSink audit,
       SchemaValidator validator,
-      List<ToolHandler> handlerBeans,
-      ExecutorService toolExecutor) {
+      ExecutorService toolExecutor,
+      List<ToolTransport> transportBeans) {
     this.resolver = resolver;
     // 宿主未定义策略 Bean → 全放行
     this.access = access.getIfAvailable(() -> (toolId, sessionId) -> true);
@@ -73,22 +87,16 @@ public class InvokeToolUseCase implements ToolInvokePort {
     this.idempotency = idempotency;
     this.audit = audit;
     this.validator = validator;
-    for (ToolHandler h : handlerBeans) {
-      String key = h.toolId() + "@" + h.version();
-      if (handlers.putIfAbsent(key, h) != null) {
-        throw new IllegalStateException("duplicate tool handler for " + key);
+    this.executor = toolExecutor;
+    for (ToolTransport t : transportBeans) {
+      if (transports.putIfAbsent(t.protocol(), t) != null) {
+        throw new IllegalStateException("duplicate ToolTransport for protocol " + t.protocol());
       }
     }
-    this.executor = toolExecutor;
-    log.info("gateway handlers registered: {}", handlers.keySet());
-  }
-
-  /** 注册一个工具执行入口（构造期的 ToolHandler Bean 与启动期 @SparkTool 扫描出的适配器共用）；同 toolId@version 二次注册 → 启动失败。 */
-  public void registerHandler(ToolHandler handler) {
-    String key = handler.toolId() + "@" + handler.version();
-    if (handlers.putIfAbsent(key, handler) != null) {
-      throw new IllegalStateException("duplicate tool handler for " + key);
+    if (transports.isEmpty()) {
+      throw new IllegalStateException("no ToolTransport registered; no tool would be reachable");
     }
+    log.info("gateway transports={}", transports.keySet());
   }
 
   /**
@@ -262,17 +270,19 @@ public class InvokeToolUseCase implements ToolInvokePort {
   private ToolInvoke.Response execute(
       ToolInvoke.Request req, ToolInvoke.ExecutionContext ec, ToolManifest manifest, long start) {
     // 5. 调用（超时 + 按策略重试）
-    ToolHandler handler = handlers.get(manifest.key());
-    if (handler == null) {
+    ToolTransport transport = transports.get(manifest.protocol());
+    if (transport == null) {
+      // 注册期已拒绝未支持的协议；走到这里说明 Manifest 与装配不匹配（如宿主未接 provider 支持）
       throw new GatewayException(
-          ToolInvoke.ErrorCode.TOOL_NOT_FOUND, "no handler bound for " + manifest.key());
+          ToolInvoke.ErrorCode.TOOL_NOT_FOUND,
+          "no transport for protocol " + manifest.protocol().wire());
     }
     ExecutionContext ctx =
         new ExecutionContext(
             ec.runId(), ec.toolCallId(), ec.sessionId(), ec.idempotencyKey(), ec.traceId());
     // 当前线程（Runtime 的 agent-run-* 或 HTTP 线程）里的宿主上下文，带到 tool-* 线程
     Object hostCtx = propagator.capture();
-    JsonNode output = callWithRetry(handler, req.arguments(), ctx, manifest, hostCtx);
+    JsonNode output = callWithRetry(transport, req.arguments(), ctx, manifest, hostCtx);
 
     // 6. 输出 Schema 校验
     Set<ValidationMessage> outErr =
@@ -291,8 +301,33 @@ public class InvokeToolUseCase implements ToolInvokePort {
     return resp;
   }
 
+  /**
+   * 工具调用失败 → 契约 error.code。
+   *
+   * <p>传输层失败（{@link ToolTransportException}）按类别映射；工具自身抛的异常一律 HANDLER_ERROR。 远端错误详情只进日志，不原样透给用户（避免泄漏
+   * provider 实现细节）。
+   */
+  private GatewayException mapCause(Throwable cause, ToolManifest manifest) {
+    if (cause instanceof ToolTransportException te) {
+      return switch (te.kind()) {
+        case NOT_FOUND ->
+            new GatewayException(ToolInvoke.ErrorCode.TOOL_NOT_FOUND, te.getMessage(), te);
+        case REMOTE_TIMEOUT ->
+            new GatewayException(
+                ToolInvoke.ErrorCode.TIMEOUT,
+                "tool timed out after " + manifest.execution().timeoutMs() + "ms",
+                te);
+        case UNREACHABLE, REMOTE_FAILED ->
+            new GatewayException(
+                ToolInvoke.ErrorCode.HANDLER_ERROR, "tool transport failed: " + te.kind(), te);
+      };
+    }
+    return new GatewayException(
+        ToolInvoke.ErrorCode.HANDLER_ERROR, "tool failed: " + cause.getMessage(), cause);
+  }
+
   private JsonNode callWithRetry(
-      ToolHandler handler,
+      ToolTransport transport,
       JsonNode args,
       ExecutionContext ctx,
       ToolManifest manifest,
@@ -308,7 +343,7 @@ public class InvokeToolUseCase implements ToolInvokePort {
                 () -> {
                   propagator.restore(hostCtx);
                   try {
-                    return handler.handle(args, ctx);
+                    return transport.invoke(manifest, args, ctx);
                   } finally {
                     propagator.clear();
                   }
@@ -316,7 +351,9 @@ public class InvokeToolUseCase implements ToolInvokePort {
         try {
           return f.get(timeoutMs, TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
-          // 超时中断 handler 线程，避免继续占用执行器
+          // 超时中断工作线程，避免继续占用执行器。
+          // 注意：这对进程内传输是"真正中断"，对远程传输只能中断本地等待 —— 远端照常执行，
+          // 所以远程超时不可重试（见 ToolTransportException.retryable 与下方 catch 分支）。
           f.cancel(true);
           throw e;
         }
@@ -328,15 +365,17 @@ public class InvokeToolUseCase implements ToolInvokePort {
             "tool timeout toolId={} attempt={}/{}", manifest.toolId(), attempt + 1, retries + 1);
       } catch (ExecutionException e) {
         Throwable cause = e.getCause() != null ? e.getCause() : e;
-        last =
-            new GatewayException(
-                ToolInvoke.ErrorCode.HANDLER_ERROR, "tool failed: " + cause.getMessage(), cause);
+        last = mapCause(cause, manifest);
         log.warn(
             "tool error toolId={} attempt={}/{} cause={}",
             manifest.toolId(),
             attempt + 1,
             retries + 1,
             cause.toString());
+        // 传输层明确告知「结果未知」时立即停止重试：远端可能已执行成功，重试会造成重复副作用
+        if (cause instanceof ToolTransportException te && !te.retryable()) {
+          throw last;
+        }
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new GatewayException(ToolInvoke.ErrorCode.HANDLER_ERROR, "interrupted", e);

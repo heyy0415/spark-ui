@@ -2,9 +2,11 @@ package com.sparkrooter.starter;
 
 import com.sparkrooter.contracts.SchemaValidator;
 import com.sparkrooter.gateway.api.ToolInvokePort;
+import com.sparkrooter.registry.api.ConfirmationCoveragePolicy;
 import com.sparkrooter.registry.api.ToolSearchPort;
 import com.sparkrooter.runtime.application.ConfirmationTokenService;
 import com.sparkrooter.runtime.application.RecheckRegistry;
+import com.sparkrooter.runtime.application.RegistryConfirmationCoverage;
 import com.sparkrooter.runtime.application.RunOrchestrator;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
@@ -55,6 +57,19 @@ class RuntimeBeans {
           + "仅本地演示可设 spark.runtime.demo-session-resolver=true 使用演示实现（sessionId = conversationId，无会话隔离）。";
 
   // ---- 宿主端口默认实现
+
+  /**
+   * 注册时的确认覆盖判定（远程 Manifest 的必要一层）。
+   *
+   * <p>hub 的启动自检跑在 ApplicationReadyEvent，而 provider 在**它自己的** ApplicationReadyEvent 才推
+   * Manifest——两个进程无顺序保证。只靠启动自检会让「高风险工具缺重校验」推迟到用户点确认时 才 fail-closed，排查成本高得多。
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  ConfirmationCoveragePolicy sparkRooterConfirmationCoverage(
+      ScreenRegistry screens, RecheckRegistry rechecks) {
+    return new RegistryConfirmationCoverage(screens, rechecks);
+  }
 
   @Bean
   @ConditionalOnMissingBean(SessionIdResolver.class)

@@ -1,4 +1,4 @@
-package com.sparkrooter.starter.tool;
+package com.sparkrooter.spi.tool;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

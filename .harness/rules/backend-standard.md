@@ -62,3 +62,15 @@
 
 - Conventional Commits，scope 用模块名：`feat(gateway): validate output schema`。
 - footer 含 `Change: {change-id}`。
+
+## Provider 侧约束（微服务形态）
+
+feat-provider-http-transport-20260912 起，领域服务可作为独立进程（provider）接入。provider 侧额外遵守：
+
+- **JDK 下限 17**。provider 装在别人的业务服务里，企业存量大量停在 17。它依赖的 `spi` / `contracts` 同样是 17（共享契约层取两边下限），否则 17 的进程加载 21 字节码会 `UnsupportedClassVersionError`。
+- **薄依赖**：pom 只许 `spi` + `contracts` + `spring-boot-autoconfigure` + `spring-web` + `spring-aop`。禁 `spring-ai-*`（provider 不做规划）、禁 hub 模块（runtime / registry / gateway / web-mvc）、禁 `spring-boot-starter-web`（不绑宿主 web 栈选型，运行期容器由宿主已有的 starter 提供）。`check-module-deps` 机械守护。
+- **不得自行重试**。`ToolHandler` 的既有约定在跨进程后后果被放大：provider 自己重试 × hub 重试 = 指数放大。重试策略按 Manifest 由 hub 的 Gateway 统一决定。
+- **认证 fail-fast**：`spark.provider.token` / `service-name` / `hub-url` 缺任一项拒绝启动。安全相关的缺省不能是宽松的（与 `SessionIdResolver` 同一决策）。
+- **返回前脱敏**：与 hub 同一 `SENSITIVE_KEYS` 口径。脱敏若只在 hub 侧做，原文已过网络、已进 provider 日志。
+- **身份归宿主**：provider 源码同样禁 `userId` / `tenantId` / `Principal`。`RunContextPropagator` 在 http 形态下不生效，要拿身份靠 hub 传来的 `sessionId` 或自己的网关鉴权。
+- **无 web 栈时降级要显式**：执行端点用 `@ConditionalOnClass` 守护，不装配时**必须 WARN**——工具注册成功却永远调不通是极难排查的故障。

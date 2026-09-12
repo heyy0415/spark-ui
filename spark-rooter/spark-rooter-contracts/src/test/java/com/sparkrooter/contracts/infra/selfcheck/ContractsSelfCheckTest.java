@@ -33,8 +33,10 @@ final class ContractsSelfCheckTest {
   }
 
   @Test
-  void indexListsAllTwentySevenExamples() throws IOException {
-    // INDEX 由 sync-contracts 生成；数量与 .harness/contracts/examples 一致（e2e 断言同一数字）
+  void indexListsEveryBundledExample() throws IOException {
+    // INDEX 由 sync-contracts 生成；数量与 .harness/contracts/examples/*.example.json 一致。
+    // 这个数字有两处联动：本断言与 .harness/scripts/e2e-backend.sh 的 "N examples OK"。
+    // 注意：前端 verify-examples 的数字不同（只投影 6 个契约），别混为一谈。
     try (InputStream in =
         getClass().getClassLoader().getResourceAsStream("contracts/examples/INDEX")) {
       assertThat(in).isNotNull();
@@ -43,7 +45,7 @@ final class ContractsSelfCheckTest {
               .lines()
               .filter(l -> !l.isBlank())
               .toList();
-      assertThat(lines).hasSize(27).allMatch(f -> f.endsWith(".example.json"));
+      assertThat(lines).hasSize(28).allMatch(f -> f.endsWith(".example.json"));
     }
   }
 }

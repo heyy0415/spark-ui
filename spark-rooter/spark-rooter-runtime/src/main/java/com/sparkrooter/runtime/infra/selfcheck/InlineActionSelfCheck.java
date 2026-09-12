@@ -9,6 +9,7 @@ import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.runtime.application.port.ToolGatewayClient;
 import com.sparkrooter.runtime.application.screen.ScreenRegistry;
 import com.sparkrooter.spi.ScreenContext;
+import com.sparkrooter.spi.tool.ToolMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,7 @@ public class InlineActionSelfCheck implements com.sparkrooter.spi.SelfCheck {
   @Override
   public void run() {
     int checked = 0;
-    for (ToolMetaRegistry.ToolMeta m : meta.all()) {
+    for (ToolMeta m : meta.all()) {
       if (m.clarifies()) {
         checked += verify(m.toolId(), m.version());
       }

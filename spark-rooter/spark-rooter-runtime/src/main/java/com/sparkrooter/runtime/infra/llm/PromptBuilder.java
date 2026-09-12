@@ -3,6 +3,8 @@ package com.sparkrooter.runtime.infra.llm;
 import com.sparkrooter.contracts.model.ToolSearch;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.runtime.application.port.LlmClient;
+import com.sparkrooter.spi.tool.ParamMeta;
+import com.sparkrooter.spi.tool.ToolMeta;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -82,8 +84,8 @@ public final class PromptBuilder {
   /** 已注册的实体类型标识符（来自 @SparkParam.entity），附用户可读名帮助模型对应。 */
   private static String entityTypes(ToolMetaRegistry meta) {
     Map<String, String> byType = new java.util.LinkedHashMap<>();
-    for (ToolMetaRegistry.ToolMeta m : meta.all()) {
-      for (ToolMetaRegistry.ParamMeta p : m.params().values()) {
+    for (ToolMeta m : meta.all()) {
+      for (ParamMeta p : m.params().values()) {
         if (p.isEntity()) {
           byType.putIfAbsent(p.entity(), p.displayLabel());
         }
@@ -123,7 +125,7 @@ public final class PromptBuilder {
                     .append(String.join(" → ", m.prerequisites()))
                     .append('\n');
               }
-              for (ToolMetaRegistry.ParamMeta p : m.params().values()) {
+              for (ParamMeta p : m.params().values()) {
                 if (p.isEntity()) {
                   sb.append("  实体参数: ")
                       .append(p.name())

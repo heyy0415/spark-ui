@@ -27,6 +27,7 @@ import com.sparkrooter.runtime.domain.Step;
 import com.sparkrooter.spi.ConfirmationRecheck;
 import com.sparkrooter.spi.ConversationMemory;
 import com.sparkrooter.spi.ScreenContext;
+import com.sparkrooter.spi.tool.ToolMeta;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -491,12 +492,12 @@ public class RunOrchestrator {
       log.info("clarify: no entityType, falling back to message.delta");
       return false;
     }
-    Optional<ToolMetaRegistry.ToolMeta> clarifier = meta.clarifierFor(entityType);
+    Optional<ToolMeta> clarifier = meta.clarifierFor(entityType);
     if (clarifier.isEmpty()) {
       log.info("clarify: no clarifier registered for entity={}", entityType);
       return false;
     }
-    ToolMetaRegistry.ToolMeta c = clarifier.get();
+    ToolMeta c = clarifier.get();
     JsonNode out;
     try {
       out = invoke(run, c.toolId(), c.version(), Map.of(), traceId, sink, "clarify");

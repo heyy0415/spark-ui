@@ -16,7 +16,21 @@ public record SparkRooterProperties(
     @DefaultValue Gateway gateway,
     @DefaultValue Web web,
     @DefaultValue Selfcheck selfcheck,
+    @DefaultValue Providers providers,
     @DefaultValue("host") String ownerTeam) {
+
+  /**
+   * 远程 provider 的调用方认证（微服务形态）。
+   *
+   * <p><b>不配 = 本 hub 不接受远程工具</b>：{@code RegistrationGuard} 拒绝一切 {@code protocol=http} 注册，且不装配
+   * {@code HttpToolTransport}。单体宿主什么都不用配，行为与本 change 之前完全一致。
+   *
+   * <p>配置形如 {@code spark.providers.tokens.order-service=xxx}。令牌与服务名绑定——只校验「令牌 有效」不够，那样任一 provider
+   * 被攻破即可冒充其他所有 provider 注册伪造的高危工具。
+   *
+   * @param tokens serviceName → 共享密钥；密钥不进日志
+   */
+  public record Providers(@DefaultValue java.util.Map<String, String> tokens) {}
 
   /**
    * OpenAI 兼容端点；缺任一项即不启用模型。

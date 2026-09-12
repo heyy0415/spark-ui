@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <!--
+    示例 provider：独立 Maven 工程（不是 spark-rooter-parent 的子模块），演示「任何 Spring Boot
+    业务服务引入 spark-provider-spring-boot-starter 即可把 @SparkTool 方法暴露给远端 hub」。
+
+    与 host-demo 的对照正是本 change 的价值：
+      host-demo      = 单体内嵌（starter + domains 同进程，protocol=in-process）
+      provider-demo  = 微服务（只装 provider-starter + 一个 domain，protocol=http）
+
+    依赖来自本地仓：先在 spark-rooter/ 执行 ./mvnw -q install，再在此目录 mvn -q -o package。
+
+    注意 JDK 17：本工程刻意用 provider 的下限编译，以证明「17 的业务服务真的能接入」——
+    若 spi / contracts 退回 21 字节码，这里会直接编译失败。
+  -->
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.5.16</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.example</groupId>
+  <artifactId>provider-demo</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <name>provider-demo</name>
+
+  <properties>
+    <java.version>17</java.version>
+    <maven.compiler.release>17</maven.compiler.release>
+    <spark-rooter.version>0.1.0-SNAPSHOT</spark-rooter.version>
+  </properties>
+
+  <dependencies>
+    <!-- provider 的唯一 spark 依赖：不含 Spring AI、不含 runtime / registry / gateway -->
+    <dependency>
+      <groupId>com.sparkrooter</groupId>
+      <artifactId>spark-provider-spring-boot-starter</artifactId>
+      <version>${spark-rooter.version}</version>
+    </dependency>
+    <!-- 本示例的领域工具写在本工程内（InventoryTools）：hub 侧不持有 inventory 领域，
+         这样才能测到真正的跨进程调用。复用 order-service 会与 host-demo 自己注册的
+         order.* 撞 toolId@version（Registry 按 409 拒绝已发布版本）。 -->
+    <!-- web 栈由宿主提供（provider-starter 只依赖编译期的 spring-web） -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <!-- @SparkTool 经代理调用，宿主方法级切面才生效 -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-aop</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>provider-demo</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

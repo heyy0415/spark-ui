@@ -2,6 +2,7 @@ package com.sparkrooter.webmvc.registry;
 
 import com.sparkrooter.contracts.ContractViolationException;
 import com.sparkrooter.contracts.model.ErrorResponse;
+import com.sparkrooter.registry.application.RegistrationGuard;
 import com.sparkrooter.registry.domain.ToolVersionConflictException;
 import java.util.List;
 import java.util.UUID;
@@ -25,6 +26,16 @@ public class RegistryExceptionHandler {
   public ResponseEntity<ErrorResponse> conflict(ToolVersionConflictException e) {
     return build(
         HttpStatus.CONFLICT, ErrorResponse.Code.TOOL_VERSION_CONFLICT, e.getMessage(), null);
+  }
+
+  /**
+   * 远程注册准入失败 → 401。
+   *
+   * <p>message 只说明缺什么（无令牌 / 令牌与服务不匹配 / hub 未配认证），<b>不回显令牌内容</b>。 serviceName 是调用方自己声称的，可安全出现在消息里。
+   */
+  @ExceptionHandler(RegistrationGuard.Denied.class)
+  public ResponseEntity<ErrorResponse> denied(RegistrationGuard.Denied e) {
+    return build(HttpStatus.UNAUTHORIZED, ErrorResponse.Code.UNAUTHENTICATED, e.getMessage(), null);
   }
 
   @ExceptionHandler(ContractViolationException.class)
