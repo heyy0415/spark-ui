@@ -7,4 +7,10 @@
 # 本地会话与个人配置（保留 .claude/settings.json 若存在）
 .claude/settings.local.json
 
+# 密钥：.env 常被用来放 SPARK_LLM_API_KEY。不忽略的话，使用者建了 .env 就会看到
+# 一个待提交的未跟踪文件，一次 `git add .` 即泄漏。.env.example 不含真值，允许提交。
+.env
+.env.*
+!.env.example
+
 # 子工程各自的忽略见 spark-ui/.gitignore、spark-rooter/.gitignore、.harness/.gitignore

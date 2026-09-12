@@ -85,7 +85,7 @@ pnpm -C spark-ui run dev        # http://localhost:5173，代理到 8080
 
 **模型是必需的**：意图理解、工具选择、参数填写全靠它。没配置时所有请求返回「未配置模型，无法理解请求」——不做规则兜底。任何 OpenAI 兼容接口都行。
 
-只走环境变量，不要写进任何文件（`application.yml` 已用 `${SPARK_LLM_*:}` 预留占位）：
+最省事的方式是环境变量（`application.yml` 已用 `${SPARK_LLM_*:}` 预留占位，开箱即读）：
 
 ```bash
 export SPARK_LLM_BASE_URL=https://your-openai-compatible-endpoint/v1   # 以 /v{n} 结尾时不再拼一层 /v1
@@ -94,6 +94,41 @@ export SPARK_LLM_MODEL=...
 ```
 
 建议用响应快的小模型：每轮至少一次规划调用，慢模型会明显拖长等待。
+
+#### 三项的性质不同，配置方式也该不同
+
+`api-key` 是密钥，另外两项不是。把它们一视同仁地塞进同一个文件，是最常见的泄漏来源。
+
+| | 是密钥？ | 放哪里 |
+|---|---|---|
+| `spark.llm.base-url` | 否 | `application.yml` / 配置中心都行，可审计、可灰度 |
+| `spark.llm.model` | 否 | 同上（换模型不必重新部署） |
+| `spark.llm.api-key` | **是** | 只走环境变量或密钥管理，**永远不要提交** |
+
+三项都支持两条渠道，**属性优先、环境变量回落**（`RuntimeBeans.pick()`）：
+
+```yaml
+# application.yml：非密钥项直接写，密钥项留空由环境变量注入
+spark:
+  llm:
+    base-url: https://your-endpoint/v1
+    model: your-fast-model
+    api-key: ${SPARK_LLM_API_KEY:}
+```
+
+> 为什么显式兼容 `SPARK_LLM_*`：Spring 的宽松绑定把 `spark.llm.base-url` 映射为 `SPARK_LLM_BASEURL`，**不认 `BASE_URL` 里的下划线**。不做这层兼容，按直觉 `export SPARK_LLM_BASE_URL=...` 会静默失效——只有一行启动 WARN，请求全部失败，而人以为自己配对了。
+
+**生产环境不要用 `.env` 文件**。`.env` 是本地开发的约定：明文落盘、容易误提交、轮换要重新部署、无法审计谁读过。按你的基础设施选：
+
+| 部署方式 | 推荐做法 |
+|---|---|
+| 本地开发 | shell profile（`~/.zshrc`）优于 `.env`——不在仓库目录里，不可能误提交 |
+| Docker | `-e` 传入或 `--env-file`（文件权限 600、不进镜像层） |
+| K8s | Secret 挂成环境变量；生产请开 etcd 静态加密，或用 Sealed Secrets / SOPS |
+| 有密钥管理系统 | Vault / 云 KMS 签发短期凭据，自动轮换，密钥不落盘 |
+| Spring 配置中心 | 非密钥项放配置中心，密钥项仍走上面任一种 |
+
+如果只是想快速跑起来：`export` 三个变量即可，上面这些等上生产再考虑。
 
 > **没有模型也能跑完整验收**：示例宿主在 `e2e` profile 下装配确定性假规划器（`FakeLlmPlanner`，只在测试 profile 存在），产出的计划仍要过 `PlanValidator` 全部校验——验的依然是校验边界、编排、网关与领域实现。
 
