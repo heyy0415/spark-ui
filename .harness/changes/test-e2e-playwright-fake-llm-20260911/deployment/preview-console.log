@@ -1,0 +1,3 @@
+agent-input=1
+  preview-chat: console.error=0
+  preview-notfound: console.error=0

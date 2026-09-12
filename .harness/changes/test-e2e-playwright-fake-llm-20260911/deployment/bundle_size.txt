@@ -1,0 +1,17 @@
+# bundle_size (bytes  path)
+## apps/chat
+52999 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/Form-D0YBOP9e-Hr9i8xKw.js
+56705 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/space-Dh_wJjAd.js
+78407 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/Input-Dpy4192w.js
+107425 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/Form-BWKhP5gq-QRbfqJHc.js
+108669 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/tooltip-znHRRGt7.js
+219402 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/Table-CzYVpGid-BPMuIaDX.js
+252084 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/useSize-D67bIHRO.js
+353504 /Users/fangtao/strato_ui/spark-ui/apps/chat/dist/assets/index-DNo901ce.js
+## packages/core
+1244 /Users/fangtao/strato_ui/spark-ui/packages/core/dist/chunks/Card-BKV1Y7JD.js
+1252 /Users/fangtao/strato_ui/spark-ui/packages/core/dist/chunks/Table-Ctk43Pn-.js
+1293 /Users/fangtao/strato_ui/spark-ui/packages/core/dist/chunks/Card-DlujmgYg.js
+13952 /Users/fangtao/strato_ui/spark-ui/packages/core/dist/index.js
+## spark-rooter
+38522709 /Users/fangtao/strato_ui/spark-rooter/examples/host-demo/target/host-demo.jar
