@@ -63,7 +63,7 @@ Spark 让业务系统能听懂自然语言。用户在聊天框里输入「最�
 
 ## 快速开始
 
-需要 JDK 21、Node 20 + pnpm、Maven（或用仓内 `mvnw`）。前端 e2e 另需本机 Chrome。
+需要 JDK 21、Node 20 + pnpm、Maven（或用仓内 `mvnw`）。前端 e2e 用 Playwright 自带的 chromium，不依赖本机浏览器。
 
 ```bash
 # 后端：把平台和示例领域装进本地 Maven 仓，再打包示例宿主
@@ -183,10 +183,14 @@ docker stop spark-demo && docker rm spark-demo # 停止并删除
 ```bash
 pnpm -C .harness run ci          # 改名检查、契约检查、模块依赖检查、种子检查、前端 ci、后端 install、host-demo 离线打包
 pnpm -C .harness run doctor      # Harness 自检
-SPARK_PORT=8091 bash .harness/scripts/e2e-backend.sh     # 161 条端到端断言
+SPARK_PORT=8091 bash .harness/scripts/e2e-backend.sh     # 后端端到端（无模型时 161 条，LIVE 下条数不同）
+SPARK_PORT=8091 bash .harness/scripts/e2e-frontend.sh    # 前端端到端 7 个用例（Playwright 自带 chromium）
 SPARK_PORT=8091 bash .harness/scripts/deploy-verify.sh   # 部署验证 12 条
-SPARK_FRONT_BASE=http://localhost:5199 node .harness/scripts/e2e-frontend.mjs   # 54 条 headless Chrome 断言
 ```
+
+前端 e2e 首次运行需先 `pnpm -C spark-ui run e2e:install` 下载 chromium（约 150 MB，一次性）。
+
+**没有模型也能跑完整验收**：示例宿主在 `e2e` profile 下装配一个确定性的假规划器（`FakeLlmPlanner`，只在测试 profile 存在），它产出的计划仍要过 `PlanValidator` 的全部校验，所以验的依然是校验边界、编排、网关与领域实现。`deploy-verify` 在未设 `SPARK_LLM_API_KEY` 时自动启用它并打印 `planner=fake-e2e`。
 
 脚本强制的规则：平台模块不依赖 `spring-boot-starter-web`、不用 Spring 组件注解、源码里不出现 `userId` / `tenantId` / `Principal`；示例领域不依赖平台模块、互不 import；前端 `apps/chat` 不直接 import antd；`@spark-ui/core` 的组件文件只能是官方组件的映射；跨端数据结构必须先有契约。
 

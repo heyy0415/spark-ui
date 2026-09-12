@@ -4,9 +4,7 @@ import com.sparkrooter.contracts.SchemaValidator;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.runtime.application.port.LlmClient;
-import com.sparkrooter.runtime.domain.Plan;
 import com.sparkrooter.runtime.domain.RunFailure;
-import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,50 +94,17 @@ public final class LlmPlanner implements LlmClient {
         feedback = "没有输出";
         continue;
       }
-      String action = draft.action() == null ? "plan" : draft.action().trim().toLowerCase();
-      switch (action) {
-        case "none" -> {
-          return new NoCapability(replyOr(draft, "当前没有可用能力处理该请求"));
-        }
-        case "clarify" -> {
-          Optional<String> ent = PlanValidator.missingEntity(draft, req.candidates(), meta);
-          log.debug(
-              "clarify action: missingEntity={} draftMissing={} draftSteps={}",
-              ent.orElse("(none)"),
-              draft.missing(),
-              draft.steps() == null ? 0 : draft.steps().size());
-          return new Clarify(ent.orElse(null), replyOr(draft, "请补充更多信息"));
-        }
-        default -> {
-          try {
-            Plan plan =
-                PlanValidator.validate(
-                    draft,
-                    req.message(),
-                    req.context(),
-                    req.candidates(),
-                    displayNames,
-                    meta,
-                    trustedOnlyArgs,
-                    validator);
-            return new Planned(plan);
-          } catch (PlanValidator.EntityMissing e) {
-            // 模型填了原话 / 上下文里不存在的 ID，或该填没填：当作缺实体走澄清，不算错误
-            log.info(
-                "entity check failed → clarify entity={} reason={}",
-                e.entityType(),
-                e.getMessage());
-            return new Clarify(e.entityType(), "请指定要操作的" + meta.entityLabel(e.entityType()));
-          } catch (RunFailure e) {
-            last = e;
-            feedback = e.getMessage();
-            log.warn(
-                "planner output rejected attempt={}/{} reason={}",
-                attempt,
-                MAX_ATTEMPTS,
-                e.getMessage());
-          }
-        }
+      // 派发与校验由 PlanValidator.decide 承担（测试替身共用同一条路径）；这里只负责「失败则把原因喂回模型再试」
+      try {
+        return PlanValidator.decide(draft, req, displayNames, meta, trustedOnlyArgs, validator);
+      } catch (RunFailure e) {
+        last = e;
+        feedback = e.getMessage();
+        log.warn(
+            "planner output rejected attempt={}/{} reason={}",
+            attempt,
+            MAX_ATTEMPTS,
+            e.getMessage());
       }
     }
     throw last == null ? new RunFailure("TOOL_SELECTION_INVALID", "planner failed") : last;
@@ -159,10 +124,6 @@ public final class LlmPlanner implements LlmClient {
             .replaceAll("https?://\\S+", "<url>")
             .replaceAll("\"model\"\\s*:\\s*\"[^\"]+\"", "\"model\":\"***\"");
     return t.length() > 200 ? t.substring(0, 200) : t;
-  }
-
-  private static String replyOr(PlanDraft d, String fallback) {
-    return Optional.ofNullable(d.reply()).filter(r -> !r.isBlank()).orElse(fallback);
   }
 
   @Override

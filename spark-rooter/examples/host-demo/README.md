@@ -13,6 +13,12 @@ java -jar target/host-demo.jar --server.port=8080
 # 日志：spark-rooter: 14 tools registered from 6 beans；selfcheck 9 项 OK；SessionIdResolver 为 demo 实现 WARN（显式开关放行）
 ```
 
+## e2e 假规划器
+
+`--spring.profiles.active=e2e`（或 `e2e-ttl`）时额外装配 `e2e/FakeLlmPlanner`：一个确定性的规划器替身，让端到端验收不依赖真实模型。它只覆盖 e2e 脚本发送的消息形态，产出的草案仍要过 `PlanValidator.decide` 的全部校验，**不是绕过校验的捷径**。默认启动与 Docker 镜像里不装配，规划器仍是真模型或 `UnavailablePlanner`。
+
+它放在宿主而非内核，是因为它必须认识领域动词（「退款」→ `refund.*`），而平台模块有禁止领域词汇的红线。
+
 ## 权限在哪里
 
 - **正面**：`DemoRoleAspect` 方法级切面切 `OrderTools.delete`，`X-Demo-User: guest` 说「删除订单 10005」→ 切面拒绝 → `TOOL_EXECUTION_FAILED`。

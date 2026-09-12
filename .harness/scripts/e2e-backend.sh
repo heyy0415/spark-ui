@@ -12,7 +12,7 @@ BASE="http://localhost:$PORT"
 # 内核不识别身份：无身份头（change 5）；X-Trace-Id 可选
 HDR=(-H 'Content-Type: application/json' -H 'X-Trace-Id: trace_e2e')
 pass=0; fail=0
-# 规则规划器毫秒级；接真实模型时规划 5–15s，SSE 读取超时随之放大
+# 无模型时由 host-demo 的 e2e 假规划器（fake planner）驱动，毫秒级；接真实模型时规划 5–15s，SSE 读取超时随之放大
 # 真模型单次规划实测 5–70s（含网关抖动重试），SSE 读取超时给到 90s
 if [ -n "${SPARK_LLM_API_KEY:-}" ]; then SSE_T=90; LIVE_LLM=1; else SSE_T=8; LIVE_LLM=0; fi
 check() { # $1 name  $2 expected  $3 actual
@@ -163,10 +163,10 @@ echo "--- 意图路由 ③：模型补位（仅 LIVE）"
 if [ "$LIVE_LLM" = 1 ]; then
   curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_r3","message":"我想把订单 10002 的钱要回来","clientCapabilities":{"uiSchemaVersion":"1.0","components":["Form","Card","Table","Result","Timeline"]}}' > "$DEPLOY/route3_events.log"
   R3=$(data "$DEPLOY/route3_events.log" run.started | json "d['runId']")
-  check "③a route by model" 1 "$(grep -c "route runId=$R3 domain=refund source=model" "$DEPLOY/backend.log")"
+  check "③a planned by model" 1 "$(grep -c "decision runId=$R3 kind=Planned planner=" "$DEPLOY/backend.log")"
   check "③b event sequence" "run.started tool.selected tool.started tool.completed tool.selected tool.started tool.completed ui.replace confirmation.required" "$(events "$DEPLOY/route3_events.log")"
 else
-  echo "  - ③ skipped (rule mode)"
+  echo "  - ③ skipped (no model: fake planner)"
 fi
 
 echo "--- 幂等 ④：同 idempotencyKey 两次 refund.create（订单 10004）"
@@ -286,7 +286,8 @@ run_msg c16 "删除订单"
 # change 5：无号码「删除订单」→ 澄清屏（订单列表 + 每行「删除订单」按钮）
 check "⑯ events" "run.started tool.selected tool.started tool.completed ui.replace message.delta run.completed" "$(events "$DEPLOY/c16.log")"
 check "⑯ text" 1 "$(data "$DEPLOY/c16.log" message.delta | json "1 if '请选择' in d['text'] else 0")"
-check "⑯ row action label" 删除订单 "$(comp c16 clarify "['rows'][0]['actions'][0]['label']")"
+# 澄清屏行内按钮文案恒为「选择」：03a7838（领域知识出内核）把 verbLabel 从 IntentVerbs 推导改为硬编码，动词不再拼进按钮
+check "⑯ row action label" 选择 "$(comp c16 clarify "['rows'][0]['actions'][0]['label']")"
 
 echo "--- ⑰ 我想查看最近订单 → order.list.search，参数全走默认 {limit:20}"
 run_msg c17 "我想查看最近订单"
@@ -302,13 +303,15 @@ echo "--- ⑲ 最近 100 单 → limit 截断到 50"
 run_msg c19 "最近 100 单订单"
 check "⑲ rows (≤ 50, 29 left)" 29 "$(data "$DEPLOY/c19.log" ui.replace | json "len([c for c in d['ui']['components'] if c['id']=='orders'][0]['props']['rows'])")"
 
-echo "--- ⑳ 看看我的订单 → 第二个的物流 → order.logistics.get{orderId == rows[1].id}，日志 source=memory"
+echo "--- ⑳ 看看我的订单 → 第二个的物流 → order.logistics.get{orderId == rows[1].id}（序数指代经会话记忆解析）"
 run_msg c20 "看看我的订单"
 ROW2=$(data "$DEPLOY/c20.log" ui.replace | json "[c for c in d['ui']['components'] if c['id']=='orders'][0]['props']['rows'][1]['id']")
 run_msg c20 "第二个的物流"
 check "⑳ tool" order.logistics.get "$(data "$DEPLOY/c20.log" tool.selected | json "d['toolId']")"
 check "⑳ card title has row2 id" 1 "$(data "$DEPLOY/c20.log" ui.replace | json "1 if '$ROW2' in [c for c in d['ui']['components'] if c['id']=='logistics'][0]['props']['title'] else 0")"
-check "⑳ source=memory logged" 1 "$([ "$(grep -c "runId=$(runid_of c20) .*source=memory" "$DEPLOY/backend.log")" -ge 1 ] && echo 1 || echo 0)"
+# 记忆补位的实质验证由上一条的 orderId == rows[1].id 承担（原话「第二个的物流」无 ID，能填对即补位生效）；
+# 这里只断言产出了可执行计划。原断言依赖 source=memory 日志，该日志随规则规划器在 03a7838 一并删除。
+check "⑳ planned" 1 "$([ "$(grep -c "decision runId=$(runid_of c20) kind=Planned" "$DEPLOY/backend.log")" -ge 1 ] && echo 1 || echo 0)"
 
 echo "--- ㉑ 查看订单 10002 的物流 → 申请售后（省略订单号，记忆补位）→ 确认屏 Card 标题「订单 10002」"
 run_msg c21 "查看订单 10002 的物流"
@@ -321,8 +324,9 @@ run_msg c22 "申请售后"
 check "㉒ events" "run.started tool.selected tool.started tool.completed ui.replace message.delta run.completed" "$(events "$DEPLOY/c22.log")"
 check "㉒ types" "['Table']" "$(types c22)"
 check "㉒ clarify tool" order.list.search "$(data "$DEPLOY/c22.log" tool.selected | json "d['toolId']")"
-check "㉒ row action label" 申请售后 "$(comp c22 clarify "['rows'][0]['actions'][0]['label']")"
-check "㉒ row action intent has id" 1 "$(data "$DEPLOY/c22.log" ui.replace | json "(lambda r: 1 if r['id'] in r['actions'][0]['intent'] and '售后' in r['actions'][0]['intent'] else 0)([c for c in d['ui']['components'] if c['id']=='clarify'][0]['props']['rows'][0])")"
+check "㉒ row action label" 选择 "$(comp c22 clarify "['rows'][0]['actions'][0]['label']")"
+# intent 形态为「选择 {实体名} {id}」，不含动词：下一轮靠 pendingMessage 继承上一轮的「申请售后」
+check "㉒ row action intent has id" 1 "$(data "$DEPLOY/c22.log" ui.replace | json "(lambda r: 1 if r['id'] in r['actions'][0]['intent'] else 0)([c for c in d['ui']['components'] if c['id']=='clarify'][0]['props']['rows'][0])")"
 check "㉒ text" 1 "$(data "$DEPLOY/c22.log" message.delta | json "1 if '请选择' in d['text'] else 0")"
 PICK=$(data "$DEPLOY/c22.log" ui.replace | json "[c for c in d['ui']['components'] if c['id']=='clarify'][0]['props']['rows'][0]['actions'][0]['intent']")
 run_msg c22 "$PICK"
@@ -334,7 +338,8 @@ ROW2B=$(data "$DEPLOY/c22b.log" ui.replace | json "[c for c in d['ui']['componen
 run_msg c22b "第二个"
 check "㉒' ordinal → confirmation" 1 "$(events "$DEPLOY/c22b.log" | grep -c 'confirmation.required$')"
 check "㉒' card title has rows[1].id" "订单 $ROW2B" "$(comp c22b order "['title']")"
-check "㉒' source=memory(ordinal) logged" 1 "$([ "$(grep -c "runId=$(runid_of c22b) .*source=memory(ordinal)" "$DEPLOY/backend.log")" -ge 1 ] && echo 1 || echo 0)"
+# 序数指代的实质验证由上一条的 card title == rows[1].id 承担；同 ⑳，原 source=memory(ordinal) 日志已不存在
+check "㉒' planned" 1 "$([ "$(grep -c "decision runId=$(runid_of c22b) kind=Planned" "$DEPLOY/backend.log")" -ge 1 ] && echo 1 || echo 0)"
 
 echo "--- ㉒'' 澄清屏（删除订单）→ 「第二个的物流」：当前消息自带动词，不拼回「删除」→ 物流屏而非删除确认（评审 v2 N-2）"
 run_msg c22c "删除订单"
@@ -361,7 +366,7 @@ echo "--- ㉕ 商品详情 Card 含 actions[0].intent == 有什么商品"
 check "㉕ card action intent" 有什么商品 "$(comp c10 product "['actions'][0]['intent']")"
 check "㉕ card action label" 返回列表 "$(comp c10 product "['actions'][0]['label']")"
 
-echo "--- 意图路由 ⑥：order 领域缺实体 → order.list.search 回退（仅规则模式）"
+echo "--- 意图路由 ⑥：order 领域缺实体 → order.list.search 回退（无模型：fake planner）"
 if [ "$LIVE_LLM" = 1 ]; then
   echo "  - ⑥ skipped (live mode)"
 else
@@ -395,7 +400,8 @@ if [ "$LIVE_LLM" = 1 ]; then
   check "LIVE: LLM host not in log" 0 "$(grep -c -- "$LLM_HOST" "$DEPLOY/backend.log")"
   check "LIVE: LLM key not in log" 0 "$(grep -c -- "$SPARK_LLM_API_KEY" "$DEPLOY/backend.log")"
 fi
-check "⑤ route decisions logged" 1 "$([ "$(grep -c 'route runId=.* source=' "$DEPLOY/backend.log")" -ge 3 ] && echo 1 || echo 0)"
+# 规划决策被记录（原断言查已下线的 route 日志；现查编排器实际输出的 decision 行）
+check "⑤ plan decisions logged" 1 "$([ "$(grep -c 'decision runId=.* kind=' "$DEPLOY/backend.log")" -ge 3 ] && echo 1 || echo 0)"
 
 pkill -f "examples/host-demo/target/host-demo.jar --server.port=$PORT"
 

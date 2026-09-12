@@ -14,12 +14,15 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 模型输出的通用校验（agent-safety §2 / §3）。与领域无关，是模型主导规划下唯一的硬边界：
@@ -36,6 +39,8 @@ import java.util.stream.Collectors;
  */
 public final class PlanValidator {
 
+  private static final Logger log = LoggerFactory.getLogger(PlanValidator.class);
+
   private PlanValidator() {}
 
   /** 实体复核失败：模型填的实体值不在原话与上下文中。 */
@@ -51,6 +56,66 @@ public final class PlanValidator {
     public String entityType() {
       return entityType;
     }
+  }
+
+  /**
+   * 一次「草案 → 决策」的完整派发：action 分三路（none / clarify / plan），plan 路的实体复核失败转 Clarify。
+   *
+   * <p>真模型规划器（{@code LlmPlanner}）与测试替身共用本方法，保证两者走同一条校验路径——替身不得绕过 {@link #validate}。
+   * 本方法只处理**单次**草案：{@link RunFailure} 一律向上抛，是否「把原因喂回模型再试一次」由调用方决定（模型侧逻辑留在 {@code LlmPlanner}）。
+   *
+   * @param trustedOnlyArgs 需确认步骤中规划器不得填写的参数名（各领域 {@code ConfirmationRecheck.trustedArgKeys} 的并集）
+   * @throws RunFailure TOOL_SELECTION_INVALID —— 草案越界（候选外 toolId / 非法参数 / 缺前置），调用方可重试
+   */
+  public static LlmClient.Decision decide(
+      PlanDraft draft,
+      LlmClient.PlanRequest req,
+      ToolDisplayNames displayNames,
+      ToolMetaRegistry meta,
+      Set<String> trustedOnlyArgs,
+      SchemaValidator validator) {
+    String action =
+        draft.action() == null ? "plan" : draft.action().trim().toLowerCase(Locale.ROOT);
+    switch (action) {
+      case "none" -> {
+        return new LlmClient.NoCapability(replyOr(draft, "当前没有可用能力处理该请求"));
+      }
+      case "clarify" -> {
+        Optional<String> ent = missingEntity(draft, req.candidates(), meta);
+        log.debug(
+            "clarify action: missingEntity={} draftMissing={} draftSteps={}",
+            ent.orElse("(none)"),
+            draft.missing(),
+            draft.steps() == null ? 0 : draft.steps().size());
+        return new LlmClient.Clarify(ent.orElse(null), replyOr(draft, "请补充更多信息"));
+      }
+      default -> {
+        try {
+          Plan plan =
+              validate(
+                  draft,
+                  req.message(),
+                  req.context(),
+                  req.candidates(),
+                  displayNames,
+                  meta,
+                  trustedOnlyArgs,
+                  validator);
+          return new LlmClient.Planned(plan);
+        } catch (EntityMissing e) {
+          // 规划器填了原话 / 上下文里不存在的 ID，或该填没填：当作缺实体走澄清，不算错误
+          log.info(
+              "entity check failed → clarify entity={} reason={}", e.entityType(), e.getMessage());
+          return new LlmClient.Clarify(
+              e.entityType(), "请指定要操作的" + meta.entityLabel(e.entityType()));
+        }
+      }
+    }
+  }
+
+  /** 草案自带的 reply 为空时用默认文案。 */
+  private static String replyOr(PlanDraft d, String fallback) {
+    return Optional.ofNullable(d.reply()).filter(r -> !r.isBlank()).orElse(fallback);
   }
 
   public static Plan validate(
@@ -200,7 +265,7 @@ public final class PlanValidator {
    * 缺失的实体类型：优先取模型声明的 missing[]；模型只给了目标工具（steps[0]）没填 missing 时，从该工具 inputSchema.required
    * 里第一个尚未填值的实体参数反推——模型常只在 reply 里用自然语言追问，不能因此丢掉澄清屏。
    */
-  static Optional<String> missingEntity(
+  public static Optional<String> missingEntity(
       PlanDraft draft, List<ToolSearch.ToolCandidate> candidates, ToolMetaRegistry meta) {
     Optional<String> declared =
         draft.missing() == null

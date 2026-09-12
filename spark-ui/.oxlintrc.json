@@ -106,6 +106,17 @@
       }
     },
     {
+      "files": ["e2e/**/*.ts", "playwright.config.ts"],
+      "env": {
+        "node": true,
+        "browser": true
+      },
+      "rules": {
+        "no-console": "off",
+        "no-underscore-dangle": "off"
+      }
+    },
+    {
       "files": ["packages/core/src/**"],
       "rules": {
         "no-restricted-imports": [

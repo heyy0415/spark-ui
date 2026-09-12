@@ -58,7 +58,7 @@ const required = [
   'scripts/ci.mjs',
   'scripts/sse-parse.mjs',
   'scripts/e2e-backend.sh',
-  'scripts/e2e-frontend.mjs',
+  'scripts/e2e-frontend.sh',
   'scripts/deploy-verify.sh',
   'scripts/preview-console.mjs',
   'scripts/lib/change-dir.mjs',
@@ -244,6 +244,26 @@ for (const name of skillNames) {
     }
   }
   if (bad === 0) ok('L1 antd constraint consistent across CLAUDE.md / AGENTS.md / platform-owner.md');
+}
+
+// Playwright 版本一致性（change test-e2e-playwright-fake-llm）：.harness 的 `playwright` 与 spark-ui 的
+// `@playwright/test` 必须精确同版本 —— 同版本共用一份 ~/Library/Caches/ms-playwright/chromium-*，
+// 版本漂移会静默触发第二份 ~150MB 下载，且两套 e2e 可能跑在不同浏览器上。
+{
+  const readJson = async (p) => (existsSync(p) ? JSON.parse(await readFile(p, 'utf-8')) : null);
+  const harnessPkg = await readJson(join(H, 'package.json'));
+  const uiPkg = await readJson(join(root, 'spark-ui', 'package.json'));
+  const harnessVer = harnessPkg?.devDependencies?.playwright;
+  const uiVer = uiPkg?.devDependencies?.['@playwright/test'];
+  if (!harnessVer) {
+    err('.harness/package.json: missing devDependency "playwright" (preview-console.mjs needs it)');
+  } else if (!uiVer) {
+    err('spark-ui/package.json: missing devDependency "@playwright/test"');
+  } else if (harnessVer !== uiVer) {
+    err(`playwright version drift: .harness "playwright"=${harnessVer} vs spark-ui "@playwright/test"=${uiVer} — must be identical or a second chromium gets downloaded`);
+  } else {
+    ok(`playwright version pinned consistently (${harnessVer})`);
+  }
 }
 
 // 冻结产物 / 报告 / 评审卫生（评审 N-5）：changes/** 任何文件不得含密钥形态字面量或内部 LLM 网关域名。

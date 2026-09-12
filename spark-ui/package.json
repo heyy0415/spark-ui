@@ -14,7 +14,7 @@
     "build": "pnpm build:core && pnpm build:chat",
     "dev": "pnpm --filter spark-chat dev",
     "preview": "pnpm --filter spark-chat preview",
-    "typecheck": "pnpm --filter @spark-ui/core exec tsc -p tsconfig.json --noEmit && pnpm --filter spark-chat exec tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "typecheck": "pnpm --filter @spark-ui/core exec tsc -p tsconfig.json --noEmit && pnpm --filter spark-chat exec tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p e2e/tsconfig.json --noEmit",
     "lint": "oxlint --deny-warnings && node scripts/check-deps.mjs && node scripts/check-registry.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -22,9 +22,12 @@
     "verify-pack": "node scripts/verify-pack.mjs",
     "ci": "pnpm build:core && pnpm typecheck && pnpm test && pnpm lint && pnpm format:check && pnpm verify-examples && pnpm verify-transport && pnpm build:chat && pnpm verify-pack",
     "verify-transport": "vite-node -c apps/chat/vite.config.ts scripts/verify-transport.ts",
-    "test": "pnpm -r run test"
+    "test": "pnpm -r run test",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install chromium"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@spark-ui/core": "workspace:*",
     "@types/node": "^20.19.0",
     "es-module-lexer": "^2.3.2",

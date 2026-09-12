@@ -4,3 +4,5 @@ dist
 *.local
 .DS_Store
 .verify-pack/
+e2e-report/
+test-results/

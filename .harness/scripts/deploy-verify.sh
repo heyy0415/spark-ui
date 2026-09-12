@@ -27,7 +27,17 @@ for port in "$PORT" 4173; do
 done
 
 echo "--- 1. 后端启动与健康"
-(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar" --server.port="$PORT" > "$DEPLOY/backend.log" 2>&1 &)
+# 有模型时验生产形态；无模型时启用 e2e profile 的 fake 规划器，否则「端到端一条 Run」4 条断言
+# 必失（UnavailablePlanner 让任何请求直接失败），阶段 7 门禁在无模型机器上不可达。
+# 无论走哪条路径都打印实际规划器，报告不掩盖来源。
+PROFILE_ARG=""
+if [ -z "${SPARK_LLM_API_KEY:-}" ]; then
+  PROFILE_ARG="--spring.profiles.active=e2e"
+  echo "  planner=fake-e2e（无 SPARK_LLM_API_KEY，启用 e2e profile 的假规划器）"
+else
+  echo "  planner=llm（生产形态，真实模型）"
+fi
+(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar" --server.port="$PORT" $PROFILE_ARG > "$DEPLOY/backend.log" 2>&1 &)
 for i in $(seq 1 40); do sleep 1; curl -sf "localhost:$PORT/actuator/health" >/dev/null 2>&1 && break; done
 check "health" '{"status":"UP"}' "$(curl -s "localhost:$PORT/actuator/health")"
 check "selfcheck all OK" 9 "$(grep -c 'SelfCheckRunner.*selfcheck: .* OK' "$DEPLOY/backend.log")"

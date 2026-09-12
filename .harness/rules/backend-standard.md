@@ -51,7 +51,8 @@
 
 - 密钥、LLM 配置只从环境变量读取（`SPARK_LLM_BASE_URL`、`SPARK_LLM_API_KEY`、`SPARK_LLM_MODEL`）；**禁止**写入代码或 `application.yml`。三者任一缺失时 `LlmClient` 为 `UnavailablePlanner`：启动 WARN，所有请求直接失败并返回「未配置模型，无法理解请求」，不做规则兜底。内核不做领域路由与规则规划，模型在全部可发现候选里选，`PlanValidator` 做通用校验。
 - Registry 对外返回的工具元数据**不含**内部地址、凭据、Owner 联系方式以外的敏感信息。
-- 对外端点**不带身份头**：内核不识别用户；宿主用自己的拦截器 / 登录态建立上下文，并实现 `SessionIdResolver`（会话隔离键）与 `RunContextPropagator`（跨到 spark 工作线程）。**缺 `SessionIdResolver` Bean 时 starter 拒绝启动**；只有本地演示才设 `spark.runtime.demo-session-resolver=true` 放行「sessionId = conversationId」的演示实现（无会话隔离，启动 WARN）。
+- 对外端点**不带身份头**：内核不识别用户；宿主用自己的拦截器 / 登录态建立上下文，并实现 `SessionIdResolver`（会话隔离键）与 `RunContextPropagator`（跨到 spark 工作线程）。
+- **测试替身（fake planner）只允许放在宿主工程并以 profile 隔离**，内核不得出现：它必须认识领域动词，而平台模块有 `DOMAIN_WORDS` 红线。替身只负责「原话 → `PlanDraft`」这一段（真模型的职责），产出的草案必须经 `PlanValidator.decide`，与真模型走同一条校验路径——不得自行构造 `Plan` 绕过校验。生产 profile 下替身不得装配。**缺 `SessionIdResolver` Bean 时 starter 拒绝启动**；只有本地演示才设 `spark.runtime.demo-session-resolver=true` 放行「sessionId = conversationId」的演示实现（无会话隔离，启动 WARN）。
 
 ## 8. 提交
 

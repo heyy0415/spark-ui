@@ -14,6 +14,7 @@
 ## 2. 工具发现
 
 - 内核不做领域路由：Registry 返回全部可发现候选（按状态 + 宿主 `ToolAccessPolicy` 过滤），模型在这个**有限候选**集合内选工具、填参数；未配置模型时 `UnavailablePlanner` 直接失败，不做规则兜底。模型输出只是提议，`PlanValidator` 逐条核实后才成为计划。
+- 上一条的「不做规则兜底」指**内核与生产环境**。测试替身（fake planner）只允许在宿主工程内以 profile 隔离装配，生产 profile 下不得存在；替身产出的草案同样必须经 `PlanValidator.decide`——替身替掉的是「理解」，不是「核实」。
 - 缺实体走澄清：模型判定目标工具需要某个实体而原话与会话上下文都没有时输出 `clarify`（或 `PlanValidator` 复核实体值不在原话 ∪ 记忆 ∪ 最近列表行时转为缺实体），Runtime 出**澄清屏**（调 `@SparkTool(clarifiesEntity=…)` 的列表工具，行内指令带 ID）或把模型追问回给用户，不调目标工具。
 - 参数三层限制：只有 `@SparkParam` 组件进 inputSchema；模型只能填 schema 内字段且值必须过 JSON Schema，未填字段由 `@SparkDefault` 补齐；实体参数值必须原样出自用户原话或会话上下文（记忆实体 / 最近列表行），且匹配 `@SparkParam.pattern`，否则视为缺实体而非执行。会话记忆只存 ID、只在 `run.completed`（或澄清屏）写入。
 - 暴露给模型的候选只能是 Registry 过滤后的**可发现**集合（status ∈ active / canary，宿主 `ToolAccessPolicy` 再按 sessionId 过滤）且只含六个字段；draft / deprecated / 被策略拒绝的工具**禁止**进 prompt。
