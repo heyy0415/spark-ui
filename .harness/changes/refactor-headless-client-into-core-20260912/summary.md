@@ -4,7 +4,7 @@
 |---|---|
 | Change ID | refactor-headless-client-into-core-20260912 |
 | 类型 | refactor |
-| 状态 | IN_PROGRESS（阶段 1–4 DONE，待用户确认后提交） |
+| 状态 | **DONE**（8 阶段全部完成；提交在分支 `feat/provider-http-transport`，未 push） |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | spark-ui（packages/core + apps/chat）+ harness 规则；契约文件零改动 |
 | 起止时间 | 2026-09-12 ~ 2026-09-12 |
@@ -20,9 +20,9 @@
 | 3 | 编码实现 | DONE | — | [coding/coding_report_v1.md](coding/coding_report_v1.md)（T01–T08 全完成；spark-ui ci 0、harness ci 0、106 单测、e2e 161/7/12 全绿） | 2026-09-12 |
 | 4 | 编码评审 | DONE | 1/2 | [coding/code_review_v1.md](coding/code_review_v1.md)（0 MUST FIX 遗留；自评审，**不满足独立性**，通道受限） | 2026-09-12 |
 | 5 | 代码推送 | DONE（本地提交） | — | 提交 `5fe1f87` 于分支 `feat/provider-http-transport`；**未 push**（禁止直接 push 主分支，远端推送待用户在目标分支策略下执行） | 2026-09-12 |
-| 6 | CI 验证 | TODO | — | — | — |
-| 7 | 部署验证 | TODO | — | — | — |
-| 8 | 用户确认 | TODO | — | — | — |
+| 6 | CI 验证 | SKIP | — | 未配置 GitHub Actions（用户决策：单人仓库）；本地 `pnpm -C .harness run ci` 退出 **0**（九步全过），见 [ci_result/ci_summary.md](ci_result/ci_summary.md) | 2026-09-13 |
+| 7 | 部署验证 | DONE | — | [deployment/preview_report.md](deployment/preview_report.md)：deploy-verify **12 passed**、e2e-backend **161**、e2e-frontend **7**、前端单测 **106**；console.error 0、health UP | 2026-09-13 |
+| 8 | 用户确认 | DONE | — | 用户确认交付。提交 `5fe1f87`（未 push） | 2026-09-13 |
 
 ## 契约变更
 - **NONE**（契约文件零改动，`check-contracts` 0）。但 `contracts.md` §1 的**前端投影位置**变更：ui-schema 在 core / 其余在 chat `entities/` → **全部前端投影都在 core**（ui-schema 在 `src/schema/`，另 5 个在 `src/client/contracts.ts`）。这是规则文档变更，不是契约变更。

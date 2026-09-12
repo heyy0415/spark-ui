@@ -4,7 +4,7 @@
 |---|---|
 | Change ID | feat-provider-http-transport-20260912 |
 | 类型 | feat |
-| 状态 | IN_PROGRESS（阶段 1–4 DONE；待用户确认后提交） |
+| 状态 | **DONE**（8 阶段全部完成；提交在分支 `feat/provider-http-transport`，未 push） |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | contracts + spark-rooter（spi / contracts / runtime / gateway / registry / web-mvc / 新 provider-starter / examples）+ harness 规则；**spark-ui 零改动** |
 | 起止时间 | 2026-09-12 ~ — |
@@ -20,9 +20,9 @@
 | 3 | 编码实现 | DONE | — | T01–T11 全部完成 + README / provider-demo README 重写；五套回归全绿（161 / 15 / 7 / 12 / 106），`pnpm -C .harness run ci` 0 | 2026-09-12 |
 | 4 | 编码评审 | DONE | 1/2 | [coding/code_review_v1.md](coding/code_review_v1.md)（**APPROVED WITH FIXES**：3 MUST FIX 已修并回归，2 SHOULD 记录未改；自评审，**不满足独立性**） | 2026-09-12 |
 | 5 | 代码推送 | DONE（本地提交） | — | 提交 `ac2d2b3` 于分支 `feat/provider-http-transport`；**未 push**（禁止直接 push 主分支，远端推送待用户在目标分支策略下执行） | 2026-09-12 |
-| 6 | CI 验证 | TODO | — | — | — |
-| 7 | 部署验证 | TODO | — | — | — |
-| 8 | 用户确认 | TODO | — | — | — |
+| 6 | CI 验证 | SKIP | — | 未配置 GitHub Actions（用户决策：单人仓库）；本地 `pnpm -C .harness run ci` 退出 **0**（九步全过），见 [ci_result/ci_summary.md](ci_result/ci_summary.md) | 2026-09-13 |
+| 7 | 部署验证 | DONE | — | [deployment/preview_report.md](deployment/preview_report.md)：deploy-verify **12 passed**、e2e-provider **15 passed**（双进程，provider 以 JDK 17 编译）；console.error 0、health UP、9 项自检 OK | 2026-09-13 |
+| 8 | 用户确认 | DONE | — | 用户确认交付。提交 `ac2d2b3`（未 push）。HITL ④：本 change 不涉及生产部署参数，投产需人工确认的三项已在 preview_report 与 README 写明 | 2026-09-13 |
 
 ## 契约变更
 
