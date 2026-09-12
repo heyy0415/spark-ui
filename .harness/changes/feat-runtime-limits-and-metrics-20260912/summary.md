@@ -4,7 +4,7 @@
 |---|---|
 | Change ID | feat-runtime-limits-and-metrics-20260912 |
 | 类型 | feat |
-| 状态 | IN_PROGRESS（阶段 1–4 DONE；待用户确认后提交） |
+| 状态 | **DONE**（8 阶段全部完成；提交 `c82a8e0` 在分支 `feat/runtime-limits-and-metrics`，未 push） |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | contracts（error.code 增值）+ spark-rooter（spi / runtime / gateway / starter）+ harness 规则；**spark-ui 零改动** |
 | 缺口 | G1 指标导出、G2 步骤上限、G3 会话并发、**G5 审计失败不吞结果**（评审新增）；G4 判定不做 |
@@ -20,10 +20,10 @@
 | 2 | 需求评审 | DONE | 1/3 | [review/spec_review_v1.md](request_analysis/review/spec_review_v1.md)（**CHANGES REQUESTED** → 3 MUST FIX + 2 SHOULD **全部已落实**；其中 M-3 是补查盲区发现的既有缺陷，用户决策纳入本 change） | 2026-09-13 |
 | 3 | 编码实现 | DONE | — | T01–T08 全部完成；五套回归全绿（161 / 15 / 7 / 12 / **107**），`pnpm -C .harness run ci` 0 | 2026-09-13 |
 | 4 | 编码评审 | DONE | 1/2 | [coding/code_review_v1.md](coding/code_review_v1.md)（**APPROVED WITH FIXES**：3 MUST FIX 已修，2 SHOULD 经实测排除；自评审，**不满足独立性**） | 2026-09-13 |
-| 5 | 代码推送 | TODO | — | — | — |
-| 6 | CI 验证 | TODO | — | — | — |
-| 7 | 部署验证 | TODO | — | — | — |
-| 8 | 用户确认 | TODO | — | — | — |
+| 5 | 代码推送 | DONE（本地提交） | — | 提交 `c82a8e0` 于分支 `feat/runtime-limits-and-metrics`；**未 push**（禁止直接 push 主分支） | 2026-09-13 |
+| 6 | CI 验证 | SKIP | — | 未配置 GitHub Actions（用户决策）；**已提交状态**重跑 `.harness ci` 退出 **0**，见 [ci_result/ci_summary.md](ci_result/ci_summary.md) | 2026-09-13 |
+| 7 | 部署验证 | DONE | — | [deployment/preview_report.md](deployment/preview_report.md)：五套数字与改造前一致（161/15/7/12，前端 106→107）；三项阈值未误伤既有链路 | 2026-09-13 |
+| 8 | 用户确认 | DONE | — | 用户确认提交。HITL ④：不涉及生产部署参数，投产需确认的四项已在 preview_report 与 README 写明 | 2026-09-13 |
 
 ## 契约变更
 
