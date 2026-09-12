@@ -82,9 +82,8 @@
 | 入场 | 阶段 5 完成 |
 | Skill | （CI 中触发） |
 | 产出 | `ci_result/ci_summary.md`（各步骤退出码、前端 bundle 大小、后端 jar 大小） |
-| 门禁（**程序化**） | GitHub Actions（`.github/workflows/ci.yml`）三个 job 全绿：`gates`（= `pnpm -C .harness run ci` + `doctor`）→ `e2e` 与 `deploy-verify` 并行。本地 `pnpm -C .harness run ci` 是 `gates` 的子集（不含 e2e 与部署验证），提交前应先跑它 |
-| 规划器口径 | CI 不配 `SPARK_LLM_*`，一律走示例宿主的假规划器（`planner=fake-e2e`）。验的是校验边界 / 编排 / 网关 / 领域 / 前端渲染；**模型的意图理解质量不在 CI 覆盖范围**，需带真 key 人工验证 |
-| 失败排查 | e2e / deploy-verify 失败时 `deployment/` 作为 artifact 上传（保留 7 天），含 Playwright HTML 报告、失败 trace、后端日志 |
+| 门禁（**程序化**） | `pnpm -C .harness run ci` 退出码 == 0（9 步：check-rename / check-contracts / check-module-deps / check-seed / check-log-assertions / check-shell / spark-ui ci / spark-rooter install / host-demo 离线打包） |
+| 规划器口径 | 未设 `SPARK_LLM_*` 时，e2e 与 deploy-verify 走示例宿主的假规划器（`planner=fake-e2e`）。验的是校验边界 / 编排 / 网关 / 领域 / 前端渲染；**模型的意图理解质量不在这套验收覆盖范围**，需带真 key 单独验 |
 | 失败回退 | 编译 / lint / format 错误 → 回阶段 3；契约不一致 → 回阶段 1 |
 
 > **核心经验**：不要让自然语言来定义"CI 通过"。必须以命令的真实退出码为准，Agent 声称完成前要把退出码打印出来。

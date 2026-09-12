@@ -1,6 +1,5 @@
 # Spark
 
-[![CI](https://github.com/heyy0415/spark-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/heyy0415/spark-ui/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 ![Java 21](https://img.shields.io/badge/java-21-orange) ![Spring Boot 3.5](https://img.shields.io/badge/spring%20boot-3.5-brightgreen) ![React 19](https://img.shields.io/badge/react-19-61dafb)
 
@@ -190,7 +189,7 @@ SPARK_PORT=8091 bash .harness/scripts/deploy-verify.sh   # 部署验证 12 条
 
 前端 e2e 首次运行需先 `pnpm -C spark-ui run e2e:install` 下载 chromium（约 150 MB，一次性）。
 
-PR 与 main 推送会自动跑 [CI](.github/workflows/ci.yml)：`gates`（上面的全量门禁 + doctor）先行，通过后 `e2e` 与 `deploy-verify` 并行。三个 job 都不配模型密钥，一律走假规划器；e2e 失败时 `deployment/` 会作为 artifact 上传，内含 Playwright HTML 报告、失败 trace 与后端日志。
+e2e 失败时 Playwright 的 HTML 报告与失败 trace 落在当前 change 的 `deployment/e2e-frontend/` 下。
 
 **没有模型也能跑完整验收**：示例宿主在 `e2e` profile 下装配一个确定性的假规划器（`FakeLlmPlanner`，只在测试 profile 存在），它产出的计划仍要过 `PlanValidator` 的全部校验，所以验的依然是校验边界、编排、网关与领域实现。`deploy-verify` 在未设 `SPARK_LLM_API_KEY` 时自动启用它并打印 `planner=fake-e2e`。
 

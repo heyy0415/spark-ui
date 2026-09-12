@@ -3,8 +3,8 @@
 | 字段 | 值 |
 |---|---|
 | Change ID | ci-github-actions-pipeline-20260912 |
-| 类型 | ci |
-| 状态 | PUSHED |
+| 类型 | ci（**工作流部分已按用户决定回退**，见下） |
+| 状态 | DELIVERED |
 | 负责人 | Platform Owner Agent |
 | 涉及端 | harness（契约无变更；不改两端业务代码） |
 | 起止时间 | 2026-09-12 ~ — |
@@ -20,9 +20,9 @@
 | 3 | 编码实现 | DONE | — | coding_report_v1.md（T01–T05 完成，9 步门禁 exit 0） | 2026-09-12 |
 | 4 | 编码评审 | DONE | 1/2 | code_review_v1.md（**APPROVED**，0 MUST FIX / 2 SHOULD）；独立性不满足，局限见文件 §5 | 2026-09-12 |
 | 5 | 代码推送 | DONE | — | 本地 commit（push 待用户执行） | 2026-09-12 |
-| 6 | CI 验证 | PENDING | — | 本 change 即是配置 CI；**首次运行需 push 后才发生**，结果将回填此处 | — |
+| 6 | CI 验证 | N/A | — | 工作流已回退（见「范围调整」），阶段 6 门禁回到 `pnpm -C .harness run ci` | 2026-09-12 |
 | 7 | 部署验证 | DONE | — | deploy-verify 12 passed（`planner=fake-e2e`）+ e2e-backend 161 passed + e2e-frontend 7 passed，三套脚本在 java-home 改造后全部实跑通过 | 2026-09-12 |
-| 8 | 用户确认 | TODO | — | — | — |
+| 8 | 用户确认 | DONE | — | 用户确认：单人仓库不需要 GitHub Actions，删工作流保留门禁改进；不做发包 | 2026-09-12 |
 
 ## 契约变更
 - NONE
@@ -30,23 +30,44 @@
 ## 经验沉淀
 - （留空，每发现一个 Agent 错误后**先**在此追加一行，再决定是否升级到 Skill / Rule）
 
+## 范围调整（阶段 8 用户决定）
+
+用户明确本仓库是**单人开发**、**不发包**（「本工程仅提供代码，需要发包的可以自己把源码拿下来去发」）。据此回退：
+
+| 删除 | 原因 |
+|---|---|
+| `.github/workflows/ci.yml` | 单人仓库没有「别人提 PR 需要自动验证」的场景，CI 的价值只剩「防自己忘跑门禁」，不值这个复杂度 |
+| `.github/pull_request_template.md` | 不会给自己提 PR |
+| `CONTRIBUTING.md` | 没有外部贡献者；README 已有快速开始与门禁命令，规则在 `.harness/rules/` |
+| `.harness/changes/ci-run/` | 仅为 CI 的 `SPARK_CHANGE` 占位而存在 |
+| README 的 CI 徽章、`dev-workflow.md` 阶段 6 的 GitHub Actions 描述 | 随工作流一并回退 |
+
+**保留**（与 CI 无关的独立价值，回退后 `pnpm -C .harness run ci` 仍 9 步全绿）：
+
+| 保留 | 独立价值 |
+|---|---|
+| `scripts/lib/java-home.sh` + 8 处路径改造 | 换机器、换 JDK 安装方式（jenv / sdkman / 系统包）都不用改脚本 |
+| `check-shell`（shellcheck 入门禁） | 拦住 `bash -n` 查不出的问题，如上一 change 踩到的「变量名被全角括号吞掉」 |
+| `check-log-assertions` | 拦住「断言依赖已删除的日志」——上一 change 里这类问题潜伏了三个 change |
+| `ci.mjs` 的 host-demo 步骤注入 JAVA_HOME | 与上面同理 |
+
 ## 关键成果
 
 | 项 | 状态 |
 |---|---|
-| GitHub Actions 三 job（gates → e2e ∥ deploy-verify） | 已配置，待首跑 |
 | 脚本摆脱本机 JDK 路径（8 处） | 完成，三套脚本实跑验证 |
 | shellcheck 入门禁 | 完成，5 个脚本零告警 |
 | `check-log-assertions` 门禁 | 完成，自证有效（插入失实断言即红） |
-| CONTRIBUTING + PR 模板 | 新增 |
 
-阶段 6 自四个 change 以来首次不再是 SKIP —— 它现在有了可运行的定义。
+阶段 6 的门禁定义从「未配置 / SKIP」改为明确的「`pnpm -C .harness run ci` 9 步退出 0」。
 
 ## 遗留债务
 
-- **预热步骤在空缓存下的有效性未验证**（评审 S-1）。`mvn -o` 需要 host-demo 的外部 parent 与 boot 插件在本地仓，本机有缓存所以验不出来。若 CI 首跑失败，备选：去掉 `-o`，或改用 `dependency:go-offline`。
-- **e2e 与 deploy-verify 两 job 的固定开销重复**（评审 S-2）。各自 checkout、装依赖、下 chromium。待首跑拿到真实耗时后决定是否合并。
-- **actionlint 未在本机运行**（未安装）。工作流的静态校验只做了 YAML 解析，以 CI 首跑为准。
+工作流回退后，评审 S-1（预热步骤未在空缓存验证）、S-2（两 job 开销重复）、actionlint 未运行三条**随之作废**——它们都只在 CI 语境下成立。
+
+保留的一条：
+
+- **`check-log-assertions` 只校验 `key=` 侧**（评审 §5 第 4 条）。日志把 `status=succeeded` 改成 `state=succeeded` 能被抓到，但 `succeeded` 改成 `ok` 抓不到。这是 spec §2.4 基于实测的取舍（value 侧来源含枚举 `.name()` 与运行时拼接），本次要防的那类问题都是 key 侧消失。
 
 ## 经验沉淀
 
