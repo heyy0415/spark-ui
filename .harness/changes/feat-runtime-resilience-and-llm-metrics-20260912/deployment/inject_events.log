@@ -1,0 +1,3 @@
+event:run.failed
+data:{"runId":"run_aff562d220614d69","code":"CONFIRMATION_REJECTED","message":"确认已过期或已被使用，请重新发起","at":"2026-09-12T10:29:22.596008Z"}
+

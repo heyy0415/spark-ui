@@ -1,0 +1,9 @@
+event:run.started
+data:{"runId":"run_37ce967259de4a47","conversationId":"conv_003","at":"2026-09-12T10:29:25.936027Z"}
+
+event:message.delta
+data:{"runId":"run_37ce967259de4a47","text":"当前没有可用能力处理该请求"}
+
+event:run.completed
+data:{"runId":"run_37ce967259de4a47","at":"2026-09-12T10:29:25.936617Z"}
+
