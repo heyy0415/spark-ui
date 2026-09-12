@@ -1,0 +1,18 @@
+event:run.started
+data:{"runId":"run_f4cefeb1ca914521","conversationId":"c14","at":"2026-09-12T09:21:40.486523Z"}
+
+event:tool.selected
+data:{"runId":"run_f4cefeb1ca914521","toolCallId":"tc_000025","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
+
+event:tool.started
+data:{"runId":"run_f4cefeb1ca914521","toolCallId":"tc_000025","at":"2026-09-12T09:21:40.487261Z"}
+
+event:tool.completed
+data:{"runId":"run_f4cefeb1ca914521","toolCallId":"tc_000025","status":"succeeded","durationMs":0,"summary":"订单 10010 COMPLETED"}
+
+event:ui.replace
+data:{"runId":"run_f4cefeb1ca914521","ui":{"schemaVersion":"1.0","screenId":"delete-confirmation","title":"确认删除订单","components":[{"id":"order","type":"Card","props":{"title":"订单 10010","items":[{"label":"商品","value":"保温杯 500ml"},{"label":"件数","value":"2"},{"label":"金额","value":"258.00 CNY"},{"label":"状态","value":"COMPLETED"},{"label":"提示","value":"删除后订单将从列表消失，不可恢复","tone":"danger"}]}}],"actions":[{"id":"confirm-delete","type":"submit","label":"确认删除","style":"danger","confirmationToken":"ct_Fcj7Vkw42KtcA8J4HQvkMcOLVSZXQiTV"},{"id":"cancel","type":"cancel","label":"取消","style":"default"}]}}
+
+event:confirmation.required
+data:{"runId":"run_f4cefeb1ca914521","actionId":"confirm-delete","expiresAt":"2026-09-12T09:31:40.488075Z"}
+

@@ -1,0 +1,18 @@
+event:run.started
+data:{"runId":"run_5a54114de6a24698","conversationId":"c22b","at":"2026-09-12T09:21:41.615381Z"}
+
+event:tool.selected
+data:{"runId":"run_5a54114de6a24698","toolCallId":"tc_000044","toolId":"aftersale.list.get","version":"1.0.0","displayName":"查询售后单"}
+
+event:tool.started
+data:{"runId":"run_5a54114de6a24698","toolCallId":"tc_000044","at":"2026-09-12T09:21:41.616011Z"}
+
+event:tool.completed
+data:{"runId":"run_5a54114de6a24698","toolCallId":"tc_000044","status":"succeeded","durationMs":0,"summary":"该订单有 0 条售后记录"}
+
+event:ui.replace
+data:{"runId":"run_5a54114de6a24698","ui":{"schemaVersion":"1.0","screenId":"aftersale-confirmation","title":"申请售后","components":[{"id":"order","type":"Card","props":{"title":"订单 10029","items":[{"label":"商品","value":"轻薄笔记本 14 等 2 件"},{"label":"件数","value":"4"},{"label":"金额","value":"14134.00 CNY"},{"label":"状态","value":"COMPLETED"}]}},{"id":"aftersale-form","type":"Form","props":{"fields":[{"name":"type","type":"select","label":"售后类型","required":true,"options":[{"label":"退货","value":"RETURN"},{"label":"换货","value":"EXCHANGE"},{"label":"维修","value":"REPAIR"}]},{"name":"reason","type":"text","label":"问题描述","required":true}]}}],"actions":[{"id":"confirm-aftersale","type":"submit","label":"提交售后申请","style":"primary","confirmationToken":"ct_x1XBJFfcwwlgfYyapRehCmBG-doQr2Ja"},{"id":"cancel","type":"cancel","label":"取消","style":"default"}]}}
+
+event:confirmation.required
+data:{"runId":"run_5a54114de6a24698","actionId":"confirm-aftersale","expiresAt":"2026-09-12T09:31:41.616664Z"}
+

@@ -1,0 +1,347 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::               (v3.5.16)
+
+2026-09-12T17:21:34.440+08:00  INFO 98752 --- [           main] com.example.demo.HostDemoApplication     : Starting HostDemoApplication v0.1.0-SNAPSHOT using Java 21.0.11 with PID 98752 (/Users/fangtao/strato_ui/spark-rooter/examples/host-demo/target/host-demo.jar started by fangtao in /Users/fangtao/strato_ui)
+2026-09-12T17:21:34.441+08:00  INFO 98752 --- [           main] com.example.demo.HostDemoApplication     : The following 1 profile is active: "e2e"
+2026-09-12T17:21:35.020+08:00  INFO 98752 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8091 (http)
+2026-09-12T17:21:35.026+08:00  INFO 98752 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-09-12T17:21:35.026+08:00  INFO 98752 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.55]
+2026-09-12T17:21:35.037+08:00  INFO 98752 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-09-12T17:21:35.037+08:00  INFO 98752 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 574 ms
+2026-09-12T17:21:35.155+08:00  INFO 98752 --- [           main] c.s.e.order.infra.SeededOrderRepository  : order seed loaded orders=30 items=49 logisticsEvents=85
+2026-09-12T17:21:35.234+08:00  WARN 98752 --- [           main] com.example.demo.e2e.FakeLlmPlanner      : e2e 假规划器已装配（profile=e2e/e2e-ttl），仅供测试；生产 profile 下不存在
+2026-09-12T17:21:35.242+08:00  INFO 98752 --- [           main] c.s.e.p.infra.SeededProductRepository    : product seed loaded products=20
+2026-09-12T17:21:35.246+08:00  INFO 98752 --- [           main] c.s.e.a.infra.SeededAftersaleRepository  : aftersale seed loaded aftersales=4
+2026-09-12T17:21:35.250+08:00  INFO 98752 --- [           main] c.s.e.r.infra.SeededRefundRepository     : refund seed loaded refunds=3
+2026-09-12T17:21:35.427+08:00  INFO 98752 --- [           main] c.s.g.application.InvokeToolUseCase      : gateway handlers registered: []
+2026-09-12T17:21:35.431+08:00  WARN 98752 --- [           main] c.s.runtime.infra.llm.LlmFactory         : spark.llm.base-url / api-key / model (or SPARK_LLM_*) not fully set; planner UNAVAILABLE — every request will fail until a model is configured
+2026-09-12T17:21:35.533+08:00  INFO 98752 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-09-12T17:21:35.556+08:00  INFO 98752 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool demo.whoami@1.0.0 domain=demo risk=low
+2026-09-12T17:21:35.557+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered demo.whoami@1.0.0 from DemoTools#whoami
+2026-09-12T17:21:35.558+08:00  INFO 98752 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.logistics.get@1.0.0 domain=order risk=low
+2026-09-12T17:21:35.559+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered order.logistics.get@1.0.0 from OrderTools#logistics
+2026-09-12T17:21:35.560+08:00  INFO 98752 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.detail.get@1.1.0 domain=order risk=low
+2026-09-12T17:21:35.560+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered order.detail.get@1.1.0 from OrderTools#detail
+2026-09-12T17:21:35.561+08:00  INFO 98752 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.list.search@1.1.0 domain=order risk=low
+2026-09-12T17:21:35.561+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered order.list.search@1.1.0 from OrderTools#list
+2026-09-12T17:21:35.561+08:00  INFO 98752 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.delete@1.0.0 domain=order risk=high
+2026-09-12T17:21:35.561+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered order.delete@1.0.0 from OrderTools#delete
+2026-09-12T17:21:35.562+08:00  INFO 98752 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool product.detail.get@1.0.0 domain=product risk=low
+2026-09-12T17:21:35.562+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered product.detail.get@1.0.0 from ProductTools#detail
+2026-09-12T17:21:35.562+08:00  INFO 98752 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool product.list.search@1.0.0 domain=product risk=low
+2026-09-12T17:21:35.562+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered product.list.search@1.0.0 from ProductTools#list
+2026-09-12T17:21:35.563+08:00  INFO 98752 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool aftersale.list.get@1.0.0 domain=aftersale risk=low
+2026-09-12T17:21:35.563+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered aftersale.list.get@1.0.0 from AftersaleTools#list
+2026-09-12T17:21:35.564+08:00  INFO 98752 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool aftersale.create@1.0.0 domain=aftersale risk=high
+2026-09-12T17:21:35.564+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered aftersale.create@1.0.0 from AftersaleTools#create
+2026-09-12T17:21:35.564+08:00  INFO 98752 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.eligibility.check@1.3.0 domain=refund risk=low
+2026-09-12T17:21:35.564+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered refund.eligibility.check@1.3.0 from RefundTools#eligibility
+2026-09-12T17:21:35.565+08:00  INFO 98752 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.preview@1.3.0 domain=refund risk=low
+2026-09-12T17:21:35.565+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered refund.preview@1.3.0 from RefundTools#preview
+2026-09-12T17:21:35.565+08:00  INFO 98752 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.status.get@1.0.0 domain=refund risk=low
+2026-09-12T17:21:35.565+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered refund.status.get@1.0.0 from RefundTools#status
+2026-09-12T17:21:35.566+08:00  INFO 98752 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.create@2.1.0 domain=refund risk=high
+2026-09-12T17:21:35.566+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered refund.create@2.1.0 from RefundTools#create
+2026-09-12T17:21:35.571+08:00  INFO 98752 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool spark.selfcheck.echo@1.0.0 domain=spark risk=low
+2026-09-12T17:21:35.571+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered spark.selfcheck.echo@1.0.0 from EchoTools#echo
+2026-09-12T17:21:35.629+08:00  INFO 98752 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: 14 tools registered from 6 beans
+2026-09-12T17:21:35.642+08:00  INFO 98752 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8091 (http) with context path '/'
+2026-09-12T17:21:35.649+08:00  INFO 98752 --- [           main] com.example.demo.HostDemoApplication     : Started HostDemoApplication in 1.388 seconds (process running for 1.55)
+2026-09-12T17:21:35.676+08:00  INFO 98752 --- [           main] c.s.r.infra.StartupManifestRegistrar     : startup registration done: 0 tools from 0 sources
+2026-09-12T17:21:35.676+08:00  INFO 98752 --- [           main] c.sparkrooter.starter.SelfCheckRunner    : selfcheck: running 9 checks
+2026-09-12T17:21:35.677+08:00  INFO 98752 --- [           main] c.s.e.refund.application.RefundService   : refund created refundId=rf_94bf646240a8 orderId=10003 tenant=tenant_001
+2026-09-12T17:21:35.677+08:00  INFO 98752 --- [           main] c.s.e.r.i.s.RefundIdempotencySelfCheck   : selfcheck: refund.create idempotent OK
+2026-09-12T17:21:35.677+08:00  INFO 98752 --- [           main] c.sparkrooter.starter.SelfCheckRunner    : selfcheck: refund.create idempotent OK
+2026-09-12T17:21:35.695+08:00  INFO 98752 --- [           main] c.s.c.i.selfcheck.ContractsSelfCheck     : selfcheck: contracts 9 schemas, 27 examples OK
+2026-09-12T17:21:35.695+08:00  INFO 98752 --- [           main] c.sparkrooter.starter.SelfCheckRunner    : selfcheck: contracts OK
+2026-09-12T17:21:35.696+08:00  INFO 98752 --- [           main] c.s.g.i.s.GatewayIdempotencySelfCheck    : selfcheck: gateway idempotency claim OK
+2026-09-12T17:21:35.696+08:00  INFO 98752 --- [           main] c.sparkrooter.starter.SelfCheckRunner    : selfcheck: gateway idempotency claim OK
+2026-09-12T17:21:35.696+08:00  INFO 98752 --- [           main] c.s.r.infra.selfcheck.TokenSelfCheck     : selfcheck: token expired/replayed/digest-mismatch/extra-key/session-mismatch rejected OK
+2026-09-12T17:21:35.697+08:00  INFO 98752 --- [           main] c.sparkrooter.starter.SelfCheckRunner    : selfcheck: confirmation token OK
+2026-09-12T17:21:35.697+08:00  INFO 98752 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: planner=fake-e2e
+2026-09-12T17:21:35.697+08:00  INFO 98752 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:35.698+08:00  INFO 98752 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: invalid toolId rejected OK
+2026-09-12T17:21:35.698+08:00  INFO 98752 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: missing prerequisite rejected OK
+2026-09-12T17:21:35.698+08:00  INFO 98752 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: foreign entity arg rejected OK
+2026-09-12T17:21:35.700+08:00  INFO 98752 --- [           main] c.s.r.infra.selfcheck.PlanSelfCheck      : selfcheck: schema-violating arg rejected OK
+2026-09-12T17:21:35.700+08:00  INFO 98752 --- [           main] c.sparkrooter.starter.SelfCheckRunner    : selfcheck: plan validator OK
+2026-09-12T17:21:35.712+08:00  INFO 98752 --- [           main] c.s.s.selfcheck.ManifestParitySelfCheck  : selfcheck: manifest parity OK (12 manifests)
+2026-09-12T17:21:35.713+08:00  INFO 98752 --- [           main] c.sparkrooter.starter.SelfCheckRunner    : selfcheck: manifest parity OK
+2026-09-12T17:21:35.716+08:00  INFO 98752 --- [           main] AUDIT                                    : audit runId=run_selfcheck toolCallId=tc_proxy toolId=spark.selfcheck.echo version=1.0.0 sessionId=selfcheck argsDigest=25f4810c8a4d6fd9af465204445253b3 status=succeeded durationMs=2 traceId=null
+2026-09-12T17:21:35.716+08:00  INFO 98752 --- [           main] c.s.s.s.ProxyInvocationSelfCheck         : selfcheck: proxy invocation OK (aspect fired once)
+2026-09-12T17:21:35.716+08:00  INFO 98752 --- [           main] c.sparkrooter.starter.SelfCheckRunner    : selfcheck: proxy invocation OK
+2026-09-12T17:21:35.716+08:00  INFO 98752 --- [           main] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:35.722+08:00  INFO 98752 --- [           main] c.s.r.i.s.ConfirmationCoverageSelfCheck  : selfcheck: confirmation coverage OK (3 tools)
+2026-09-12T17:21:35.722+08:00  INFO 98752 --- [           main] c.sparkrooter.starter.SelfCheckRunner    : selfcheck: confirmation coverage OK
+2026-09-12T17:21:35.729+08:00  INFO 98752 --- [           main] AUDIT                                    : audit runId=run_selfcheck toolCallId=tc_inline_order.list.search toolId=order.list.search version=1.1.0 sessionId=selfcheck argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=6 traceId=null
+2026-09-12T17:21:35.733+08:00  INFO 98752 --- [           main] AUDIT                                    : audit runId=run_selfcheck toolCallId=tc_inline_product.list.search toolId=product.list.search version=1.0.0 sessionId=selfcheck argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=2 traceId=null
+2026-09-12T17:21:35.734+08:00  INFO 98752 --- [           main] c.s.r.i.selfcheck.InlineActionSelfCheck  : selfcheck: inline actions OK (54 actions)
+2026-09-12T17:21:35.734+08:00  INFO 98752 --- [           main] c.sparkrooter.starter.SelfCheckRunner    : selfcheck: inline actions OK
+2026-09-12T17:21:38.199+08:00  INFO 98752 --- [nio-8091-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-09-12T17:21:38.199+08:00  INFO 98752 --- [nio-8091-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-09-12T17:21:38.199+08:00  INFO 98752 --- [nio-8091-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
+2026-09-12T17:21:38.216+08:00  INFO 98752 --- [nio-8091-exec-1] c.s.w.registry.ToolRegistryController    : search_tools, domain=refund
+2026-09-12T17:21:38.216+08:00  INFO 98752 --- [nio-8091-exec-1] c.s.r.application.SearchToolsUseCase     : search domain=refund candidates=4
+2026-09-12T17:21:38.348+08:00  INFO 98752 --- [nio-8091-exec-3] c.s.w.registry.ToolRegistryController    : register_tool, toolId=refund.create
+2026-09-12T17:21:38.380+08:00  INFO 98752 --- [nio-8091-exec-5] c.s.w.gateway.ToolGatewayController      : invoke_tool, toolId=refund.eligibility.check version=1.3.0 runId=run_probe toolCallId=tc_p1
+2026-09-12T17:21:38.381+08:00  INFO 98752 --- [nio-8091-exec-5] AUDIT                                    : audit runId=run_probe toolCallId=tc_p1 toolId=refund.eligibility.check version=1.3.0 sessionId=e2e argsDigest=44136fa355b3678a1146ad16f7e8649e status=failed:INPUT_INVALID durationMs=0 traceId=null
+2026-09-12T17:21:38.495+08:00  INFO 98752 --- [nio-8091-exec-2] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=conv_001
+2026-09-12T17:21:38.497+08:00  INFO 98752 --- [    agent-run-1] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:38.498+08:00  INFO 98752 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : decision runId=run_0e368062e7814636 kind=Planned planner=fake-e2e
+2026-09-12T17:21:38.500+08:00  INFO 98752 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_0e368062e7814636 steps=3 planner=fake-e2e
+2026-09-12T17:21:38.504+08:00  INFO 98752 --- [    agent-run-1] AUDIT                                    : audit runId=run_0e368062e7814636 toolCallId=tc_000001 toolId=refund.eligibility.check version=1.3.0 sessionId=user_001:conv_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=1 traceId=trace_e2e
+2026-09-12T17:21:38.506+08:00  INFO 98752 --- [    agent-run-1] AUDIT                                    : audit runId=run_0e368062e7814636 toolCallId=tc_000002 toolId=refund.preview version=1.3.0 sessionId=user_001:conv_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:38.643+08:00  INFO 98752 --- [nio-8091-exec-7] c.s.webmvc.runtime.AgentRunController    : confirm_action, runId=run_0e368062e7814636 actionId=confirm-refund
+2026-09-12T17:21:38.644+08:00  INFO 98752 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_0e368062e7814636 step=3 tool=refund.create
+2026-09-12T17:21:38.645+08:00  INFO 98752 --- [    agent-run-2] AUDIT                                    : audit runId=run_0e368062e7814636 toolCallId=tc_000003 toolId=refund.eligibility.check version=1.3.0 sessionId=user_001:conv_001 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:38.648+08:00  INFO 98752 --- [ gateway-tool-8] c.s.e.refund.application.RefundService   : refund created refundId=rf_28e8f7644e58 orderId=10001 tenant=tenant_001
+2026-09-12T17:21:38.648+08:00  INFO 98752 --- [    agent-run-2] AUDIT                                    : audit runId=run_0e368062e7814636 toolCallId=tc_000004 toolId=refund.create version=2.1.0 sessionId=user_001:conv_001 argsDigest=524c5f36375537fdb1ff539459f71ed4 status=succeeded durationMs=1 traceId=trace_e2e
+2026-09-12T17:21:38.649+08:00  INFO 98752 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmed step executed runId=run_0e368062e7814636 tokenStep=3
+2026-09-12T17:21:38.733+08:00  INFO 98752 --- [nio-8091-exec-2] c.s.webmvc.runtime.AgentRunController    : confirm_action, runId=run_0e368062e7814636 actionId=confirm-refund
+2026-09-12T17:21:38.733+08:00  WARN 98752 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : confirmation rejected runId=run_0e368062e7814636 state=COMPLETED reason=run not waiting for confirmation: COMPLETED
+2026-09-12T17:21:38.787+08:00  INFO 98752 --- [nio-8091-exec-5] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=conv_002
+2026-09-12T17:21:38.787+08:00  INFO 98752 --- [    agent-run-4] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:38.788+08:00  INFO 98752 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : decision runId=run_daa381389fd6461b kind=Planned planner=fake-e2e
+2026-09-12T17:21:38.788+08:00  INFO 98752 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_daa381389fd6461b steps=3 planner=fake-e2e
+2026-09-12T17:21:38.789+08:00  INFO 98752 --- [    agent-run-4] AUDIT                                    : audit runId=run_daa381389fd6461b toolCallId=tc_000005 toolId=refund.eligibility.check version=1.3.0 sessionId=user_001:conv_002 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:38.790+08:00  INFO 98752 --- [    agent-run-4] AUDIT                                    : audit runId=run_daa381389fd6461b toolCallId=tc_000006 toolId=refund.preview version=1.3.0 sessionId=user_001:conv_002 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:38.845+08:00  INFO 98752 --- [nio-8091-exec-8] c.s.webmvc.runtime.AgentRunController    : confirm_action, runId=run_daa381389fd6461b actionId=confirm-refund
+2026-09-12T17:21:38.845+08:00  WARN 98752 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : run failed runId=run_daa381389fd6461b code=CONFIRMATION_REJECTED reason=formData key not allowed: amount
+2026-09-12T17:21:38.898+08:00  INFO 98752 --- [nio-8091-exec-1] c.s.w.gateway.ToolGatewayController      : invoke_tool, toolId=refund.status.get version=1.0.0 runId=run_probe toolCallId=tc_10002
+2026-09-12T17:21:38.900+08:00  INFO 98752 --- [nio-8091-exec-1] AUDIT                                    : audit runId=run_probe toolCallId=tc_10002 toolId=refund.status.get version=1.0.0 sessionId=e2e argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=1 traceId=null
+2026-09-12T17:21:38.920+08:00  INFO 98752 --- [nio-8091-exec-3] c.s.w.gateway.ToolGatewayController      : invoke_tool, toolId=refund.status.get version=1.0.0 runId=run_probe toolCallId=tc_10001
+2026-09-12T17:21:38.921+08:00  INFO 98752 --- [nio-8091-exec-3] AUDIT                                    : audit runId=run_probe toolCallId=tc_10001 toolId=refund.status.get version=1.0.0 sessionId=e2e argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=null
+2026-09-12T17:21:38.941+08:00  INFO 98752 --- [nio-8091-exec-5] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=conv_m2
+2026-09-12T17:21:38.942+08:00  INFO 98752 --- [    agent-run-6] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:38.942+08:00  INFO 98752 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : decision runId=run_d9e0ee23a9a24f57 kind=Planned planner=fake-e2e
+2026-09-12T17:21:38.942+08:00  INFO 98752 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_d9e0ee23a9a24f57 steps=3 planner=fake-e2e
+2026-09-12T17:21:38.944+08:00  INFO 98752 --- [    agent-run-6] AUDIT                                    : audit runId=run_d9e0ee23a9a24f57 toolCallId=tc_000007 toolId=refund.eligibility.check version=1.3.0 sessionId=user_001:conv_m2 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:38.944+08:00  INFO 98752 --- [    agent-run-6] AUDIT                                    : audit runId=run_d9e0ee23a9a24f57 toolCallId=tc_000008 toolId=refund.preview version=1.3.0 sessionId=user_001:conv_m2 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:39.001+08:00  INFO 98752 --- [nio-8091-exec-8] c.s.webmvc.runtime.AgentRunController    : confirm_action, runId=run_d9e0ee23a9a24f57 actionId=confirm-refund
+2026-09-12T17:21:39.001+08:00  INFO 98752 --- [nio-8091-exec-9] c.s.webmvc.runtime.AgentRunController    : confirm_action, runId=run_d9e0ee23a9a24f57 actionId=confirm-refund
+2026-09-12T17:21:39.002+08:00  INFO 98752 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_d9e0ee23a9a24f57 step=3 tool=refund.create
+2026-09-12T17:21:39.002+08:00  WARN 98752 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : confirmation rejected runId=run_d9e0ee23a9a24f57 state=WAITING_CONFIRMATION reason=another confirmation is in progress
+2026-09-12T17:21:39.003+08:00  INFO 98752 --- [    agent-run-7] AUDIT                                    : audit runId=run_d9e0ee23a9a24f57 toolCallId=tc_000009 toolId=refund.eligibility.check version=1.3.0 sessionId=user_001:conv_m2 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:39.004+08:00  INFO 98752 --- [ gateway-tool-8] c.s.e.refund.application.RefundService   : refund created refundId=rf_2163c0c80ba9 orderId=10002 tenant=tenant_001
+2026-09-12T17:21:39.004+08:00  INFO 98752 --- [    agent-run-7] AUDIT                                    : audit runId=run_d9e0ee23a9a24f57 toolCallId=tc_000010 toolId=refund.create version=2.1.0 sessionId=user_001:conv_m2 argsDigest=1512eba97d21fc43fc900d029c0090a3 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:39.004+08:00  INFO 98752 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : confirmed step executed runId=run_d9e0ee23a9a24f57 tokenStep=3
+2026-09-12T17:21:39.077+08:00  INFO 98752 --- [nio-8091-exec-6] c.s.w.gateway.ToolGatewayController      : invoke_tool, toolId=refund.status.get version=1.0.0 runId=run_probe toolCallId=tc_10002
+2026-09-12T17:21:39.078+08:00  INFO 98752 --- [nio-8091-exec-6] AUDIT                                    : audit runId=run_probe toolCallId=tc_10002 toolId=refund.status.get version=1.0.0 sessionId=e2e argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=null
+2026-09-12T17:21:39.148+08:00  INFO 98752 --- [nio-8091-exec-8] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=conv_r1
+2026-09-12T17:21:39.148+08:00  INFO 98752 --- [    agent-run-1] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:39.149+08:00  INFO 98752 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : decision runId=run_75d91f2beacc4803 kind=Clarify planner=fake-e2e
+2026-09-12T17:21:39.151+08:00  INFO 98752 --- [    agent-run-1] AUDIT                                    : audit runId=run_75d91f2beacc4803 toolCallId=tc_000011 toolId=order.list.search version=1.1.0 sessionId=user_001:conv_r1 argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:39.153+08:00  INFO 98752 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : clarification screen runId=run_75d91f2beacc4803 entity=order tool=order.list.search
+2026-09-12T17:21:39.282+08:00  INFO 98752 --- [nio-8091-exec-3] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=conv_r2
+2026-09-12T17:21:39.282+08:00  INFO 98752 --- [    agent-run-2] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:39.283+08:00  INFO 98752 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : decision runId=run_0b9689943b3b4463 kind=NoCapability planner=fake-e2e
+2026-09-12T17:21:39.312+08:00  INFO 98752 --- [nio-8091-exec-6] c.s.w.gateway.ToolGatewayController      : invoke_tool, toolId=refund.create version=2.1.0 runId=run_e2eidem toolCallId=tc_idem1
+2026-09-12T17:21:39.312+08:00  INFO 98752 --- [ gateway-tool-3] c.s.e.refund.application.RefundService   : refund created refundId=rf_7f60f69d4cea orderId=10004 tenant=tenant_001
+2026-09-12T17:21:39.313+08:00  INFO 98752 --- [nio-8091-exec-6] AUDIT                                    : audit runId=run_e2eidem toolCallId=tc_idem1 toolId=refund.create version=2.1.0 sessionId=e2e argsDigest=fb14d0048aee9218b70a43ab4182e1c8 status=succeeded durationMs=0 traceId=null
+2026-09-12T17:21:39.334+08:00  INFO 98752 --- [nio-8091-exec-8] c.s.w.gateway.ToolGatewayController      : invoke_tool, toolId=refund.create version=2.1.0 runId=run_e2eidem toolCallId=tc_idem2
+2026-09-12T17:21:39.334+08:00  INFO 98752 --- [nio-8091-exec-8] c.s.g.application.InvokeToolUseCase      : idempotent replay toolId=refund.create key=e2e-idem-10004
+2026-09-12T17:21:39.334+08:00  INFO 98752 --- [nio-8091-exec-8] AUDIT                                    : audit runId=run_e2eidem toolCallId=tc_idem2 toolId=refund.create version=2.1.0 sessionId=e2e argsDigest=fb14d0048aee9218b70a43ab4182e1c8 status=replayed durationMs=0 traceId=null
+2026-09-12T17:21:39.359+08:00  INFO 98752 --- [io-8091-exec-10] c.s.w.gateway.ToolGatewayController      : invoke_tool, toolId=refund.status.get version=1.0.0 runId=run_probe toolCallId=tc_10004
+2026-09-12T17:21:39.360+08:00  INFO 98752 --- [io-8091-exec-10] AUDIT                                    : audit runId=run_probe toolCallId=tc_10004 toolId=refund.status.get version=1.0.0 sessionId=e2e argsDigest=e0de59d05708df86fd793956bfab1b0b status=succeeded durationMs=0 traceId=null
+2026-09-12T17:21:39.381+08:00  INFO 98752 --- [nio-8091-exec-2] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c7
+2026-09-12T17:21:39.381+08:00  INFO 98752 --- [    agent-run-3] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:39.383+08:00  INFO 98752 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : decision runId=run_39046c5632b74fe8 kind=Planned planner=fake-e2e
+2026-09-12T17:21:39.383+08:00  INFO 98752 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_39046c5632b74fe8 steps=1 planner=fake-e2e
+2026-09-12T17:21:39.384+08:00  INFO 98752 --- [    agent-run-3] AUDIT                                    : audit runId=run_39046c5632b74fe8 toolCallId=tc_000012 toolId=order.list.search version=1.1.0 sessionId=user_001:c7 argsDigest=2cec5b818872d7affe28eb362698af71 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:39.485+08:00  INFO 98752 --- [nio-8091-exec-5] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c8
+2026-09-12T17:21:39.485+08:00  INFO 98752 --- [    agent-run-4] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:39.486+08:00  INFO 98752 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : decision runId=run_a1a6413910dc42bf kind=Planned planner=fake-e2e
+2026-09-12T17:21:39.486+08:00  INFO 98752 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_a1a6413910dc42bf steps=1 planner=fake-e2e
+2026-09-12T17:21:39.488+08:00  INFO 98752 --- [    agent-run-4] AUDIT                                    : audit runId=run_a1a6413910dc42bf toolCallId=tc_000013 toolId=order.logistics.get version=1.0.0 sessionId=user_001:c8 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=1 traceId=trace_e2e
+2026-09-12T17:21:39.586+08:00  INFO 98752 --- [nio-8091-exec-8] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c8b
+2026-09-12T17:21:39.587+08:00  INFO 98752 --- [    agent-run-5] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:39.587+08:00  INFO 98752 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : decision runId=run_67a675e5e08e43e0 kind=Planned planner=fake-e2e
+2026-09-12T17:21:39.587+08:00  INFO 98752 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_67a675e5e08e43e0 steps=1 planner=fake-e2e
+2026-09-12T17:21:39.588+08:00  INFO 98752 --- [    agent-run-5] AUDIT                                    : audit runId=run_67a675e5e08e43e0 toolCallId=tc_000014 toolId=order.logistics.get version=1.0.0 sessionId=user_001:c8b argsDigest=77ac1f64a5c86054dc167bfbc9c61268 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:39.657+08:00  INFO 98752 --- [nio-8091-exec-1] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c9
+2026-09-12T17:21:39.658+08:00  INFO 98752 --- [    agent-run-6] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:39.658+08:00  INFO 98752 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : decision runId=run_61601e2720d44632 kind=Planned planner=fake-e2e
+2026-09-12T17:21:39.658+08:00  INFO 98752 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_61601e2720d44632 steps=1 planner=fake-e2e
+2026-09-12T17:21:39.659+08:00  INFO 98752 --- [    agent-run-6] AUDIT                                    : audit runId=run_61601e2720d44632 toolCallId=tc_000015 toolId=product.list.search version=1.0.0 sessionId=user_001:c9 argsDigest=2cec5b818872d7affe28eb362698af71 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:39.714+08:00  INFO 98752 --- [nio-8091-exec-4] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c10
+2026-09-12T17:21:39.715+08:00  INFO 98752 --- [    agent-run-8] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:39.715+08:00  INFO 98752 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : decision runId=run_3ab84f0c62a24688 kind=Planned planner=fake-e2e
+2026-09-12T17:21:39.715+08:00  INFO 98752 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_3ab84f0c62a24688 steps=1 planner=fake-e2e
+2026-09-12T17:21:39.717+08:00  INFO 98752 --- [    agent-run-8] AUDIT                                    : audit runId=run_3ab84f0c62a24688 toolCallId=tc_000016 toolId=product.detail.get version=1.0.0 sessionId=user_001:c10 argsDigest=c0e94442d5386ba577574268687db542 status=succeeded durationMs=1 traceId=trace_e2e
+2026-09-12T17:21:39.773+08:00  INFO 98752 --- [nio-8091-exec-7] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c11
+2026-09-12T17:21:39.773+08:00  INFO 98752 --- [    agent-run-7] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:39.774+08:00  INFO 98752 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : decision runId=run_b793805c33354475 kind=Planned planner=fake-e2e
+2026-09-12T17:21:39.774+08:00  INFO 98752 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_b793805c33354475 steps=2 planner=fake-e2e
+2026-09-12T17:21:39.777+08:00  INFO 98752 --- [    agent-run-7] AUDIT                                    : audit runId=run_b793805c33354475 toolCallId=tc_000017 toolId=aftersale.list.get version=1.0.0 sessionId=user_001:c11 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=2 traceId=trace_e2e
+2026-09-12T17:21:39.946+08:00  INFO 98752 --- [io-8091-exec-10] c.s.webmvc.runtime.AgentRunController    : confirm_action, runId=run_b793805c33354475 actionId=confirm-aftersale
+2026-09-12T17:21:39.946+08:00  INFO 98752 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_b793805c33354475 step=2 tool=aftersale.create
+2026-09-12T17:21:39.947+08:00  INFO 98752 --- [    agent-run-1] AUDIT                                    : audit runId=run_b793805c33354475 toolCallId=tc_000018 toolId=aftersale.list.get version=1.0.0 sessionId=user_001:c11 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:39.949+08:00  INFO 98752 --- [ gateway-tool-4] c.s.e.a.application.AftersaleService     : aftersale created aftersaleId=AS-cb78b87d74 orderId=10002 tenant=tenant_001
+2026-09-12T17:21:39.949+08:00  INFO 98752 --- [    agent-run-1] AUDIT                                    : audit runId=run_b793805c33354475 toolCallId=tc_000019 toolId=aftersale.create version=1.0.0 sessionId=user_001:c11 argsDigest=4b2fc4a716c4495eecfacb61f82b2188 status=succeeded durationMs=1 traceId=trace_e2e
+2026-09-12T17:21:39.949+08:00  INFO 98752 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : confirmed step executed runId=run_b793805c33354475 tokenStep=2
+2026-09-12T17:21:40.000+08:00  INFO 98752 --- [nio-8091-exec-3] c.s.w.gateway.ToolGatewayController      : invoke_tool, toolId=aftersale.list.get version=1.0.0 runId=run_e2e_gw toolCallId=tc_22399
+2026-09-12T17:21:40.001+08:00  INFO 98752 --- [nio-8091-exec-3] AUDIT                                    : audit runId=run_e2e_gw toolCallId=tc_22399 toolId=aftersale.list.get version=1.0.0 sessionId=e2e argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=null
+2026-09-12T17:21:40.030+08:00  INFO 98752 --- [nio-8091-exec-5] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c12
+2026-09-12T17:21:40.030+08:00  INFO 98752 --- [    agent-run-2] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:40.030+08:00  INFO 98752 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : decision runId=run_bb7f66e9872644d1 kind=Planned planner=fake-e2e
+2026-09-12T17:21:40.030+08:00  INFO 98752 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_bb7f66e9872644d1 steps=2 planner=fake-e2e
+2026-09-12T17:21:40.033+08:00  INFO 98752 --- [    agent-run-2] AUDIT                                    : audit runId=run_bb7f66e9872644d1 toolCallId=tc_000020 toolId=order.detail.get version=1.1.0 sessionId=user_001:c12 argsDigest=0a668fb880b8f36abd2e5a10c34ceeb3 status=succeeded durationMs=1 traceId=trace_e2e
+2026-09-12T17:21:40.182+08:00  INFO 98752 --- [nio-8091-exec-8] c.s.webmvc.runtime.AgentRunController    : confirm_action, runId=run_bb7f66e9872644d1 actionId=confirm-delete
+2026-09-12T17:21:40.182+08:00  INFO 98752 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_bb7f66e9872644d1 step=2 tool=order.delete
+2026-09-12T17:21:40.183+08:00  INFO 98752 --- [    agent-run-3] AUDIT                                    : audit runId=run_bb7f66e9872644d1 toolCallId=tc_000021 toolId=order.detail.get version=1.1.0 sessionId=user_001:c12 argsDigest=0a668fb880b8f36abd2e5a10c34ceeb3 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:40.184+08:00  INFO 98752 --- [ gateway-tool-8] c.s.examples.order.infra.OrderTools      : order deleted orderId=10005 tenant=tenant_001 runId=run_bb7f66e9872644d1
+2026-09-12T17:21:40.185+08:00  INFO 98752 --- [    agent-run-3] AUDIT                                    : audit runId=run_bb7f66e9872644d1 toolCallId=tc_000022 toolId=order.delete version=1.0.0 sessionId=user_001:c12 argsDigest=0a668fb880b8f36abd2e5a10c34ceeb3 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:40.185+08:00  INFO 98752 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : confirmed step executed runId=run_bb7f66e9872644d1 tokenStep=2
+2026-09-12T17:21:40.218+08:00  INFO 98752 --- [nio-8091-exec-1] c.s.w.gateway.ToolGatewayController      : invoke_tool, toolId=order.list.search version=1.1.0 runId=run_e2e_gw toolCallId=tc_25378
+2026-09-12T17:21:40.219+08:00  INFO 98752 --- [nio-8091-exec-1] AUDIT                                    : audit runId=run_e2e_gw toolCallId=tc_25378 toolId=order.list.search version=1.1.0 sessionId=e2e argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=0 traceId=null
+2026-09-12T17:21:40.247+08:00  INFO 98752 --- [nio-8091-exec-3] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c13
+2026-09-12T17:21:40.248+08:00  INFO 98752 --- [    agent-run-4] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:40.248+08:00  INFO 98752 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : decision runId=run_56abcf3029334b30 kind=Planned planner=fake-e2e
+2026-09-12T17:21:40.248+08:00  INFO 98752 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_56abcf3029334b30 steps=2 planner=fake-e2e
+2026-09-12T17:21:40.249+08:00  INFO 98752 --- [    agent-run-4] AUDIT                                    : audit runId=run_56abcf3029334b30 toolCallId=tc_000023 toolId=order.detail.get version=1.1.0 sessionId=user_001:c13 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:40.347+08:00  INFO 98752 --- [nio-8091-exec-6] c.s.webmvc.runtime.AgentRunController    : confirm_action, runId=run_56abcf3029334b30 actionId=confirm-delete
+2026-09-12T17:21:40.347+08:00  INFO 98752 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_56abcf3029334b30 step=2 tool=order.delete
+2026-09-12T17:21:40.348+08:00  INFO 98752 --- [    agent-run-5] AUDIT                                    : audit runId=run_56abcf3029334b30 toolCallId=tc_000024 toolId=order.detail.get version=1.1.0 sessionId=user_001:c13 argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:40.348+08:00  WARN 98752 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : run failed runId=run_56abcf3029334b30 code=CONFIRMATION_REJECTED reason=订单状态不允许删除：PAID
+2026-09-12T17:21:40.427+08:00  INFO 98752 --- [nio-8091-exec-9] c.s.w.gateway.ToolGatewayController      : invoke_tool, toolId=order.delete version=1.0.0 runId=run_e2e_gw toolCallId=tc_27761
+2026-09-12T17:21:40.427+08:00  WARN 98752 --- [nio-8091-exec-9] c.s.g.application.InvokeToolUseCase      : tool error toolId=order.delete attempt=1/1 cause=java.lang.IllegalStateException: IllegalStateException: 订单状态不允许删除：PAID
+2026-09-12T17:21:40.427+08:00  INFO 98752 --- [nio-8091-exec-9] AUDIT                                    : audit runId=run_e2e_gw toolCallId=tc_27761 toolId=order.delete version=1.0.0 sessionId=e2e argsDigest=eb5144acdf8e3f6534daceb7e146a73a status=failed:HANDLER_ERROR durationMs=0 traceId=null
+2026-09-12T17:21:40.457+08:00  INFO 98752 --- [nio-8091-exec-1] c.s.w.gateway.ToolGatewayController      : invoke_tool, toolId=order.list.search version=1.1.0 runId=run_e2e_gw toolCallId=tc_21500
+2026-09-12T17:21:40.458+08:00  INFO 98752 --- [nio-8091-exec-1] AUDIT                                    : audit runId=run_e2e_gw toolCallId=tc_21500 toolId=order.list.search version=1.1.0 sessionId=e2e argsDigest=a9e80df314fe077d2eb47e2006807f19 status=succeeded durationMs=0 traceId=null
+2026-09-12T17:21:40.486+08:00  INFO 98752 --- [nio-8091-exec-3] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c14
+2026-09-12T17:21:40.486+08:00  INFO 98752 --- [    agent-run-6] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:40.487+08:00  INFO 98752 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : decision runId=run_f4cefeb1ca914521 kind=Planned planner=fake-e2e
+2026-09-12T17:21:40.487+08:00  INFO 98752 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_f4cefeb1ca914521 steps=2 planner=fake-e2e
+2026-09-12T17:21:40.487+08:00  INFO 98752 --- [    agent-run-6] AUDIT                                    : audit runId=run_f4cefeb1ca914521 toolCallId=tc_000025 toolId=order.detail.get version=1.1.0 sessionId=guest:c14 argsDigest=97c04d330ad466f2f3df8dd69e8d9973 status=succeeded durationMs=0 traceId=null
+2026-09-12T17:21:40.583+08:00  INFO 98752 --- [nio-8091-exec-6] c.s.webmvc.runtime.AgentRunController    : confirm_action, runId=run_f4cefeb1ca914521 actionId=confirm-delete
+2026-09-12T17:21:40.584+08:00  INFO 98752 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_f4cefeb1ca914521 step=2 tool=order.delete
+2026-09-12T17:21:40.584+08:00  INFO 98752 --- [    agent-run-8] AUDIT                                    : audit runId=run_f4cefeb1ca914521 toolCallId=tc_000026 toolId=order.detail.get version=1.1.0 sessionId=guest:c14 argsDigest=97c04d330ad466f2f3df8dd69e8d9973 status=succeeded durationMs=0 traceId=null
+2026-09-12T17:21:40.585+08:00  WARN 98752 --- [ gateway-tool-8] com.example.demo.DemoRoleAspect          : denied user=guest method=OrderTools.delete(..) requiredRole=admin
+2026-09-12T17:21:40.585+08:00  WARN 98752 --- [    agent-run-8] c.s.g.application.InvokeToolUseCase      : tool error toolId=order.delete attempt=1/1 cause=java.lang.IllegalStateException: IllegalStateException: permission denied: requires role admin
+2026-09-12T17:21:40.585+08:00  INFO 98752 --- [    agent-run-8] AUDIT                                    : audit runId=run_f4cefeb1ca914521 toolCallId=tc_000027 toolId=order.delete version=1.0.0 sessionId=guest:c14 argsDigest=97c04d330ad466f2f3df8dd69e8d9973 status=failed:HANDLER_ERROR durationMs=0 traceId=null
+2026-09-12T17:21:40.586+08:00  WARN 98752 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : tool invocation failed runId=run_f4cefeb1ca914521 tool=order.delete gatewayCode=HANDLER_ERROR
+2026-09-12T17:21:40.586+08:00  WARN 98752 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : run failed runId=run_f4cefeb1ca914521 code=TOOL_EXECUTION_FAILED reason=tool order.delete failed
+2026-09-12T17:21:40.645+08:00  INFO 98752 --- [nio-8091-exec-9] c.s.w.gateway.ToolGatewayController      : invoke_tool, toolId=order.list.search version=1.1.0 runId=run_e2e_gw toolCallId=tc_29806
+2026-09-12T17:21:40.646+08:00  INFO 98752 --- [nio-8091-exec-9] AUDIT                                    : audit runId=run_e2e_gw toolCallId=tc_29806 toolId=order.list.search version=1.1.0 sessionId=e2e argsDigest=b530e967883ba923ab6daa7e218a4833 status=succeeded durationMs=0 traceId=null
+2026-09-12T17:21:40.688+08:00  INFO 98752 --- [nio-8091-exec-5] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c14g
+2026-09-12T17:21:40.688+08:00  INFO 98752 --- [    agent-run-7] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:40.689+08:00  INFO 98752 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : decision runId=run_ae23c2b0b5884750 kind=Planned planner=fake-e2e
+2026-09-12T17:21:40.689+08:00  INFO 98752 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_ae23c2b0b5884750 steps=1 planner=fake-e2e
+2026-09-12T17:21:40.690+08:00  INFO 98752 --- [    agent-run-7] AUDIT                                    : audit runId=run_ae23c2b0b5884750 toolCallId=tc_000028 toolId=order.list.search version=1.1.0 sessionId=guest:c14g argsDigest=2cec5b818872d7affe28eb362698af71 status=succeeded durationMs=0 traceId=null
+2026-09-12T17:21:40.720+08:00  INFO 98752 --- [nio-8091-exec-8] c.s.w.gateway.ToolGatewayController      : invoke_tool, toolId=demo.whoami version=1.0.0 runId=run_e2e_gw toolCallId=tc_whoami
+2026-09-12T17:21:40.721+08:00  INFO 98752 --- [nio-8091-exec-8] AUDIT                                    : audit runId=run_e2e_gw toolCallId=tc_whoami toolId=demo.whoami version=1.0.0 sessionId=e2e argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=0 traceId=null
+2026-09-12T17:21:40.752+08:00  INFO 98752 --- [io-8091-exec-10] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c15
+2026-09-12T17:21:40.752+08:00  INFO 98752 --- [    agent-run-1] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:40.752+08:00  INFO 98752 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : decision runId=run_842dc39fa4044566 kind=Planned planner=fake-e2e
+2026-09-12T17:21:40.753+08:00  INFO 98752 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_842dc39fa4044566 steps=3 planner=fake-e2e
+2026-09-12T17:21:40.753+08:00  INFO 98752 --- [    agent-run-1] AUDIT                                    : audit runId=run_842dc39fa4044566 toolCallId=tc_000029 toolId=refund.eligibility.check version=1.3.0 sessionId=user_001:c15 argsDigest=f5b7f97b6d84869f11bd1e65dec4369c status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:40.754+08:00  INFO 98752 --- [    agent-run-1] AUDIT                                    : audit runId=run_842dc39fa4044566 toolCallId=tc_000030 toolId=refund.preview version=1.3.0 sessionId=user_001:c15 argsDigest=f5b7f97b6d84869f11bd1e65dec4369c status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:40.877+08:00  INFO 98752 --- [nio-8091-exec-3] c.s.webmvc.runtime.AgentRunController    : confirm_action, runId=run_842dc39fa4044566 actionId=confirm-refund
+2026-09-12T17:21:40.878+08:00  INFO 98752 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmation accepted runId=run_842dc39fa4044566 step=3 tool=refund.create
+2026-09-12T17:21:40.878+08:00  INFO 98752 --- [    agent-run-2] AUDIT                                    : audit runId=run_842dc39fa4044566 toolCallId=tc_000031 toolId=refund.eligibility.check version=1.3.0 sessionId=user_001:c15 argsDigest=f5b7f97b6d84869f11bd1e65dec4369c status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:40.879+08:00  INFO 98752 --- [ gateway-tool-7] c.s.e.refund.application.RefundService   : refund created refundId=rf_c2179d74e47c orderId=10006 tenant=tenant_001
+2026-09-12T17:21:40.879+08:00  INFO 98752 --- [    agent-run-2] AUDIT                                    : audit runId=run_842dc39fa4044566 toolCallId=tc_000032 toolId=refund.create version=2.1.0 sessionId=user_001:c15 argsDigest=fcf9f573fb8c886209b10c3703937dbe status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:40.879+08:00  INFO 98752 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmed step executed runId=run_842dc39fa4044566 tokenStep=3
+2026-09-12T17:21:40.933+08:00  INFO 98752 --- [nio-8091-exec-6] c.s.w.gateway.ToolGatewayController      : invoke_tool, toolId=refund.status.get version=1.0.0 runId=run_probe toolCallId=tc_10006
+2026-09-12T17:21:40.933+08:00  INFO 98752 --- [nio-8091-exec-6] AUDIT                                    : audit runId=run_probe toolCallId=tc_10006 toolId=refund.status.get version=1.0.0 sessionId=e2e argsDigest=f5b7f97b6d84869f11bd1e65dec4369c status=succeeded durationMs=0 traceId=null
+2026-09-12T17:21:40.954+08:00  INFO 98752 --- [nio-8091-exec-8] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c16
+2026-09-12T17:21:40.954+08:00  INFO 98752 --- [    agent-run-3] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:40.954+08:00  INFO 98752 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : decision runId=run_e1269a093e6d491b kind=Clarify planner=fake-e2e
+2026-09-12T17:21:40.955+08:00  INFO 98752 --- [    agent-run-3] AUDIT                                    : audit runId=run_e1269a093e6d491b toolCallId=tc_000033 toolId=order.list.search version=1.1.0 sessionId=user_001:c16 argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:40.956+08:00  INFO 98752 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : clarification screen runId=run_e1269a093e6d491b entity=order tool=order.list.search
+2026-09-12T17:21:41.030+08:00  INFO 98752 --- [nio-8091-exec-1] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c17
+2026-09-12T17:21:41.031+08:00  INFO 98752 --- [    agent-run-4] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:41.031+08:00  INFO 98752 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : decision runId=run_b7b678be942d46cf kind=Planned planner=fake-e2e
+2026-09-12T17:21:41.031+08:00  INFO 98752 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_b7b678be942d46cf steps=1 planner=fake-e2e
+2026-09-12T17:21:41.032+08:00  INFO 98752 --- [    agent-run-4] AUDIT                                    : audit runId=run_b7b678be942d46cf toolCallId=tc_000034 toolId=order.list.search version=1.1.0 sessionId=user_001:c17 argsDigest=2cec5b818872d7affe28eb362698af71 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.089+08:00  INFO 98752 --- [nio-8091-exec-4] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c18
+2026-09-12T17:21:41.089+08:00  INFO 98752 --- [    agent-run-5] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:41.090+08:00  INFO 98752 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : decision runId=run_84bdae3388df42d0 kind=Planned planner=fake-e2e
+2026-09-12T17:21:41.090+08:00  INFO 98752 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_84bdae3388df42d0 steps=1 planner=fake-e2e
+2026-09-12T17:21:41.091+08:00  INFO 98752 --- [    agent-run-5] AUDIT                                    : audit runId=run_84bdae3388df42d0 toolCallId=tc_000035 toolId=order.list.search version=1.1.0 sessionId=user_001:c18 argsDigest=1d1c8741e2fec42f474aa045674a8aef status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.146+08:00  INFO 98752 --- [nio-8091-exec-7] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c19
+2026-09-12T17:21:41.147+08:00  INFO 98752 --- [    agent-run-6] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:41.147+08:00  INFO 98752 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : decision runId=run_f09c2627ebbc478f kind=Planned planner=fake-e2e
+2026-09-12T17:21:41.147+08:00  INFO 98752 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_f09c2627ebbc478f steps=1 planner=fake-e2e
+2026-09-12T17:21:41.148+08:00  INFO 98752 --- [    agent-run-6] AUDIT                                    : audit runId=run_f09c2627ebbc478f toolCallId=tc_000036 toolId=order.list.search version=1.1.0 sessionId=user_001:c19 argsDigest=2a8276f650319ab72da96dfdddb5ea2b status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.179+08:00  INFO 98752 --- [io-8091-exec-10] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c20
+2026-09-12T17:21:41.180+08:00  INFO 98752 --- [    agent-run-8] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:41.180+08:00  INFO 98752 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : decision runId=run_c597125a8f094bf9 kind=Planned planner=fake-e2e
+2026-09-12T17:21:41.180+08:00  INFO 98752 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_c597125a8f094bf9 steps=1 planner=fake-e2e
+2026-09-12T17:21:41.181+08:00  INFO 98752 --- [    agent-run-8] AUDIT                                    : audit runId=run_c597125a8f094bf9 toolCallId=tc_000037 toolId=order.list.search version=1.1.0 sessionId=user_001:c20 argsDigest=2cec5b818872d7affe28eb362698af71 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.213+08:00  INFO 98752 --- [nio-8091-exec-3] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c20
+2026-09-12T17:21:41.213+08:00  INFO 98752 --- [    agent-run-7] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:41.213+08:00  INFO 98752 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : decision runId=run_1cddc16912f14622 kind=Planned planner=fake-e2e
+2026-09-12T17:21:41.213+08:00  INFO 98752 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_1cddc16912f14622 steps=1 planner=fake-e2e
+2026-09-12T17:21:41.214+08:00  INFO 98752 --- [    agent-run-7] AUDIT                                    : audit runId=run_1cddc16912f14622 toolCallId=tc_000038 toolId=order.logistics.get version=1.0.0 sessionId=user_001:c20 argsDigest=20afbbc64e044aa6b56b2d5b6afd3c4e status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.292+08:00  INFO 98752 --- [nio-8091-exec-6] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c21
+2026-09-12T17:21:41.293+08:00  INFO 98752 --- [    agent-run-1] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:41.293+08:00  INFO 98752 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : decision runId=run_bc23d48d45264f65 kind=Planned planner=fake-e2e
+2026-09-12T17:21:41.293+08:00  INFO 98752 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_bc23d48d45264f65 steps=1 planner=fake-e2e
+2026-09-12T17:21:41.293+08:00  INFO 98752 --- [    agent-run-1] AUDIT                                    : audit runId=run_bc23d48d45264f65 toolCallId=tc_000039 toolId=order.logistics.get version=1.0.0 sessionId=user_001:c21 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.301+08:00  INFO 98752 --- [nio-8091-exec-9] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c21
+2026-09-12T17:21:41.301+08:00  INFO 98752 --- [    agent-run-2] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:41.301+08:00  INFO 98752 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : decision runId=run_64f9b43ab2fa4c67 kind=Planned planner=fake-e2e
+2026-09-12T17:21:41.301+08:00  INFO 98752 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_64f9b43ab2fa4c67 steps=2 planner=fake-e2e
+2026-09-12T17:21:41.302+08:00  INFO 98752 --- [    agent-run-2] AUDIT                                    : audit runId=run_64f9b43ab2fa4c67 toolCallId=tc_000040 toolId=aftersale.list.get version=1.0.0 sessionId=user_001:c21 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.356+08:00  INFO 98752 --- [nio-8091-exec-2] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c22
+2026-09-12T17:21:41.357+08:00  INFO 98752 --- [    agent-run-3] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:41.357+08:00  INFO 98752 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : decision runId=run_e747c993fc324267 kind=Clarify planner=fake-e2e
+2026-09-12T17:21:41.357+08:00  INFO 98752 --- [    agent-run-3] AUDIT                                    : audit runId=run_e747c993fc324267 toolCallId=tc_000041 toolId=order.list.search version=1.1.0 sessionId=user_001:c22 argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.358+08:00  INFO 98752 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : clarification screen runId=run_e747c993fc324267 entity=order tool=order.list.search
+2026-09-12T17:21:41.527+08:00  INFO 98752 --- [nio-8091-exec-5] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c22
+2026-09-12T17:21:41.528+08:00  INFO 98752 --- [    agent-run-4] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:41.528+08:00  INFO 98752 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : decision runId=run_28271edb8e854e69 kind=Planned planner=fake-e2e
+2026-09-12T17:21:41.528+08:00  INFO 98752 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_28271edb8e854e69 steps=2 planner=fake-e2e
+2026-09-12T17:21:41.529+08:00  INFO 98752 --- [    agent-run-4] AUDIT                                    : audit runId=run_28271edb8e854e69 toolCallId=tc_000042 toolId=aftersale.list.get version=1.0.0 sessionId=user_001:c22 argsDigest=77ac1f64a5c86054dc167bfbc9c61268 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.582+08:00  INFO 98752 --- [nio-8091-exec-8] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c22b
+2026-09-12T17:21:41.582+08:00  INFO 98752 --- [    agent-run-5] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:41.583+08:00  INFO 98752 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : decision runId=run_60f98d70f9414224 kind=Clarify planner=fake-e2e
+2026-09-12T17:21:41.583+08:00  INFO 98752 --- [    agent-run-5] AUDIT                                    : audit runId=run_60f98d70f9414224 toolCallId=tc_000043 toolId=order.list.search version=1.1.0 sessionId=user_001:c22b argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.584+08:00  INFO 98752 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : clarification screen runId=run_60f98d70f9414224 entity=order tool=order.list.search
+2026-09-12T17:21:41.615+08:00  INFO 98752 --- [nio-8091-exec-1] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c22b
+2026-09-12T17:21:41.615+08:00  INFO 98752 --- [    agent-run-6] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:41.615+08:00  INFO 98752 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : decision runId=run_5a54114de6a24698 kind=Planned planner=fake-e2e
+2026-09-12T17:21:41.615+08:00  INFO 98752 --- [    agent-run-6] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_5a54114de6a24698 steps=2 planner=fake-e2e
+2026-09-12T17:21:41.616+08:00  INFO 98752 --- [    agent-run-6] AUDIT                                    : audit runId=run_5a54114de6a24698 toolCallId=tc_000044 toolId=aftersale.list.get version=1.0.0 sessionId=user_001:c22b argsDigest=20afbbc64e044aa6b56b2d5b6afd3c4e status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.693+08:00  INFO 98752 --- [nio-8091-exec-4] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c22c
+2026-09-12T17:21:41.693+08:00  INFO 98752 --- [    agent-run-8] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:41.693+08:00  INFO 98752 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : decision runId=run_d2cc63c27df6499b kind=Clarify planner=fake-e2e
+2026-09-12T17:21:41.694+08:00  INFO 98752 --- [    agent-run-8] AUDIT                                    : audit runId=run_d2cc63c27df6499b toolCallId=tc_000045 toolId=order.list.search version=1.1.0 sessionId=user_001:c22c argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.695+08:00  INFO 98752 --- [    agent-run-8] c.s.runtime.application.RunOrchestrator  : clarification screen runId=run_d2cc63c27df6499b entity=order tool=order.list.search
+2026-09-12T17:21:41.747+08:00  INFO 98752 --- [nio-8091-exec-7] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c22c
+2026-09-12T17:21:41.748+08:00  INFO 98752 --- [    agent-run-7] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:41.748+08:00  INFO 98752 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : decision runId=run_4f41cc9b79d54865 kind=Planned planner=fake-e2e
+2026-09-12T17:21:41.748+08:00  INFO 98752 --- [    agent-run-7] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_4f41cc9b79d54865 steps=1 planner=fake-e2e
+2026-09-12T17:21:41.749+08:00  INFO 98752 --- [    agent-run-7] AUDIT                                    : audit runId=run_4f41cc9b79d54865 toolCallId=tc_000046 toolId=order.logistics.get version=1.0.0 sessionId=user_001:c22c argsDigest=20afbbc64e044aa6b56b2d5b6afd3c4e status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.824+08:00  INFO 98752 --- [io-8091-exec-10] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c24
+2026-09-12T17:21:41.825+08:00  INFO 98752 --- [    agent-run-1] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:41.825+08:00  INFO 98752 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : decision runId=run_4e41d95cf37f41f5 kind=Planned planner=fake-e2e
+2026-09-12T17:21:41.825+08:00  INFO 98752 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_4e41d95cf37f41f5 steps=3 planner=fake-e2e
+2026-09-12T17:21:41.826+08:00  INFO 98752 --- [    agent-run-1] AUDIT                                    : audit runId=run_4e41d95cf37f41f5 toolCallId=tc_000047 toolId=refund.eligibility.check version=1.3.0 sessionId=user_001:c24 argsDigest=72e6b9ab07a65b6ef70724a30e873b72 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.826+08:00  INFO 98752 --- [    agent-run-1] AUDIT                                    : audit runId=run_4e41d95cf37f41f5 toolCallId=tc_000048 toolId=refund.preview version=1.3.0 sessionId=user_001:c24 argsDigest=72e6b9ab07a65b6ef70724a30e873b72 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:41.926+08:00  INFO 98752 --- [nio-8091-exec-3] c.s.webmvc.runtime.AgentRunController    : confirm_action, runId=run_4e41d95cf37f41f5 actionId=confirm-refund
+2026-09-12T17:21:41.926+08:00  WARN 98752 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : confirmation rejected runId=run_4e41d95cf37f41f5 state=WAITING_CONFIRMATION reason=session mismatch
+2026-09-12T17:21:42.038+08:00  INFO 98752 --- [nio-8091-exec-8] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c21
+2026-09-12T17:21:42.038+08:00  INFO 98752 --- [    agent-run-3] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:42.038+08:00  INFO 98752 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : decision runId=run_ca02bf6b4d334159 kind=Clarify planner=fake-e2e
+2026-09-12T17:21:42.039+08:00  INFO 98752 --- [    agent-run-3] AUDIT                                    : audit runId=run_ca02bf6b4d334159 toolCallId=tc_000049 toolId=order.list.search version=1.1.0 sessionId=userb:c21 argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=0 traceId=null
+2026-09-12T17:21:42.040+08:00  INFO 98752 --- [    agent-run-3] c.s.runtime.application.RunOrchestrator  : clarification screen runId=run_ca02bf6b4d334159 entity=order tool=order.list.search
+2026-09-12T17:21:42.117+08:00  INFO 98752 --- [nio-8091-exec-1] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=conv_r6
+2026-09-12T17:21:42.117+08:00  INFO 98752 --- [    agent-run-4] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:42.118+08:00  INFO 98752 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : decision runId=run_35eacd23baa54bda kind=Planned planner=fake-e2e
+2026-09-12T17:21:42.118+08:00  INFO 98752 --- [    agent-run-4] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_35eacd23baa54bda steps=1 planner=fake-e2e
+2026-09-12T17:21:42.118+08:00  INFO 98752 --- [    agent-run-4] AUDIT                                    : audit runId=run_35eacd23baa54bda toolCallId=tc_000050 toolId=order.list.search version=1.1.0 sessionId=user_001:conv_r6 argsDigest=2cec5b818872d7affe28eb362698af71 status=succeeded durationMs=0 traceId=trace_e2e
+2026-09-12T17:21:42.169+08:00  INFO 98752 --- [nio-8091-exec-4] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=conv_003
+2026-09-12T17:21:42.170+08:00  INFO 98752 --- [    agent-run-5] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T17:21:42.170+08:00  INFO 98752 --- [    agent-run-5] c.s.runtime.application.RunOrchestrator  : decision runId=run_98c7fd1f91704c92 kind=NoCapability planner=fake-e2e
+2026-09-12T17:21:42.200+08:00  INFO 98752 --- [nio-8091-exec-7] c.s.webmvc.runtime.AgentRunController    : confirm_action, runId=run_nope actionId=x
+2026-09-12T17:21:42.227+08:00  INFO 98752 --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-09-12T17:21:42.229+08:00  INFO 98752 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
