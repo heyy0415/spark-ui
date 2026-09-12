@@ -24,13 +24,18 @@ const args = process.argv.slice(2);
 const mvnw = join(sparkRooterDir, 'mvnw');
 const cmd = existsSync(mvnw) ? mvnw : 'mvn';
 
+// JDK 解析：显式 JAVA_HOME 优先（CI 由 actions/setup-java 装在与本机无关的路径），
+// 其次本机常见安装位置。与 lib/java-home.sh 的顺序保持一致。
 const env = { ...process.env };
-if (!env.JAVA_HOME || !/21/.test(env.JAVA_HOME)) {
+{
   const candidates = [
+    // 路径里不一定含 "21"（CI 的 JAVA_HOME 常形如 /opt/hostedtoolcache/Java_Temurin.../x64），
+    // 所以只要它存在就优先采用，版本由 maven-enforcer 的 requireJavaVersion 兜底校验。
+    env.JAVA_HOME,
     `${env.HOME}/.jenv/versions/21`,
     `${env.HOME}/.jenv/versions/openjdk64-21.0.11`,
     '/Library/Java/JavaVirtualMachines/openjdk-21.jdk/Contents/Home',
-  ];
+  ].filter(Boolean);
   const found = candidates.find((c) => existsSync(join(c, 'bin', 'java')));
   if (found) {
     env.JAVA_HOME = found;

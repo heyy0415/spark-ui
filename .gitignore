@@ -8,3 +8,6 @@
 .claude/settings.local.json
 
 # 子工程各自的忽略见 spark-ui/.gitignore、spark-rooter/.gitignore、.harness/.gitignore
+
+# CI 占位 change 的产物（SPARK_CHANGE=ci-run，见 .harness/changes/ci-run/summary.md）
+.harness/changes/ci-run/deployment/

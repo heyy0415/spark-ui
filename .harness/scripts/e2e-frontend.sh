@@ -8,12 +8,13 @@
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$ROOT/.harness/scripts/lib/change-dir.sh"
-JAVA="$HOME/.jenv/versions/21/bin/java"
+source "$ROOT/.harness/scripts/lib/java-home.sh"
 PORT="${SPARK_PORT:-8091}"
 FRONT_PORT="${SPARK_FRONT_PORT:-5199}"
 JAR="$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar"
 OUT="$DEPLOY/e2e-frontend"
 
+# shellcheck disable=SC2329  # 由下一行的 trap 调用，shellcheck 不把 trap 算作调用点
 cleanup() { pkill -f "host-demo.jar --server.port=$PORT" 2>/dev/null; }
 trap cleanup EXIT
 
@@ -39,7 +40,7 @@ for p in "$PORT" "$FRONT_PORT"; do
 done
 
 echo "--- 1. 后端（e2e profile，fake 规划器）"
-(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$JAR" --server.port="$PORT" --spring.profiles.active=e2e > "$DEPLOY/e2e-frontend-backend.log" 2>&1 &)
+(JAVA_HOME="$JAVA_HOME_RESOLVED" "$JAVA_BIN" -jar "$JAR" --server.port="$PORT" --spring.profiles.active=e2e > "$DEPLOY/e2e-frontend-backend.log" 2>&1 &)
 for _ in $(seq 1 40); do sleep 1; curl -sf "localhost:$PORT/actuator/health" >/dev/null 2>&1 && break; done
 if ! curl -sf "localhost:$PORT/actuator/health" >/dev/null 2>&1; then
   echo "BACKEND BOOT FAILED"; tail -20 "$DEPLOY/e2e-frontend-backend.log"; exit 1
@@ -57,6 +58,7 @@ echo "--- 3. 收集报告到 $OUT"
 mkdir -p "$OUT"
 [ -d "$ROOT/spark-ui/e2e-report" ] && cp -R "$ROOT/spark-ui/e2e-report/." "$OUT/"
 [ -d "$ROOT/spark-ui/test-results" ] && cp -R "$ROOT/spark-ui/test-results" "$OUT/test-results"
+# shellcheck disable=SC2012  # 只是把收集到的文件名打给人看，报告目录里没有特殊字符文件名
 echo "  $(ls "$OUT" | tr '\n' ' ')"
 
 exit $rc

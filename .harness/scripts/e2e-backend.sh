@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # 端到端验收脚本（spec §6.2 第 5–15 条 + 阶段 4 评审补充的反例）。用法：bash .harness/scripts/e2e-backend.sh
-# 前置：spark-rooter/examples/host-demo/target/host-demo.jar 已构建（根 ./mvnw install 后在 examples/host-demo mvn -o package）；JDK 21 在 ~/.jenv/versions/21。
+# 前置：spark-rooter/examples/host-demo/target/host-demo.jar 已构建（根 ./mvnw install 后在 examples/host-demo mvn -o package）；JDK 21 经 lib/java-home.sh 解析（$JAVA_HOME 优先，回落 jenv / PATH）。
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$ROOT/.harness/scripts/lib/change-dir.sh"
 P="$ROOT/.harness/scripts/sse-parse.mjs"
-JAVA="$HOME/.jenv/versions/21/bin/java"
+source "$ROOT/.harness/scripts/lib/java-home.sh"
 # 端口可用 SPARK_PORT 覆盖（默认 8080；本机另有实例时用 8091 等，脚本会自己起一个）
 PORT="${SPARK_PORT:-8080}"
 BASE="http://localhost:$PORT"
@@ -30,7 +30,7 @@ if [ -n "${owner}" ]; then
   echo "e2e-backend needs exclusive port $PORT; stop that process or set SPARK_PORT, and rerun."
   exit 2
 fi
-(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar" --server.port="$PORT" --spring.profiles.active=e2e > "$DEPLOY/backend.log" 2>&1 &)
+(JAVA_HOME="$JAVA_HOME_RESOLVED" "$JAVA_BIN" -jar "$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar" --server.port="$PORT" --spring.profiles.active=e2e > "$DEPLOY/backend.log" 2>&1 &)
 for i in $(seq 1 40); do sleep 1; grep -q "selfcheck: running" "$DEPLOY/backend.log" 2>/dev/null && break; grep -q "Application run failed" "$DEPLOY/backend.log" 2>/dev/null && break; done; sleep 2
 if grep -q "Application run failed" "$DEPLOY/backend.log"; then echo "BOOT FAILED"; grep -m1 -A2 "Application run failed" "$DEPLOY/backend.log"; exit 1; fi
 echo "boot: ready after ${i}s"
@@ -407,7 +407,7 @@ pkill -f "examples/host-demo/target/host-demo.jar --server.port=$PORT"
 
 echo "--- ㉓ 第二次启动（--spring.profiles.active=e2e-ttl，memory-ttl=1s）：记忆过期后走澄清屏而非补位"
 sleep 1
-(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar" --server.port="$PORT" --spring.profiles.active=e2e-ttl --spark.selfcheck.enabled=false > "$DEPLOY/backend-ttl.log" 2>&1 &)
+(JAVA_HOME="$JAVA_HOME_RESOLVED" "$JAVA_BIN" -jar "$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar" --server.port="$PORT" --spring.profiles.active=e2e-ttl --spark.selfcheck.enabled=false > "$DEPLOY/backend-ttl.log" 2>&1 &)
 for i in $(seq 1 40); do sleep 1; curl -sf "$BASE/actuator/health" >/dev/null 2>&1 && break; done
 run_msg c23 "查看订单 10002 的物流"
 sleep 2

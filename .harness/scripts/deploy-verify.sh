@@ -5,7 +5,7 @@ set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$ROOT/.harness/scripts/lib/change-dir.sh"
 P="$ROOT/.harness/scripts/sse-parse.mjs"
-JAVA="$HOME/.jenv/versions/21/bin/java"
+source "$ROOT/.harness/scripts/lib/java-home.sh"
 pass=0; fail=0
 check() { if [ "$2" = "$3" ]; then echo "  ✓ $1: $3"; pass=$((pass+1)); else echo "  ✗ $1: expected [$2] got [$3]"; fail=$((fail+1)); fi; }
 # 后端端口可用 SPARK_PORT 覆盖（默认 8080）；vite preview 经 SPARK_BACKEND 代理到它
@@ -17,7 +17,7 @@ cleanup; sleep 1
 export SPARK_BACKEND="http://localhost:$PORT"
 # 前置：后端端口 / 4173 不得被本脚本之外的进程占用（如 IDEA 里手动启动的后端）。否则会误对着别人的实例、别人的内存状态验收。
 for port in "$PORT" 4173; do
-  owner=$(lsof -tnP -iTCP:$port -sTCP:LISTEN 2>/dev/null | head -1)
+  owner=$(lsof -tnP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null | head -1)
   if [ -n "$owner" ]; then
     cmd=$(ps -o command= -p "${owner}" | cut -c1-80)
     echo "port ${port} is held by PID ${owner}: ${cmd}"
@@ -37,14 +37,14 @@ if [ -z "${SPARK_LLM_API_KEY:-}" ]; then
 else
   echo "  planner=llm（生产形态，真实模型）"
 fi
-(JAVA_HOME="$HOME/.jenv/versions/21" "$JAVA" -jar "$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar" --server.port="$PORT" $PROFILE_ARG > "$DEPLOY/backend.log" 2>&1 &)
-for i in $(seq 1 40); do sleep 1; curl -sf "localhost:$PORT/actuator/health" >/dev/null 2>&1 && break; done
+(JAVA_HOME="$JAVA_HOME_RESOLVED" "$JAVA_BIN" -jar "$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar" --server.port="$PORT" $PROFILE_ARG > "$DEPLOY/backend.log" 2>&1 &)
+for _ in $(seq 1 40); do sleep 1; curl -sf "localhost:$PORT/actuator/health" >/dev/null 2>&1 && break; done
 check "health" '{"status":"UP"}' "$(curl -s "localhost:$PORT/actuator/health")"
 check "selfcheck all OK" 9 "$(grep -c 'SelfCheckRunner.*selfcheck: .* OK' "$DEPLOY/backend.log")"
 
 echo "--- 2. 前端预览（vite preview :4173，代理到 ${PORT}）"
 (cd "$ROOT/spark-ui/apps/chat" && pnpm exec vite preview --port 4173 --strictPort > "$DEPLOY/preview.log" 2>&1 &)
-for i in $(seq 1 20); do sleep 1; curl -sf localhost:4173/ >/dev/null 2>&1 && break; done
+for _ in $(seq 1 20); do sleep 1; curl -sf localhost:4173/ >/dev/null 2>&1 && break; done
 check "preview /" 200 "$(curl -s -o /dev/null -w '%{http_code}' localhost:4173/)"
 check "preview proxies /actuator/health" 200 "$(curl -s -o /dev/null -w '%{http_code}' localhost:4173/actuator/health)"
 
@@ -60,12 +60,13 @@ check "run-summary state" COMPLETED "$(python3 -c "import json;print(json.load(o
 check "backend.log has this run" 1 "$(grep -c "plan attached runId=$RUNID" "$DEPLOY/backend.log")"
 check "user text in log" 0 "$(grep -c '帮我把订单 10001 退款' "$DEPLOY/backend.log")"
 
-echo "--- 4. 预览页面 console.error（headless Chrome）"
+echo "--- 4. 预览页面 console.error（Playwright chromium）"
 node "$ROOT/.harness/scripts/preview-console.mjs" "$DEPLOY" 2>&1 | tee "$DEPLOY/preview-console.log"; rc=${PIPESTATUS[0]}
 check "preview pages console.error == 0" 0 "$rc"
 check "preview chat page renders #agent-input" "agent-input=1" "$(grep -o 'agent-input=[01]' "$DEPLOY/preview-console.log" | head -1)"
 
 echo "--- 5. 体积报告"
+# shellcheck disable=SC2012  # 需要 ls -la 的字节数列喂给 awk；构建产物文件名由 vite 生成，无特殊字符
 { echo "# bundle_size (bytes  path)"; echo "## apps/chat"; ls -la "$ROOT"/spark-ui/apps/chat/dist/assets/*.js | awk '{print $5, $9}' | sort -n | tail -8; echo "## packages/core"; find "$ROOT/spark-ui/packages/core/dist" -name '*.js' -exec ls -la {} + | awk '{print $5, $9}' | sort -n | tail -4; echo "## spark-rooter"; ls -la "$ROOT"/spark-rooter/examples/host-demo/target/host-demo.jar | awk '{print $5, $9}'; } > "$DEPLOY/bundle_size.txt"
 check "bundle_size.txt written" 1 "$([ -s "$DEPLOY/bundle_size.txt" ] && echo 1 || echo 0)"
 

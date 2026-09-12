@@ -13,6 +13,7 @@
     "check-contracts": "node scripts/check-contracts.mjs",
     "sync-contracts": "node scripts/sync-contracts.mjs",
     "check-module-deps": "node scripts/check-module-deps.mjs",
+    "check-log-assertions": "node scripts/check-log-assertions.mjs",
     "check-rename": "node scripts/check-rename.mjs",
     "ci": "node scripts/ci.mjs",
     "e2e-backend": "bash scripts/e2e-backend.sh",

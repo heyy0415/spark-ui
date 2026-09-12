@@ -55,6 +55,7 @@ const required = [
   'scripts/gen-seed.mjs',
   'scripts/mvn.mjs',
   'scripts/check-rename.mjs',
+  'scripts/check-log-assertions.mjs',
   'scripts/ci.mjs',
   'scripts/sse-parse.mjs',
   'scripts/e2e-backend.sh',
@@ -63,6 +64,7 @@ const required = [
   'scripts/preview-console.mjs',
   'scripts/lib/change-dir.mjs',
   'scripts/lib/change-dir.sh',
+  'scripts/lib/java-home.sh',
   'package.json',
 ];
 // sparkUiDir 是 pnpm workspace：根 + packages/core + apps/chat（spec feat-spark-ui-monorepo §2.1）
