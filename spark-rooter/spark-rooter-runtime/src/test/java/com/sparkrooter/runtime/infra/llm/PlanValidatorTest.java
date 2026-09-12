@@ -242,6 +242,39 @@ final class PlanValidatorTest {
     assertThat(PlanValidator.missingEntity(foreignTool, candidates, meta)).isEmpty();
   }
 
+  // ---------------------------------------------------------------- 步骤数上限
+
+  /**
+   * 超过 {@link PlanValidator#MAX_PLAN_STEPS} 的计划被拒。
+   *
+   * <p>防的是「模型规划出几十步」——每步都是一次真实工具调用。
+   */
+  @Test
+  void planWithTooManyStepsIsSelectionInvalid() {
+    assertSelectionInvalid(
+        () -> validate(repeatedListSteps(PlanValidator.MAX_PLAN_STEPS + 1), "x", ctx()),
+        "too many steps");
+  }
+
+  /** 恰好等于上限的计划通过（边界不应误伤）。 */
+  @Test
+  void planAtExactlyTheStepLimitPasses() {
+    Plan plan = validate(repeatedListSteps(PlanValidator.MAX_PLAN_STEPS), "x", ctx());
+    assertThat(plan.steps()).hasSize(PlanValidator.MAX_PLAN_STEPS);
+  }
+
+  /**
+   * 现有最长链（3 步）必须通过。
+   *
+   * <p>这条是误伤哨兵：全部 e2e 实测的步数分布是 1 / 2 / 3，若有人把上限调到 3 以下， 这里立刻红，而不是等 161 条 e2e 里某条莫名失败。
+   */
+  @Test
+  void longestExistingChainIsWellUnderTheLimit() {
+    assertThat(PlanValidator.MAX_PLAN_STEPS).as("上限必须大于实测最长链 3 步").isGreaterThan(3);
+    Plan plan = validate(repeatedListSteps(3), "x", ctx());
+    assertThat(plan.steps()).hasSize(3);
+  }
+
   // ---------------------------------------------------------------- helpers
 
   private Plan validate(PlanDraft draft, String message, LlmClient.Context ctx) {
@@ -251,6 +284,15 @@ final class PlanValidatorTest {
 
   private static LlmClient.Context ctx() {
     return LlmClient.Context.empty();
+  }
+
+  /** 造 n 个合法的 LIST 步骤（参数合 schema），仅用于测步骤数上限。 */
+  private static PlanDraft repeatedListSteps(int n) {
+    List<PlanDraft.DraftStep> steps = new java.util.ArrayList<>();
+    for (int i = 0; i < n; i++) {
+      steps.add(step(LIST, Map.of("status", "OPEN")));
+    }
+    return new PlanDraft("plan", steps, List.of(), null);
   }
 
   private static PlanDraft draft(PlanDraft.DraftStep... steps) {

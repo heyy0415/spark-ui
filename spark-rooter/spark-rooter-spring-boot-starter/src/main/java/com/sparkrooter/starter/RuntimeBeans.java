@@ -23,11 +23,11 @@ import com.sparkrooter.runtime.infra.inprocess.InProcessToolGatewayClient;
 import com.sparkrooter.runtime.infra.inprocess.InProcessToolRegistryClient;
 import com.sparkrooter.runtime.infra.llm.LlmCircuitBreaker;
 import com.sparkrooter.runtime.infra.llm.LlmFactory;
-import com.sparkrooter.runtime.infra.llm.LogLlmMetricsSink;
 import com.sparkrooter.spi.ConfirmationRecheck;
 import com.sparkrooter.spi.ConversationMemory;
 import com.sparkrooter.spi.LlmMetricsSink;
 import com.sparkrooter.spi.RunContextPropagator;
+import com.sparkrooter.spi.RunMetricsSink;
 import com.sparkrooter.spi.ScreenBuilder;
 import com.sparkrooter.spi.SessionIdResolver;
 import java.time.Clock;
@@ -180,12 +180,6 @@ class RuntimeBeans {
   }
 
   /** LLM 埋点：默认落 LLM_METRICS 日志；宿主要接 Micrometer 自行定义同类型 Bean 即覆盖。 */
-  @Bean
-  @ConditionalOnMissingBean(LlmMetricsSink.class)
-  LlmMetricsSink sparkRooterLlmMetricsSink() {
-    return new LogLlmMetricsSink();
-  }
-
   /** 规划器：模型主导；未配置模型 → UnavailablePlanner（任何请求直接失败，不做规则兜底）。可信参数集合 = 各领域 recheck 声明的并集。 */
   @Bean
   @ConditionalOnMissingBean(LlmClient.class)
@@ -248,7 +242,8 @@ class RuntimeBeans {
       ToolMetaRegistry meta,
       ConversationMemory memory,
       SchemaValidator validator,
-      Clock sparkRooterClock) {
+      Clock sparkRooterClock,
+      RunMetricsSink runMetrics) {
     return new RunOrchestrator(
         runs,
         registry,
@@ -261,6 +256,7 @@ class RuntimeBeans {
         meta,
         memory,
         validator,
+        runMetrics,
         sparkRooterClock);
   }
 }

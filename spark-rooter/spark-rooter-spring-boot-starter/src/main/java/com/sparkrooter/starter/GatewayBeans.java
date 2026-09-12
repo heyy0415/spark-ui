@@ -4,6 +4,7 @@ import com.sparkrooter.contracts.SchemaValidator;
 import com.sparkrooter.contracts.tool.ToolTransport;
 import com.sparkrooter.gateway.application.InvokeToolUseCase;
 import com.sparkrooter.gateway.domain.IdempotencyStore;
+import com.sparkrooter.gateway.domain.SessionConcurrencyLimiter;
 import com.sparkrooter.gateway.infra.InMemoryIdempotencyStore;
 import com.sparkrooter.gateway.infra.LogAuditSink;
 import com.sparkrooter.gateway.infra.transport.HttpToolTransport;
@@ -15,6 +16,7 @@ import com.sparkrooter.spi.ProviderEndpointResolver;
 import com.sparkrooter.spi.RunContextPropagator;
 import com.sparkrooter.spi.ToolAccessPolicy;
 import com.sparkrooter.spi.ToolHandler;
+import com.sparkrooter.spi.ToolMetricsSink;
 import com.sparkrooter.spi.ToolResolver;
 import java.util.concurrent.ExecutorService;
 import org.springframework.beans.factory.ObjectProvider;
@@ -87,6 +89,13 @@ class GatewayBeans {
     return new HttpToolTransport(resolver, auth, validator.mapper());
   }
 
+  /** 单会话在飞上限。防只读查询洪水——写操作已被幂等 claim 序列化，只读工具没有任何序列化， 单会话可用并发请求占满整池让其他用户全被拒。 */
+  @Bean
+  @ConditionalOnMissingBean
+  SessionConcurrencyLimiter sparkRooterSessionConcurrencyLimiter(SparkRooterProperties props) {
+    return new SessionConcurrencyLimiter(props.gateway().maxConcurrentPerSession());
+  }
+
   @Bean
   InvokeToolUseCase sparkRooterInvokeToolUseCase(
       ToolResolver resolver,
@@ -96,7 +105,9 @@ class GatewayBeans {
       AuditSink audit,
       SchemaValidator validator,
       @Qualifier("sparkRooterToolExecutor") ExecutorService toolExecutor,
-      ObjectProvider<ToolTransport> transports) {
+      ObjectProvider<ToolTransport> transports,
+      SessionConcurrencyLimiter sessionLimiter,
+      ToolMetricsSink toolMetrics) {
     return new InvokeToolUseCase(
         resolver,
         access,
@@ -105,6 +116,8 @@ class GatewayBeans {
         audit,
         validator,
         toolExecutor,
-        transports.orderedStream().toList());
+        transports.orderedStream().toList(),
+        sessionLimiter,
+        toolMetrics);
   }
 }

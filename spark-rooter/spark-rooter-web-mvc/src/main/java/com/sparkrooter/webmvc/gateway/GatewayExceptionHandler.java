@@ -33,6 +33,9 @@ public class GatewayExceptionHandler {
       case FORBIDDEN -> build(HttpStatus.FORBIDDEN, ErrorResponse.Code.FORBIDDEN, e.getMessage());
       case TOOL_NOT_FOUND ->
           build(HttpStatus.NOT_FOUND, ErrorResponse.Code.NOT_FOUND, e.getMessage());
+      // 429 而非 503：语义是「你请求太多」而不是「服务不可用」，且让调用方知道退避重试有意义
+      case RATE_LIMITED ->
+          build(HttpStatus.TOO_MANY_REQUESTS, ErrorResponse.Code.RATE_LIMITED, e.getMessage());
       case TIMEOUT, HANDLER_ERROR, OUTPUT_INVALID ->
           build(HttpStatus.BAD_GATEWAY, ErrorResponse.Code.INTERNAL_ERROR, e.getMessage());
     };

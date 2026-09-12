@@ -44,6 +44,9 @@ export const ErrorResponseSchema = z
       'NOT_FOUND',
       'TOOL_VERSION_CONFLICT',
       'INTERNAL_ERROR',
+      // 过载（当前为单会话并发超限）。与 FORBIDDEN 分开是因为对调用方含义相反：
+      // 前者稍后重试有意义，后者重试无意义（feat-runtime-limits-and-metrics）
+      'RATE_LIMITED',
     ]),
     message: z.string().min(1).max(512),
     traceId: z.string().min(1).max(128),

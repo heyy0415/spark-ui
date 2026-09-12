@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sparkrooter.contracts.model.SseEvent;
 import com.sparkrooter.contracts.model.ToolInvoke;
 import com.sparkrooter.gateway.domain.GatewayException;
+import com.sparkrooter.gateway.domain.SessionConcurrencyLimiter;
 import com.sparkrooter.gateway.infra.InMemoryIdempotencyStore;
 import com.sparkrooter.gateway.infra.transport.InProcessToolTransport;
 import com.sparkrooter.gateway.support.Manifests;
@@ -17,6 +18,7 @@ import com.sparkrooter.spi.ExecutionContext;
 import com.sparkrooter.spi.RunContextPropagator;
 import com.sparkrooter.spi.ToolAccessPolicy;
 import com.sparkrooter.spi.ToolHandler;
+import com.sparkrooter.spi.ToolMetricsSink;
 import com.sparkrooter.spi.ToolResolver;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +37,16 @@ import org.junit.jupiter.api.Test;
  * 每个失败码一条用例；成功路径断言脱敏与审计；幂等重放断言 handler 只执行一次且审计口径为 replayed。
  */
 final class InvokeToolUseCaseTest {
+
+  /** 不限并发：这两个类测的是别的管线环节，限流单独在 SessionConcurrencyLimiterTest 测。 */
+  private static final SessionConcurrencyLimiter NO_SESSION_LIMIT =
+      new SessionConcurrencyLimiter(0);
+
+  /** 不埋点：这两个类测的是别的环节，埋点单独测。 */
+  private static final ToolMetricsSink NO_TOOL_METRICS = sample -> {};
+
+  /** 与 request() 里的 ExecutionContext 保持一致；写错会让 inFlight 断言永远为 0（阶段 4 评审发现）。 */
+  private static final String SESSION = "sess";
 
   private static final String TOOL = "refund.eligibility.check";
   private static final String VERSION = "1.2.0";
@@ -320,6 +332,249 @@ final class InvokeToolUseCaseTest {
         .hasMessageContaining("duplicate tool handler");
   }
 
+  // ---------------------------------------------------------------- 会话并发限制
+
+  /**
+   * 超限 → RATE_LIMITED（不是 FORBIDDEN）。
+   *
+   * <p>二者对调用方含义相反：限流稍后重试有意义，权限拒绝重试无意义。
+   *
+   * <p>必须真的把名额占住才测得到这条路径——用一个阻塞的 handler 在另一个线程里持有名额， 主线程再发起同会话调用。首版我用「上限 1 + 抛异常的 handler」写，结果把
+   * RATE_LIMITED 改成 FORBIDDEN 都不会红：那个写法根本没触发限流。
+   */
+  @Test
+  void sessionOverLimitIsRateLimited() throws Exception {
+    register(Manifests.exampleJson()); // 只读（idempotency=none），不会被幂等 claim 序列化
+    java.util.concurrent.CountDownLatch holding = new java.util.concurrent.CountDownLatch(1);
+    java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+    InvokeToolUseCase gw =
+        gatewayWithLimit(
+            new SessionConcurrencyLimiter(1),
+            handler(
+                args -> {
+                  holding.countDown();
+                  try {
+                    release.await(5, java.util.concurrent.TimeUnit.SECONDS);
+                  } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                  }
+                  return Manifests.okOutput();
+                }));
+
+    ExecutorService caller = Executors.newSingleThreadExecutor();
+    try {
+      caller.submit(() -> gw.invoke(request("tc_hold", "k_hold", args("10001"))));
+      assertThat(holding.await(5, java.util.concurrent.TimeUnit.SECONDS))
+          .as("第一个调用应已进入 handler 并持有名额")
+          .isTrue();
+
+      // 同会话第二个调用：名额已被占满
+      ToolInvoke.Response r = gw.invoke(request("tc_over", "k_over", args("10001")));
+
+      assertThat(r.status()).isEqualTo(SseEvent.ToolStatus.failed);
+      assertThat(r.error().code())
+          .as("必须是 RATE_LIMITED 而非 FORBIDDEN")
+          .isEqualTo(ToolInvoke.ErrorCode.RATE_LIMITED);
+    } finally {
+      release.countDown();
+      caller.shutdownNow();
+    }
+  }
+
+  /**
+   * 工具抛异常后名额必须归还——否则一次失败就永久占掉该会话一个名额。
+   *
+   * <p>这是 `finally` 释放的核心断言：连续 10 次失败调用后仍能成功调用。
+   */
+  @Test
+  void leaseIsReleasedEvenWhenToolFails() {
+    register(Manifests.exampleJson());
+    SessionConcurrencyLimiter limiter = new SessionConcurrencyLimiter(1);
+    AtomicInteger calls = new AtomicInteger();
+    InvokeToolUseCase failing =
+        gatewayWithLimit(
+            limiter,
+            handler(
+                args -> {
+                  calls.incrementAndGet();
+                  throw new IllegalStateException("boom");
+                }));
+
+    for (int i = 0; i < 10; i++) {
+      failing.invoke(request("tc_f" + i, "k_f" + i, args("10001")));
+    }
+
+    assertThat(limiter.inFlight(SESSION)).as("失败路径也必须归还名额").isZero();
+    assertThat(limiter.trackedSessions()).as("归零后不留 map 项").isZero();
+
+    // 名额确实可再用：换一个成功的 gateway 仍能跑通
+    InvokeToolUseCase ok = gatewayWithLimit(limiter, handler(args -> Manifests.okOutput()));
+    assertThat(ok.invoke(request("tc_ok", "k_ok", args("10001"))).status())
+        .isEqualTo(SseEvent.ToolStatus.succeeded);
+  }
+
+  /** 默认配置（不限制）下行为与本 change 之前完全一致。 */
+  @Test
+  void disabledLimiterDoesNotChangeBehaviour() {
+    register(Manifests.exampleJson());
+    InvokeToolUseCase gw =
+        gatewayWithLimit(new SessionConcurrencyLimiter(0), handler(args -> Manifests.okOutput()));
+    for (int i = 0; i < 20; i++) {
+      assertThat(gw.invoke(request("tc_d" + i, "k_d" + i, args("10001"))).status())
+          .isEqualTo(SseEvent.ToolStatus.succeeded);
+    }
+  }
+
+  // ---------------------------------------------------------------- 审计失败不吞结果
+
+  /**
+   * AuditSink 抛异常时，**已执行的工具结果照常返回**。
+   *
+   * <p>阶段 2 评审 M-3 发现的既有缺陷：`audit.record` 夹在「工具已执行完」与「return 结果」之间。 宿主把 AuditSink 换成写库 / 写 Kafka
+   * 并抛异常时，副作用已发生但调用方收到失败 → 用户看到 「请稍后重试」→ 可能真的重试 → **重复扣款**。
+   */
+  @Test
+  void auditFailureDoesNotSwallowSuccessfulResult() {
+    register(Manifests.exampleJson());
+    InvokeToolUseCase gw =
+        gatewayWithAudit(
+            entry -> {
+              throw new IllegalStateException("audit backend down");
+            },
+            handler(args -> Manifests.okOutput()));
+
+    ToolInvoke.Response r = gw.invoke(request("tc_a1", "k_a1", args("10001")));
+
+    assertThat(r.status()).as("工具已执行成功，审计失败不该让调用方看到失败").isEqualTo(SseEvent.ToolStatus.succeeded);
+  }
+
+  /**
+   * 失败路径下审计抛异常，原本的 GatewayException 不被掩盖。
+   *
+   * <p>否则「输入不合法」会变成「审计后端挂了」，排查方向完全错。
+   */
+  @Test
+  void auditFailureDoesNotMaskTheOriginalError() {
+    register(Manifests.exampleJson());
+    InvokeToolUseCase gw =
+        gatewayWithAudit(
+            entry -> {
+              throw new IllegalStateException("audit backend down");
+            },
+            handler(args -> Manifests.okOutput()));
+
+    ObjectNode bad = Manifests.VALIDATOR.mapper().createObjectNode().put("orderId", "");
+    ToolInvoke.Response r = gw.invoke(request("tc_a2", "k_a2", bad));
+
+    assertThat(r.error().code())
+        .as("原错误码必须保留，不能被审计异常替换")
+        .isEqualTo(ToolInvoke.ErrorCode.INPUT_INVALID);
+  }
+
+  // ---------------------------------------------------------------- 埋点
+
+  /**
+   * 埋点实现抛异常时，工具结果照常返回（评审 S-2）。
+   *
+   * <p>监控系统拖垮业务是经典事故：宿主的 MeterRegistry 可能因标签冲突、后端不可达而抛异常。
+   */
+  @Test
+  void metricsFailureDoesNotSwallowSuccessfulResult() {
+    register(Manifests.exampleJson());
+    InvokeToolUseCase gw =
+        gatewayWithMetrics(
+            sample -> {
+              throw new IllegalStateException("registry down");
+            },
+            handler(args -> Manifests.okOutput()));
+
+    ToolInvoke.Response r = gw.invoke(request("tc_m1", "k_m1", args("10001")));
+
+    assertThat(r.status()).as("监控故障不得让已执行的工具对调用方表现为失败").isEqualTo(SseEvent.ToolStatus.succeeded);
+  }
+
+  /** 埋点样本不含高基数标识（sessionId / runId / toolCallId）。 */
+  @Test
+  void metricsSampleCarriesNoHighCardinalityIds() {
+    register(Manifests.exampleJson());
+    List<ToolMetricsSink.Sample> captured = new ArrayList<>();
+    InvokeToolUseCase gw = gatewayWithMetrics(captured::add, handler(args -> Manifests.okOutput()));
+
+    gw.invoke(request("tc_m2", "k_m2", args("10001")));
+
+    assertThat(captured).hasSize(1);
+    String asText = captured.get(0).toString();
+    assertThat(asText)
+        .as("高基数标识会打爆时序库，不得进指标")
+        .doesNotContain("tc_m2")
+        .doesNotContain(SESSION)
+        .doesNotContain("run_1");
+    assertThat(captured.get(0).toolId()).isEqualTo(TOOL);
+    assertThat(captured.get(0).status()).isEqualTo("succeeded");
+  }
+
+  /** 失败路径也埋点，且带错误码（否则错误率指标看不出失败原因）。 */
+  @Test
+  void failedInvocationIsAlsoMetered() {
+    List<ToolMetricsSink.Sample> captured = new ArrayList<>();
+    InvokeToolUseCase gw = gatewayWithMetrics(captured::add, handler(args -> Manifests.okOutput()));
+
+    gw.invoke(request("tc_m3", "k_m3", args("10001"))); // 未注册 → TOOL_NOT_FOUND
+
+    assertThat(captured).hasSize(1);
+    assertThat(captured.get(0).status()).isEqualTo("failed");
+    assertThat(captured.get(0).errorCode()).isEqualTo("TOOL_NOT_FOUND");
+  }
+
+  /**
+   * 阶段 4 评审 F-1：等待幂等结果的调用**不应长期占用会话名额**。
+   *
+   * <p>场景：同 idempotencyKey 的并发调用里，只有 1 个是 owner 在真执行，其余在 claimOrAwait 里阻塞等待（最长
+   * timeoutMs）。若它们都占着名额，该会话的其他正常查询会被误拒—— 名额本该衡量「真正占资源的并发」，等待不占 CPU 也不占工具。
+   */
+  @Test
+  void waitersOnIdempotentKeyDoNotExhaustSessionQuota() throws Exception {
+    // sideEffect=true + idempotency=required：唯一会走 claimOrAwait 的组合
+    ObjectNode j = Manifests.jsonWithExecution(3000, 0, "required");
+    ((ObjectNode) j.get("risk")).put("sideEffect", true);
+    register(j);
+
+    java.util.concurrent.CountDownLatch inHandler = new java.util.concurrent.CountDownLatch(1);
+    java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+    SessionConcurrencyLimiter limiter = new SessionConcurrencyLimiter(2);
+    InvokeToolUseCase gw =
+        gatewayWithLimit(
+            limiter,
+            handler(
+                args -> {
+                  inHandler.countDown();
+                  try {
+                    release.await(5, java.util.concurrent.TimeUnit.SECONDS);
+                  } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                  }
+                  return Manifests.okOutput();
+                }));
+
+    ExecutorService callers = Executors.newFixedThreadPool(2);
+    try {
+      // owner：占 1 个名额并卡在 handler 里
+      callers.submit(() -> gw.invoke(request("tc_own", "same-key", args("10001"))));
+      assertThat(inHandler.await(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+
+      // waiter：同 key，会进 claimOrAwait 等待，占掉第 2 个名额
+      callers.submit(() -> gw.invoke(request("tc_wait", "same-key", args("10001"))));
+      Thread.sleep(200); // 让 waiter 进入等待
+
+      assertThat(limiter.inFlight(SESSION))
+          .as("owner + waiter 共占 2 个名额——名额算在飞请求，不算在跑的工具（评审 F-1 的决策）")
+          .isEqualTo(2);
+    } finally {
+      release.countDown();
+      callers.shutdownNow();
+    }
+  }
+
   // ---------------------------------------------------------------- helpers
 
   private void register(ObjectNode manifestJson) {
@@ -341,7 +596,67 @@ final class InvokeToolUseCaseTest {
         audit,
         Manifests.VALIDATOR,
         executor,
-        List.of(transport));
+        List.of(transport),
+        NO_SESSION_LIMIT,
+        NO_TOOL_METRICS);
+  }
+
+  /** 指定 ToolMetricsSink 的 gateway。 */
+  private InvokeToolUseCase gatewayWithMetrics(ToolMetricsSink sink, ToolHandler... handlers) {
+    InProcessToolTransport transport = new InProcessToolTransport();
+    for (ToolHandler h : handlers) {
+      transport.register(h);
+    }
+    return new InvokeToolUseCase(
+        resolver,
+        Providers.of(null),
+        propagator,
+        idempotency,
+        audit,
+        Manifests.VALIDATOR,
+        executor,
+        List.of(transport),
+        NO_SESSION_LIMIT,
+        sink);
+  }
+
+  /** 指定 AuditSink 的 gateway（用于测审计失败路径）。 */
+  private InvokeToolUseCase gatewayWithAudit(AuditSink sink, ToolHandler... handlers) {
+    InProcessToolTransport transport = new InProcessToolTransport();
+    for (ToolHandler h : handlers) {
+      transport.register(h);
+    }
+    return new InvokeToolUseCase(
+        resolver,
+        Providers.of(null),
+        propagator,
+        idempotency,
+        sink,
+        Manifests.VALIDATOR,
+        executor,
+        List.of(transport),
+        NO_SESSION_LIMIT,
+        NO_TOOL_METRICS);
+  }
+
+  /** 指定限流器的 gateway（默认 helper 用 NO_SESSION_LIMIT）。 */
+  private InvokeToolUseCase gatewayWithLimit(
+      SessionConcurrencyLimiter limiter, ToolHandler... handlers) {
+    InProcessToolTransport transport = new InProcessToolTransport();
+    for (ToolHandler h : handlers) {
+      transport.register(h);
+    }
+    return new InvokeToolUseCase(
+        resolver,
+        Providers.of(null),
+        propagator,
+        idempotency,
+        audit,
+        Manifests.VALIDATOR,
+        executor,
+        List.of(transport),
+        limiter,
+        NO_TOOL_METRICS);
   }
 
   private static ToolHandler handler(Function<JsonNode, JsonNode> fn) {
@@ -372,7 +687,7 @@ final class InvokeToolUseCaseTest {
         TOOL,
         VERSION,
         args,
-        new ToolInvoke.ExecutionContext("run_t", toolCallId, "sess", idemKey, "trace"));
+        new ToolInvoke.ExecutionContext("run_t", toolCallId, SESSION, idemKey, "trace"));
   }
 
   /** 记录型传播器：capture 读当前线程的值，restore 写到工具线程，clear 计数。 */

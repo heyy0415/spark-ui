@@ -65,6 +65,31 @@
 - **非破坏性变更**：`provider` 是新增字段且在 `in-process` 下禁止出现，既有单体 Manifest 一字不改仍合法。`$id` 保持 `/v1/`、`schemaVersion` 保持 `1.0`。
 - 前端**不投影** `tool-manifest`：它是领域服务 → Registry 的后端内部契约。
 
+## 5c. 变更记录：feat-runtime-limits-and-metrics-20260912
+
+两份契约的 `code` enum 各增 **`RATE_LIMITED`**（单会话并发超限的拒绝）：
+
+| 契约 | 字段 | 前端投影 |
+|---|---|---|
+| `tool-invoke.schema.json` | `response.error.code` | 无（后端内部契约） |
+| `error-response.schema.json` | `code` | **有**（`ErrorResponseSchema` 在 `core/client`，已同步） |
+
+HTTP 映射为 **429 Too Many Requests**（不是 503）：语义是「你请求太多」而非「服务不可用」，且让调用方知道退避重试有意义。
+
+**新增值，非破坏性**。核实依据：
+
+| 核实项 | 结果 |
+|---|---|
+| 前端是否投影 `tool-invoke` | **不投影**（后端内部契约，见 §1） |
+| 消费方 | 4 个，全在仓内：`ToolInvoke` / `InvokeToolUseCase` / `GatewayException` / `RunOrchestrator` |
+| 外部消费方 | 无 |
+
+故 `$id` 保持 `/v1/`、`schemaVersion` 保持 `1.0`（与 `provider` 段、组件白名单收敛同例）。**首个外部消费方出现后再改必须发 `/v2/`。**
+
+`RATE_LIMITED` 与 `FORBIDDEN` 必须分开的理由：二者对调用方的含义相反——前者稍后重试有意义，后者重试无意义。合并会让调用方无法判断，而这正是错误码存在的目的。
+
+新增 invalid 示例 `tool-invoke.unknown-error-code.invalid.json`：加了枚举值之后，enum **仍必须拒绝未知值**，否则 `code` 形同自由文本。
+
 ## 5a. 变更记录：refactor-spark-embedded-starter-20260909
 
 **破坏性变更、原地改 v1 不发新版本文件**：删 `pageContext` / `principal`、替换 `executionContext` 必填字段属破坏性变更；与 §4 的组件收敛同理，当时无任何外部消费方（前端与后端同仓同 change 改），`$id` 仍为 `/v1/`、`schemaVersion` 仍 `1.0`。首个外部消费方出现后再有破坏性变更必须发 `/v2/`。

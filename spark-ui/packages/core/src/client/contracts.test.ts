@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RunSummarySchema, SseEventSchema } from './contracts';
+import { ErrorResponseSchema, RunSummarySchema, SseEventSchema } from './contracts';
 
 /** 契约投影：入站 SSE 帧与 run-summary 的 strict / 枚举 / 条件必填与 .harness/contracts 一致。 */
 
@@ -109,5 +109,22 @@ describe('RunSummarySchema', () => {
 
   it('COMPLETED needs neither', () => {
     expect(RunSummarySchema.safeParse({ ...base, state: 'COMPLETED' }).success).toBe(true);
+  });
+});
+
+describe('ErrorResponseSchema', () => {
+  /**
+   * error-response 的 code 必须接受 RATE_LIMITED 并拒绝未知值。
+   *
+   * 加了枚举值之后 enum 仍要约束 —— 否则 code 形同自由文本，前端无法据它区分
+   * 「过载稍后重试」与「权限不足重试无意义」（feat-runtime-limits-and-metrics）。
+   */
+  it('ErrorResponse.code accepts RATE_LIMITED and still rejects unknown codes', () => {
+    expect(
+      ErrorResponseSchema.safeParse({ code: 'RATE_LIMITED', message: 'x', traceId: 't' }).success,
+    ).toBe(true);
+    expect(
+      ErrorResponseSchema.safeParse({ code: 'THROTTLED', message: 'x', traceId: 't' }).success,
+    ).toBe(false);
   });
 });

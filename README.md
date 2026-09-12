@@ -60,6 +60,7 @@
 | **生成式 UI** | 后端下发 UI Schema，前端只渲染 5 个白名单组件（Form / Card / Table / Result / Timeline），antd 与 antd-mobile 双端 |
 | **单体与微服务** | 领域服务可与内核同进程，也可作为独立进程经 HTTP 接入；对前端完全透明 |
 | **身份留在宿主** | 内核不认识用户。登录态、权限、租户全由宿主通过两个接口和方法级切面接入 |
+| **可观测与自保** | LLM / 工具 / Run 三类 Micrometer 指标（标签低基数）；计划步数上限、单会话并发上限、审计与埋点失败不拖垮业务 |
 | **前端可嵌任意页面** | `@spark-ui/core` 分三个入口：headless 层零框架依赖，渲染层可选，自带 UI 的宿主只装 headless |
 
 ## 快速开始
@@ -238,6 +239,33 @@ docker run -d --name spark-demo -p 8080:8080 \
 
 > 镜像里的示例宿主显式打开 `spark.runtime.demo-session-resolver=true`（会话即 conversationId，**无用户隔离**），只适合演示，不要对公网开放。
 
+## 可观测性
+
+装了 Micrometer（如 `spring-boot-starter-actuator`）时自动导出 **7 个**指标；没装则落日志，不强加依赖。
+
+| 指标 | 类型 | 标签 |
+|---|---|---|
+| `spark.llm.requests` / `spark.llm.duration` | Counter / Timer | `outcome`（6 个规划出口） |
+| `spark.llm.tokens` | Counter | `kind`（prompt / completion） |
+| `spark.tool.invocations` | Counter | `toolId`, `status` |
+| `spark.tool.duration` | Timer | `toolId` |
+| `spark.run.outcomes` / `spark.run.duration` | Counter / Timer | `outcome`（completed / 各失败码 / confirmation_rejected） |
+
+要暴露 `/actuator/prometheus` 自行加 `micrometer-registry-prometheus`——本项目不替宿主选监控栈。
+
+**标签一律低基数**：不含 `sessionId` / `runId` / `conversationId` / 业务 ID。它们基数无上界，会打爆时序库，而「把监控系统打挂」比没有监控更糟。追溯单次调用请查审计（`AuditSink` 逐次留痕，含参数摘要）。
+
+**监控故障不拖垮业务**：埋点与审计的实现抛异常时，Gateway / Runtime 捕获并记日志，工具结果照常返回。审计丢失可据 ERROR 日志补账，而让已执行的操作对调用方表现为失败会导致用户重试 → 重复副作用。
+
+### 自保阈值
+
+| 项 | 默认 | 说明 |
+|---|---|---|
+| 计划步数上限 | 6（常量） | 挡住「模型规划几十步」；实测最长链 3 步 |
+| `spark.gateway.max-concurrent-per-session` | 4 | 单会话在飞工具调用上限，≤ 0 关闭。防只读查询洪水——单个会话不能占满整池 |
+| `spark.runtime.run-queue` / `spark.gateway.tool-queue` | 32 / 64 | 线程池队列容量，满则拒绝而非排队 |
+| `spark.llm.circuit.failure-threshold` | 2 | LLM 连续传输失败即熔断 |
+
 ## 安全模型
 
 - **前端只发自然语言**。不发页面上下文、用户信息、业务字段。
@@ -277,6 +305,8 @@ bash .harness/scripts/e2e-provider.sh                   # 跨服务（hub + prov
 ## 已知限制
 
 - **全内存状态**。Run、令牌、幂等记录、会话记忆、工具注册表默认都在进程内存里，重启即丢，不支持水平扩展。生产要替换 `RunRepository` / `ConfirmationTokenStore` / `IdempotencyStore` / `ToolRegistryRepository` / `ConversationMemory`（定义同类型 Bean 即覆盖）。
+
+  会话记忆的实际上界：`put()` 每次写入前全量清扫过期项，且 `Memory` 只存 ID（domain + 实体 Map + 行 ID），单条几百字节。故上界是「TTL 窗口（默认 30m）内的活跃会话数 × 几百字节」——10 万活跃会话约几十 MB，不是无界。未加条数上限是刻意的：加淘汰策略需要额外结构，当前无证据表明必要。
 - **provider 幂等默认进程内**。多实例部署时 hub 重试可能落到另一实例而绕过缓存；要强一致需替换 `ProviderIdempotencyStore` 为共享存储。
 - **provider 重启漏推需人工介入**。hub 侧的对账补偿未实现。
 - **不做服务发现**。provider 坐标用配置化 base URL；接注册中心需自行实现 `ProviderEndpointResolver`。

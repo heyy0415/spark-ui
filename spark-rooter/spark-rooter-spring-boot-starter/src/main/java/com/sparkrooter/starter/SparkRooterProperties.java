@@ -85,7 +85,14 @@ public record SparkRooterProperties(
    *
    * @param toolQueue 队列容量。默认 64 取 runQueue 的 2 倍，因为一个 Run 的计划可能含多个工具步骤（需确认的工具还要先跑前置只读步骤）
    */
-  public record Gateway(@DefaultValue("8") int toolPool, @DefaultValue("64") int toolQueue) {}
+  /**
+   * @param maxConcurrentPerSession 单会话在飞工具调用上限；≤ 0 关闭限制。默认 4 与 {@code toolQueue=64} 挂钩——需 16
+   *     个并发会话才能占满池，让「一个用户拖垮所有人」不再可能，同时 4 个并发只读查询对 正常交互（一次对话一个请求）有充足余量。**改 toolQueue 时应同步复核此值**
+   */
+  public record Gateway(
+      @DefaultValue("8") int toolPool,
+      @DefaultValue("64") int toolQueue,
+      @DefaultValue("4") int maxConcurrentPerSession) {}
 
   /**
    * @param basePath /runs 端点前缀

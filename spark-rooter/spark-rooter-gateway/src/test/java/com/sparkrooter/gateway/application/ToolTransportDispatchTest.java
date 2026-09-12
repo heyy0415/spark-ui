@@ -10,6 +10,7 @@ import com.sparkrooter.contracts.model.ToolInvoke;
 import com.sparkrooter.contracts.model.ToolManifest;
 import com.sparkrooter.contracts.tool.ToolTransport;
 import com.sparkrooter.contracts.tool.ToolTransportException;
+import com.sparkrooter.gateway.domain.SessionConcurrencyLimiter;
 import com.sparkrooter.gateway.infra.InMemoryIdempotencyStore;
 import com.sparkrooter.gateway.infra.transport.InProcessToolTransport;
 import com.sparkrooter.gateway.support.Manifests;
@@ -18,6 +19,7 @@ import com.sparkrooter.spi.AuditSink;
 import com.sparkrooter.spi.ExecutionContext;
 import com.sparkrooter.spi.RunContextPropagator;
 import com.sparkrooter.spi.ToolHandler;
+import com.sparkrooter.spi.ToolMetricsSink;
 import com.sparkrooter.spi.ToolResolver;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +44,13 @@ import org.junit.jupiter.api.Test;
  * </ol>
  */
 final class ToolTransportDispatchTest {
+
+  /** 不限并发：这两个类测的是别的管线环节，限流单独在 SessionConcurrencyLimiterTest 测。 */
+  private static final SessionConcurrencyLimiter NO_SESSION_LIMIT =
+      new SessionConcurrencyLimiter(0);
+
+  /** 不埋点：这两个类测的是别的环节，埋点单独测。 */
+  private static final ToolMetricsSink NO_TOOL_METRICS = sample -> {};
 
   private static final String TOOL = "refund.eligibility.check";
   private static final String VERSION = "1.2.0";
@@ -274,7 +283,9 @@ final class ToolTransportDispatchTest {
         audit,
         Manifests.VALIDATOR,
         executor,
-        transports);
+        transports,
+        NO_SESSION_LIMIT,
+        NO_TOOL_METRICS);
   }
 
   /** 按协议返回一个行为可编程的传输，用于观测 Gateway 的调用时机。 */

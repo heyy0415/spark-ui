@@ -193,6 +193,37 @@ for (const mod of ['spark-rooter-spi', 'spark-rooter-contracts']) {
   }
 }
 
+// Micrometer 不得成为硬依赖（feat-runtime-limits-and-metrics T06）。
+// 指标导出是可选能力：provider 形态与不用监控的宿主不该被迫引入。只有 hub starter 可以依赖它，
+// 且**必须带 <optional>true</optional>** —— 不带 optional 会传递给所有宿主，那与"可选"名不符实。
+{
+  const MICROMETER_BANNED = [
+    'spark-rooter-spi', 'spark-rooter-contracts', 'spark-rooter-runtime',
+    'spark-rooter-registry', 'spark-rooter-gateway', 'spark-rooter-web-mvc',
+    'spark-provider-spring-boot-starter',
+  ];
+  for (const mod of MICROMETER_BANNED) {
+    const pom = join(sparkRooterDir, mod, 'pom.xml');
+    if (!existsSync(pom)) continue;
+    const text = await readFile(pom, 'utf-8');
+    const depsBlock = (text.match(/<dependencies>([\s\S]*?)<\/dependencies>/g) ?? []).join('\n');
+    for (const m of depsBlock.matchAll(/<artifactId>(micrometer[\w-]*)<\/artifactId>/g)) {
+      fail(`${mod}/pom.xml must not depend on "${m[1]}" (metrics export is optional; only the hub starter may depend on Micrometer, and only as <optional>true</optional>)`);
+    }
+  }
+  // hub starter：可以有，但必须 optional
+  const starterPom = join(sparkRooterDir, 'spark-rooter-spring-boot-starter', 'pom.xml');
+  if (existsSync(starterPom)) {
+    const text = await readFile(starterPom, 'utf-8');
+    // 取 micrometer 那一条 <dependency> 块，检查它自身是否带 optional
+    for (const m of text.matchAll(/<dependency>(?:(?!<\/dependency>)[\s\S])*?micrometer[\s\S]*?<\/dependency>/g)) {
+      if (!/<optional>\s*true\s*<\/optional>/.test(m[0])) {
+        fail('spark-rooter-spring-boot-starter/pom.xml: the Micrometer dependency must be <optional>true</optional>, otherwise it leaks transitively to every host (including providers and hosts that use another monitoring stack)');
+      }
+    }
+  }
+}
+
 // 平台 Bean 不靠包扫描：平台模块源码不得出现 Spring 组件注解（starter 与 examples 除外）
 // 简名与 FQN 内联都抓（`@org.springframework.stereotype.Service` 不能绕过）
 const STEREOTYPES =

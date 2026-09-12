@@ -42,6 +42,20 @@ public final class PlanValidator {
 
   private static final Logger log = LoggerFactory.getLogger(PlanValidator.class);
 
+  /**
+   * 单个计划的步骤数上限。
+   *
+   * <p>取 6：全部 e2e 实测的计划步数分布是 1 / 2 / 3，最大 3（最长链 = 2 个 {@code @SparkPrerequisite} 前置 + 1 个目标工具），6 给了
+   * 2 倍余量。
+   *
+   * <p>刻意不取 8：{@code FakeLlmPlanner} 里恰好有 8 处 {@code DraftStep}，让上限与一个现存数字 重合容易在加测试场景时撞线，而届时 e2e
+   * 只报「无法制定方案」，排查者想不到是上限。
+   *
+   * <p>不做成配置项：与 {@code LlmPlanner.MAX_ATTEMPTS} / {@code PromptBuilder.MAX_TEXT} / {@code
+   * ClarificationScreen.MAX_COLUMNS} 一致——这类内核自保阈值在本仓的既有做法是常量， 宿主无需调它；真需要调时再引入配置项（届时才有实际依据）。
+   */
+  static final int MAX_PLAN_STEPS = 6;
+
   private PlanValidator() {}
 
   /** 实体复核失败：模型填的实体值不在原话与上下文中。 */
@@ -130,6 +144,14 @@ public final class PlanValidator {
       SchemaValidator validator) {
     if (draft.steps() == null || draft.steps().isEmpty()) {
       throw new RunFailure("TOOL_SELECTION_INVALID", "planner returned no steps");
+    }
+    // 上限自保：模型可能规划出几十步，每步都是一次真实工具调用。
+    // 日志带上实际步数与上限——用户只会看到「无法制定方案」，没这行就排查不到根因。
+    if (draft.steps().size() > MAX_PLAN_STEPS) {
+      log.warn("plan rejected steps={} max={}", draft.steps().size(), MAX_PLAN_STEPS);
+      throw new RunFailure(
+          "TOOL_SELECTION_INVALID",
+          "plan has too many steps: " + draft.steps().size() + " > " + MAX_PLAN_STEPS);
     }
     Map<String, ToolSearch.ToolCandidate> byId =
         candidates.stream()
