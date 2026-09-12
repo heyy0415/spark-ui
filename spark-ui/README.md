@@ -20,7 +20,7 @@ pnpm run build:core       # packages/core → dist（vite lib + tsc d.ts）
 pnpm run build            # build:core → build:chat
 pnpm run test             # vitest：core + chat 单元测试（纯函数 / 传输层，无 DOM）
 pnpm run ci               # build:core → typecheck → test → lint → format:check → verify-examples → verify-transport → build:chat → verify-pack
-pnpm run verify-examples  # 用 Zod 投影校验 .harness/contracts/examples（27 examples OK）
+pnpm run verify-examples  # 用 Zod 投影校验 .harness/contracts/examples（23 examples OK, 4 invalid rejected）
 pnpm run verify-pack      # pnpm pack 解包后断言：文件清单 / exports / 17 导出名 / d.ts 双 EOPT 消费 / antd 未打包 / 体积基线
 ```
 

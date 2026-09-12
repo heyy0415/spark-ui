@@ -12,7 +12,15 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
-    "./style.css": "./dist/style.css"
+    "./style.css": "./dist/style.css",
+    "./client": {
+      "types": "./src/client/index.ts",
+      "import": "./src/client/index.ts"
+    },
+    "./react": {
+      "types": "./src/react/index.ts",
+      "import": "./src/react/index.ts"
+    }
   },
   "publishConfig": {
     "access": "public",
@@ -22,7 +30,15 @@
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
       },
-      "./style.css": "./dist/style.css"
+      "./style.css": "./dist/style.css",
+      "./client": {
+        "types": "./dist/client/index.d.ts",
+        "import": "./dist/client/index.js"
+      },
+      "./react": {
+        "types": "./dist/react/index.d.ts",
+        "import": "./dist/react/index.js"
+      }
     }
   },
   "files": [
@@ -41,6 +57,20 @@
     "react": "^19",
     "react-dom": "^19",
     "zod": "^4"
+  },
+  "peerDependenciesMeta": {
+    "antd": {
+      "optional": true
+    },
+    "antd-mobile": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/react": "catalog:",

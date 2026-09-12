@@ -25,6 +25,14 @@
     <!-- record 组件 Optional<T>：缺键 → Optional.empty()（否则为 null） -->
     <dependency><groupId>com.fasterxml.jackson.datatype</groupId><artifactId>jackson-datatype-jdk8</artifactId></dependency>
     <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-api</artifactId></dependency>
+    <!-- 指标导出：optional=true 是硬要求。不带 optional 会传递给所有宿主，
+         包括 provider 与不用监控的宿主（check-module-deps 有门禁守这一点）。
+         宿主装了 actuator 就有 micrometer-core，@ConditionalOnClass 据此装配实现。 -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+      <optional>true</optional>
+    </dependency>
     <!-- 单元测试：版本由 spring-boot-dependencies 管理 -->
     <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
     <dependency><groupId>org.assertj</groupId><artifactId>assertj-core</artifactId><scope>test</scope></dependency>

@@ -16,7 +16,21 @@ public record SparkRooterProperties(
     @DefaultValue Gateway gateway,
     @DefaultValue Web web,
     @DefaultValue Selfcheck selfcheck,
+    @DefaultValue Providers providers,
     @DefaultValue("host") String ownerTeam) {
+
+  /**
+   * 远程 provider 的调用方认证（微服务形态）。
+   *
+   * <p><b>不配 = 本 hub 不接受远程工具</b>：{@code RegistrationGuard} 拒绝一切 {@code protocol=http} 注册，且不装配
+   * {@code HttpToolTransport}。单体宿主什么都不用配，行为与本 change 之前完全一致。
+   *
+   * <p>配置形如 {@code spark.providers.tokens.order-service=xxx}。令牌与服务名绑定——只校验「令牌 有效」不够，那样任一 provider
+   * 被攻破即可冒充其他所有 provider 注册伪造的高危工具。
+   *
+   * @param tokens serviceName → 共享密钥；密钥不进日志
+   */
+  public record Providers(@DefaultValue java.util.Map<String, String> tokens) {}
 
   /**
    * OpenAI 兼容端点；缺任一项即不启用模型。
@@ -71,7 +85,14 @@ public record SparkRooterProperties(
    *
    * @param toolQueue 队列容量。默认 64 取 runQueue 的 2 倍，因为一个 Run 的计划可能含多个工具步骤（需确认的工具还要先跑前置只读步骤）
    */
-  public record Gateway(@DefaultValue("8") int toolPool, @DefaultValue("64") int toolQueue) {}
+  /**
+   * @param maxConcurrentPerSession 单会话在飞工具调用上限；≤ 0 关闭限制。默认 4 与 {@code toolQueue=64} 挂钩——需 16
+   *     个并发会话才能占满池，让「一个用户拖垮所有人」不再可能，同时 4 个并发只读查询对 正常交互（一次对话一个请求）有充足余量。**改 toolQueue 时应同步复核此值**
+   */
+  public record Gateway(
+      @DefaultValue("8") int toolPool,
+      @DefaultValue("64") int toolQueue,
+      @DefaultValue("4") int maxConcurrentPerSession) {}
 
   /**
    * @param basePath /runs 端点前缀

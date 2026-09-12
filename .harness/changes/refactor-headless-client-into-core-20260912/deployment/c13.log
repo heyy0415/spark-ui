@@ -1,0 +1,18 @@
+event:run.started
+data:{"runId":"run_a1995c5c1ee646df","conversationId":"c13","at":"2026-09-12T12:19:41.243067Z"}
+
+event:tool.selected
+data:{"runId":"run_a1995c5c1ee646df","toolCallId":"tc_000023","toolId":"order.detail.get","version":"1.1.0","displayName":"查询订单详情"}
+
+event:tool.started
+data:{"runId":"run_a1995c5c1ee646df","toolCallId":"tc_000023","at":"2026-09-12T12:19:41.243925Z"}
+
+event:tool.completed
+data:{"runId":"run_a1995c5c1ee646df","toolCallId":"tc_000023","status":"succeeded","durationMs":0,"summary":"订单 10001 PAID"}
+
+event:ui.replace
+data:{"runId":"run_a1995c5c1ee646df","ui":{"schemaVersion":"1.0","screenId":"delete-confirmation","title":"确认删除订单","components":[{"id":"order","type":"Card","props":{"title":"订单 10001","items":[{"label":"商品","value":"精品咖啡豆 500g"},{"label":"件数","value":"1"},{"label":"金额","value":"128.00 CNY"},{"label":"状态","value":"PAID"},{"label":"提示","value":"删除后订单将从列表消失，不可恢复","tone":"danger"}]}}],"actions":[{"id":"confirm-delete","type":"submit","label":"确认删除","style":"danger","confirmationToken":"ct_HFJdNQ5LDMhjO_rIWLk-kH29YHkk9ftJ"},{"id":"cancel","type":"cancel","label":"取消","style":"default"}]}}
+
+event:confirmation.required
+data:{"runId":"run_a1995c5c1ee646df","actionId":"confirm-delete","expiresAt":"2026-09-12T12:29:41.244994Z"}
+

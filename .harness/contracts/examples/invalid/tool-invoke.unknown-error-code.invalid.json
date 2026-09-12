@@ -1,0 +1,22 @@
+{
+  "request": {
+    "toolId": "refund.preview",
+    "toolVersion": "1.3.0",
+    "arguments": { "orderId": "10001" },
+    "executionContext": {
+      "runId": "run_20260913_000001",
+      "toolCallId": "tc_000099",
+      "sessionId": "conv_001",
+      "idempotencyKey": "run_20260913_000001-refund.preview-1"
+    }
+  },
+  "response": {
+    "toolCallId": "tc_000099",
+    "status": "failed",
+    "durationMs": 2,
+    "error": {
+      "code": "THROTTLED",
+      "message": "invalid: code 不在 enum 白名单里。加 RATE_LIMITED 后 enum 仍必须约束未知值，否则 code 形同自由文本，调用方无法据它判断该不该重试。"
+    }
+  }
+}

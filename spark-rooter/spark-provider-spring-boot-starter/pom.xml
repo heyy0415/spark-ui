@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.sparkrooter</groupId>
+    <artifactId>spark-rooter-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>spark-provider-spring-boot-starter</artifactId>
+  <name>spark-provider-spring-boot-starter</name>
+
+  <properties>
+    <!-- provider 装在别人的业务服务里，企业存量大量停在 JDK 17；hub 侧模块仍为 21。
+         依赖的 spi / contracts 同样是 17（共享契约层取两边下限）。 -->
+    <maven.compiler.release>17</maven.compiler.release>
+  </properties>
+
+  <!--
+    微服务形态下领域服务的唯一引入坐标：扫 @SparkTool、推导 Manifest 并推送到 hub、暴露执行端点。
+
+    薄依赖是硬约束（check-module-deps 机械守护）：不得依赖 spring-ai（provider 不做规划）、
+    不得依赖 spark-rooter-runtime / registry / gateway / web-mvc（那是 hub 的职责）、
+    不得依赖 spring-boot-starter-web（不强制宿主的 web 栈选型，只用编译期的 spring-web）。
+
+    provider 不该因为"声明了几个工具"就被拖进一个 LLM 客户端和整套 Agent Runtime。
+  -->
+  <dependencies>
+    <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-spi</artifactId></dependency>
+    <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-contracts</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-autoconfigure</artifactId></dependency>
+    <!-- RestClient（推送 Manifest / 接收 hub 调用的 @RestController 签名）。只要 spring-web，
+         运行期的 web 容器由宿主已有的 starter 提供 —— 与平台模块同一模式 -->
+    <dependency><groupId>org.springframework</groupId><artifactId>spring-web</artifactId></dependency>
+    <!-- AopUtils / ClassUtils：经代理调用 @SparkTool 方法，让宿主方法级切面生效 -->
+    <dependency><groupId>org.springframework</groupId><artifactId>spring-aop</artifactId></dependency>
+    <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-api</artifactId></dependency>
+    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId></dependency>
+    <!-- 单元测试：版本由 spring-boot-dependencies 管理 -->
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.assertj</groupId><artifactId>assertj-core</artifactId><scope>test</scope></dependency>
+  </dependencies>
+</project>

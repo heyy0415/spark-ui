@@ -48,7 +48,7 @@
           "required": ["code", "message"],
           "description": "status=failed 时存在",
           "properties": {
-            "code": { "type": "string", "enum": ["INPUT_INVALID", "OUTPUT_INVALID", "FORBIDDEN", "TOOL_NOT_FOUND", "TIMEOUT", "HANDLER_ERROR"] },
+            "code": { "type": "string", "enum": ["INPUT_INVALID", "OUTPUT_INVALID", "FORBIDDEN", "TOOL_NOT_FOUND", "TIMEOUT", "HANDLER_ERROR", "RATE_LIMITED"], "description": "RATE_LIMITED 与 FORBIDDEN 的区别：前者是过载（稍后重试有意义），后者是策略拒绝（重试无意义）。调用方据此决定是否重试。" },
             "message": { "type": "string", "minLength": 1, "maxLength": 512 }
           }
         }

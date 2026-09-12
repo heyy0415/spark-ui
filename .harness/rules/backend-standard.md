@@ -62,3 +62,55 @@
 
 - Conventional Commits，scope 用模块名：`feat(gateway): validate output schema`。
 - footer 含 `Change: {change-id}`。
+
+## Provider 侧约束（微服务形态）
+
+feat-provider-http-transport-20260912 起，领域服务可作为独立进程（provider）接入。provider 侧额外遵守：
+
+- **JDK 下限 17**。provider 装在别人的业务服务里，企业存量大量停在 17。它依赖的 `spi` / `contracts` 同样是 17（共享契约层取两边下限），否则 17 的进程加载 21 字节码会 `UnsupportedClassVersionError`。
+- **薄依赖**：pom 只许 `spi` + `contracts` + `spring-boot-autoconfigure` + `spring-web` + `spring-aop`。禁 `spring-ai-*`（provider 不做规划）、禁 hub 模块（runtime / registry / gateway / web-mvc）、禁 `spring-boot-starter-web`（不绑宿主 web 栈选型，运行期容器由宿主已有的 starter 提供）。`check-module-deps` 机械守护。
+- **不得自行重试**。`ToolHandler` 的既有约定在跨进程后后果被放大：provider 自己重试 × hub 重试 = 指数放大。重试策略按 Manifest 由 hub 的 Gateway 统一决定。
+- **认证 fail-fast**：`spark.provider.token` / `service-name` / `hub-url` 缺任一项拒绝启动。安全相关的缺省不能是宽松的（与 `SessionIdResolver` 同一决策）。
+- **返回前脱敏**：与 hub 同一 `SENSITIVE_KEYS` 口径。脱敏若只在 hub 侧做，原文已过网络、已进 provider 日志。
+- **身份归宿主**：provider 源码同样禁 `userId` / `tenantId` / `Principal`。`RunContextPropagator` 在 http 形态下不生效，要拿身份靠 hub 传来的 `sessionId` 或自己的网关鉴权。
+- **无 web 栈时降级要显式**：执行端点用 `@ConditionalOnClass` 守护，不装配时**必须 WARN**——工具注册成功却永远调不通是极难排查的故障。
+
+## 指标与埋点
+
+feat-runtime-limits-and-metrics-20260912 起，平台出三类指标（LLM / 工具 / Run），经 spi 端口导出。
+
+### 标签必须低基数（红线）
+
+**禁止**把用户标识、会话标识、业务实体标识、运行标识作为指标标签（`sessionId` / `runId` / `conversationId` / `toolCallId` / 各类业务 ID）。它们基数无上界，会打爆时序库——**"看起来有监控但把监控系统打挂"比没有监控更糟**。
+
+允许的标签只有有限集合：`toolId`（工具数量有限）、`outcome` / `status` / `code`（枚举）、`kind`（prompt/completion）。
+
+实现里**标签集合硬编码**，不接受运行期传入的动态标签（`MicrometerMetricsSinks`）。要追溯单次调用去查审计（`AuditSink` 逐次留痕，含 `argsDigest`），不要靠指标。
+
+### 埋点不得拖垮业务
+
+`ToolMetricsSink` / `RunMetricsSink` / `LlmMetricsSink` 的实现**不应抛异常**。调用方（Gateway / Runtime）会捕获并记 WARN，不影响执行结果——监控故障让正常请求失败是经典事故。
+
+同理 `AuditSink`：它被调用的位置在「工具已执行完」与「返回结果」之间，抛异常会让副作用已发生却对调用方表现为失败，用户重试造成**重复副作用**。Gateway 捕获并记 ERROR（字段齐全，可据日志补账）。
+
+取舍是明确的：审计/指标丢失可告警补账，重复扣款不可逆。
+
+### Micrometer 是可选依赖
+
+只有 hub starter 可依赖 Micrometer，且**必须 `<optional>true</optional>`**——不带 optional 会传递给所有宿主，包括 provider 与用别的监控栈的宿主。`check-module-deps` 机械守护（含 optional 标记检查），双向自证。
+
+**`@ConditionalOnBean` 在 `@Import` 进来的配置类上不可靠**：求值早于 actuator 注册 `MeterRegistry`，条件永不成立且**静默退回**默认实现。用 `ObjectProvider` 在注入时解析。这条是实测踩出来的——单测全绿、启动正常、指标一个都没有。
+
+## 内核自保阈值
+
+以下阈值是**常量而非配置项**，与 `LlmPlanner.MAX_ATTEMPTS` / `PromptBuilder.MAX_TEXT` / `ClarificationScreen.MAX_COLUMNS` 同例——宿主无需调，真需要时再引入配置项（届时才有实际依据）：
+
+| 阈值 | 值 | 防什么 |
+|---|---|---|
+| `PlanValidator.MAX_PLAN_STEPS` | 6 | 模型规划出几十步，每步都是真实工具调用。取实测最长链 3 步的 2 倍；刻意不取 8（与 `FakeLlmPlanner` 的 8 处 `DraftStep` 重合会在加测试场景时撞线） |
+
+可配的运行期限制（宿主需按容量调整）：
+
+| 配置项 | 默认 | 说明 |
+|---|---|---|
+| `spark.gateway.max-concurrent-per-session` | 4 | 单会话在飞工具调用上限，≤ 0 关闭。防只读查询洪水——写操作已被幂等 claim 序列化。与 `toolQueue=64` 挂钩：需 16 个并发会话才占满池。**改 toolQueue 时同步复核** |

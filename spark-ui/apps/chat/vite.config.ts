@@ -26,7 +26,7 @@ export default defineConfig(({ command }) => ({
       { find: '@app', replacement: abs('./src/app') },
       { find: '@pages', replacement: abs('./src/pages') },
       { find: '@features', replacement: abs('./src/features') },
-      { find: '@entities', replacement: abs('./src/entities') },
+      // 无 @entities：契约投影全部下沉到 @spark-ui/core/client，chat 不再有 entities 层
       { find: '@shared', replacement: abs('./src/shared') },
       // 只读契约别名：仅用于 import 示例 JSON（project-structure §1）
       { find: '@contracts', replacement: abs('../../../.harness/contracts') },

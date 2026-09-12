@@ -1,18 +1,27 @@
 package com.sparkrooter.starter;
 
 import com.sparkrooter.contracts.SchemaValidator;
+import com.sparkrooter.contracts.tool.ToolTransport;
 import com.sparkrooter.gateway.application.InvokeToolUseCase;
 import com.sparkrooter.gateway.domain.IdempotencyStore;
+import com.sparkrooter.gateway.domain.SessionConcurrencyLimiter;
 import com.sparkrooter.gateway.infra.InMemoryIdempotencyStore;
 import com.sparkrooter.gateway.infra.LogAuditSink;
+import com.sparkrooter.gateway.infra.transport.HttpToolTransport;
+import com.sparkrooter.gateway.infra.transport.InProcessToolTransport;
+import com.sparkrooter.gateway.infra.transport.ManifestProviderEndpointResolver;
 import com.sparkrooter.spi.AuditSink;
+import com.sparkrooter.spi.ProviderAuth;
+import com.sparkrooter.spi.ProviderEndpointResolver;
 import com.sparkrooter.spi.RunContextPropagator;
 import com.sparkrooter.spi.ToolAccessPolicy;
 import com.sparkrooter.spi.ToolHandler;
+import com.sparkrooter.spi.ToolMetricsSink;
 import com.sparkrooter.spi.ToolResolver;
 import java.util.concurrent.ExecutorService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -44,6 +53,49 @@ class GatewayBeans {
         props.gateway().toolPool(), props.gateway().toolQueue(), "gateway-tool-");
   }
 
+  /**
+   * 进程内传输：单体内嵌形态的执行路径，持有 toolId@version → handler 注册表。
+   *
+   * <p>{@code @ConditionalOnMissingBean} 供宿主替换（如加审计埋点的装饰器）。HTTP 传输由 provider 支持模块另行装配， 本 starter
+   * 不含它 —— 单体宿主不该因为引入 starter 就多一个 HTTP 客户端。
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  InProcessToolTransport sparkRooterInProcessToolTransport(ObjectProvider<ToolHandler> handlers) {
+    InProcessToolTransport transport = new InProcessToolTransport();
+    // 宿主手写的 ToolHandler Bean；@SparkTool 扫描出的适配器由 SparkToolScanner 在启动期追加
+    handlers.orderedStream().forEach(transport::register);
+    return transport;
+  }
+
+  /** provider 地址解析：默认取 Manifest 里声明的 baseUrl。接注册中心的宿主定义同类型 Bean 即覆盖。 */
+  @Bean
+  @ConditionalOnMissingBean
+  ProviderEndpointResolver sparkRooterProviderEndpointResolver() {
+    return new ManifestProviderEndpointResolver();
+  }
+
+  /**
+   * HTTP 传输：**仅当宿主装配了 {@link ProviderAuth} 时才创建**。
+   *
+   * <p>单体宿主没有这个 Bean，于是也没有 HTTP 传输——「引入 starter 不该多一个 HTTP 客户端」。 这与 {@code RegistrationGuard}
+   * 是同一条逻辑：没配认证就不支持远程，而不是不检查。
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnBean(ProviderAuth.class)
+  HttpToolTransport sparkRooterHttpToolTransport(
+      ProviderEndpointResolver resolver, ProviderAuth auth, SchemaValidator validator) {
+    return new HttpToolTransport(resolver, auth, validator.mapper());
+  }
+
+  /** 单会话在飞上限。防只读查询洪水——写操作已被幂等 claim 序列化，只读工具没有任何序列化， 单会话可用并发请求占满整池让其他用户全被拒。 */
+  @Bean
+  @ConditionalOnMissingBean
+  SessionConcurrencyLimiter sparkRooterSessionConcurrencyLimiter(SparkRooterProperties props) {
+    return new SessionConcurrencyLimiter(props.gateway().maxConcurrentPerSession());
+  }
+
   @Bean
   InvokeToolUseCase sparkRooterInvokeToolUseCase(
       ToolResolver resolver,
@@ -52,8 +104,10 @@ class GatewayBeans {
       IdempotencyStore idempotency,
       AuditSink audit,
       SchemaValidator validator,
-      ObjectProvider<ToolHandler> handlers,
-      @Qualifier("sparkRooterToolExecutor") ExecutorService toolExecutor) {
+      @Qualifier("sparkRooterToolExecutor") ExecutorService toolExecutor,
+      ObjectProvider<ToolTransport> transports,
+      SessionConcurrencyLimiter sessionLimiter,
+      ToolMetricsSink toolMetrics) {
     return new InvokeToolUseCase(
         resolver,
         access,
@@ -61,7 +115,9 @@ class GatewayBeans {
         idempotency,
         audit,
         validator,
-        handlers.orderedStream().toList(),
-        toolExecutor);
+        toolExecutor,
+        transports.orderedStream().toList(),
+        sessionLimiter,
+        toolMetrics);
   }
 }

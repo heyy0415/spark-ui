@@ -84,8 +84,13 @@
             "message": "UI libraries may only be imported inside packages/core/src/components/** and packages/core/src/theme/**. Apps use @spark-ui/core."
           },
           {
-            "group": ["@spark-ui/core/*"],
-            "message": "Import @spark-ui/core only via its package entry (or '@spark-ui/core/style.css' in CSS)."
+            "group": [
+              "@spark-ui/core/src",
+              "@spark-ui/core/src/*",
+              "@spark-ui/core/dist",
+              "@spark-ui/core/dist/*"
+            ],
+            "message": "Import @spark-ui/core via a declared entry: '.', './client', './react' or './style.css'. Reaching into src/ or dist/ bypasses the package's public API."
           },
           {
             "group": ["@contracts/*"],
@@ -128,8 +133,13 @@
                 "message": "UI libraries may only be imported inside packages/core/src/components/** and packages/core/src/theme/**. Apps use @spark-ui/core."
               },
               {
-                "group": ["@spark-ui/core/*"],
-                "message": "Import @spark-ui/core only via its package entry (or '@spark-ui/core/style.css' in CSS)."
+                "group": [
+                  "@spark-ui/core/src",
+                  "@spark-ui/core/src/*",
+                  "@spark-ui/core/dist",
+                  "@spark-ui/core/dist/*"
+                ],
+                "message": "Import @spark-ui/core via a declared entry: '.', './client', './react' or './style.css'. Reaching into src/ or dist/ bypasses the package's public API."
               }
             ]
           }
@@ -144,8 +154,13 @@
           {
             "patterns": [
               {
-                "group": ["@spark-ui/core/*"],
-                "message": "Import @spark-ui/core only via its package entry (or '@spark-ui/core/style.css' in CSS)."
+                "group": [
+                  "@spark-ui/core/src",
+                  "@spark-ui/core/src/*",
+                  "@spark-ui/core/dist",
+                  "@spark-ui/core/dist/*"
+                ],
+                "message": "Import @spark-ui/core via a declared entry: '.', './client', './react' or './style.css'. Reaching into src/ or dist/ bypasses the package's public API."
               }
             ]
           }
@@ -179,8 +194,13 @@
                 "message": "UI libraries may only be imported inside packages/core/src/components/** and packages/core/src/theme/**. Apps use @spark-ui/core."
               },
               {
-                "group": ["@spark-ui/core/*"],
-                "message": "Import @spark-ui/core only via its package entry (or '@spark-ui/core/style.css' in CSS)."
+                "group": [
+                  "@spark-ui/core/src",
+                  "@spark-ui/core/src/*",
+                  "@spark-ui/core/dist",
+                  "@spark-ui/core/dist/*"
+                ],
+                "message": "Import @spark-ui/core via a declared entry: '.', './client', './react' or './style.css'. Reaching into src/ or dist/ bypasses the package's public API."
               }
             ]
           }

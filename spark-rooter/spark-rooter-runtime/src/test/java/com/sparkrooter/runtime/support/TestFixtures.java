@@ -13,12 +13,14 @@ import com.sparkrooter.contracts.model.ToolSearch;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.spi.annotation.ParamFormat;
+import com.sparkrooter.spi.tool.ParamMeta;
+import com.sparkrooter.spi.tool.ToolMeta;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * runtime 测试夹具：ObjectMapper 与 starter ContractsBeans.platformMapper 口径一致（JavaTimeModule / 禁
+ * runtime 测试夹具：ObjectMapper 与 contracts PlatformMapper.create 口径一致（JavaTimeModule / 禁
  * timestamps；Jdk8Module 不在 runtime 类路径，测试不经 Jackson 序列化 Optional）， 契约合法的 ToolCandidate
  * 构造器，ToolMetaRegistry / ToolDisplayNames 构造器。工具全部用中性名（demo.*），不含示例领域词。
  */
@@ -97,33 +99,28 @@ public final class TestFixtures {
 
   // ---------------------------------------------------------------- meta
 
-  public static ToolMetaRegistry.ParamMeta entityParam(String name, String pattern) {
-    return new ToolMetaRegistry.ParamMeta(
+  public static ParamMeta entityParam(String name, String pattern) {
+    return new ParamMeta(
         name, ENTITY, ENTITY_LABEL, pattern, null, null, ParamFormat.NONE, null, false);
   }
 
-  public static ToolMetaRegistry.ParamMeta plainParam(
-      String name, String defaultValue, boolean integer) {
-    return new ToolMetaRegistry.ParamMeta(
+  public static ParamMeta plainParam(String name, String defaultValue, boolean integer) {
+    return new ParamMeta(
         name, null, null, null, null, null, ParamFormat.NONE, defaultValue, integer);
   }
 
-  public static ToolMetaRegistry.ToolMeta meta(
-      String toolId,
-      List<String> prerequisites,
-      String clarifiesEntity,
-      ToolMetaRegistry.ParamMeta... params) {
-    Map<String, ToolMetaRegistry.ParamMeta> byName = new LinkedHashMap<>();
-    for (ToolMetaRegistry.ParamMeta p : params) {
+  public static ToolMeta meta(
+      String toolId, List<String> prerequisites, String clarifiesEntity, ParamMeta... params) {
+    Map<String, ParamMeta> byName = new LinkedHashMap<>();
+    for (ParamMeta p : params) {
       byName.put(p.name(), p);
     }
-    return new ToolMetaRegistry.ToolMeta(
-        toolId, "1.0.0", "demo", prerequisites, clarifiesEntity, List.of(), byName);
+    return new ToolMeta(toolId, "1.0.0", "demo", prerequisites, clarifiesEntity, List.of(), byName);
   }
 
-  public static ToolMetaRegistry registry(ToolMetaRegistry.ToolMeta... metas) {
+  public static ToolMetaRegistry registry(ToolMeta... metas) {
     ToolMetaRegistry r = new ToolMetaRegistry();
-    for (ToolMetaRegistry.ToolMeta m : metas) {
+    for (ToolMeta m : metas) {
       r.register(m);
     }
     return r;

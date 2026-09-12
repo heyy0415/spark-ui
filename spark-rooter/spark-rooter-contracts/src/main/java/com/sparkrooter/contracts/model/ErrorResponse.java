@@ -22,7 +22,9 @@ public record ErrorResponse(
     FORBIDDEN,
     NOT_FOUND,
     TOOL_VERSION_CONFLICT,
-    INTERNAL_ERROR
+    INTERNAL_ERROR,
+    /** 过载拒绝（HTTP 429）。与 FORBIDDEN 分开：前者退避重试有意义，后者无意义。 */
+    RATE_LIMITED
   }
 
   public static ErrorResponse of(Code code, String message, String traceId) {

@@ -50,3 +50,61 @@ SSE 事件只透出产品需要的信息。**禁止**透传：模型推理过程
 
 - 每次 Run 落审计日志；`runId`、`toolCallId` 贯穿前后端与日志。
 - 首期至少统计：工具选择命中率、参数校验错误率、执行成功率、任务完成率。
+
+## 8. 跨服务（provider）形态的安全边界
+
+feat-provider-http-transport-20260912 引入 `protocol=http` 后，下列边界**必须显式成立**——它们在单体形态下由「同进程」这个前提免费提供，跨进程后需要代码兑现。
+
+### 8.1 治理不下放
+
+Schema 校验、访问策略、幂等 claim、超时、重试、脱敏、审计**全部留在 hub 的 `InvokeToolUseCase`**。`ToolTransport` 只负责「把参数送到工具、把结果拿回来」。远程工具绝不能走 Gateway 之外的路径。
+
+`ToolAccessPolicy` 在 transport **之前**调用，故跨进程不影响权限判定。
+
+### 8.2 重试的判据是「有没有执行」，不是「错误严不严重」
+
+| 传输失败 | 可否重试 | 理由 |
+|---|---|---|
+| `NOT_FOUND` / `UNREACHABLE` | **可以** | 确定没碰到工具 |
+| `REMOTE_TIMEOUT` | **不可以** | 结果未知：远端可能已执行成功，只是响应没赶上 |
+| `REMOTE_FAILED` | **不可以** | 已执行过，是否生效未知 |
+
+进程内超时可由 `Future.cancel(true)` 真正中断，重试安全；**跨进程超时只能中断本地等待，远端照常执行**。弄反这条会在退款/扣款场景造成重复执行。
+
+### 8.3 幂等是两层，缺一不可
+
+- hub 的 `IdempotencyStore` 防 **hub 侧重复发起**；
+- provider 的 `ProviderIdempotencyStore` 防 **网络重传与 hub 重试**。
+
+`ExecutionContext.idempotencyKey` 必须随请求传到 provider。缺了 provider 这一层，Manifest 上的 `idempotency=required` 只是一句声明。
+
+provider 默认实现是**进程内**的，多实例部署时 hub 重试可能落到另一实例而绕过缓存；要强一致就替换该 Bean 为共享存储。
+
+### 8.4 脱敏点必须在发送端
+
+provider **返回前**就脱敏（与 hub 同一 `SENSITIVE_KEYS` 口径），hub 侧脱敏作为第二道。脱敏若只在接收端，原文已经过网络、已进 provider 日志与链路追踪——违反公司「敏感信息先脱敏」红线。
+
+`baseUrl` 允许 `http://`（内网部署与本地联调），但启动必须 WARN，生产应用 HTTPS 或 mTLS。
+
+### 8.5 认证是双向的，且令牌绑定服务名
+
+| 方向 | 端点 | 校验 |
+|---|---|---|
+| provider → hub | `POST /internal/tool-registry/tools` | 令牌有效**且**与 `provider.serviceName` 对应 |
+| hub → provider | `POST /spark/tools/invoke` | 令牌有效 |
+
+只校验「令牌有效」不够：那样任一 provider 被攻破即可冒充其他所有 provider 注册伪造的高危工具。比较用 `MessageDigest.isEqual`（常量时间），不用 `String.equals`。
+
+**未配认证 = 不接受远程工具**，不是「不检查」。hub 没配 `spark.providers.tokens.*` 时拒绝一切 `protocol=http` 注册且不装配 HTTP 传输。
+
+### 8.6 确认覆盖必须在注册时判定
+
+hub 的启动自检跑在自己的 `ApplicationReadyEvent`，而 provider 在**它自己的** `ApplicationReadyEvent` 才推 Manifest——两个进程，顺序无保证。高风险远程工具通常在 hub 自检通过之后注册，**完全绕过那道检查**。
+
+故 `RegisterToolUseCase` 在写入前调 `ConfirmationCoveragePolicy`：需确认工具（`confirmation=required` 或 `risk=high`）缺确认屏或 `ConfirmationRecheck` → **注册即拒绝**。否则故障会从「启动即失败」退化成「用户点确认那一刻才失败」。
+
+### 8.7 `RunContextPropagator` 在 http 形态下不生效
+
+`capture()` 返回不透明 `Object`，设计上不可跨进程。宿主若以为自己的 ThreadLocal / `SecurityContextHolder` 能传到 provider，基于它的鉴权判定会**静默**走默认分支。
+
+provider 要拿身份只能靠 (a) hub 传来的 `sessionId`（宿主自行映射）或 (b) provider 宿主自己的网关鉴权。provider-starter 检测到该 Bean 存在时会 WARN。

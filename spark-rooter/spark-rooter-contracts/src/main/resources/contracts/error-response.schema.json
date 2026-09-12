@@ -15,7 +15,7 @@
         "FORBIDDEN",
         "NOT_FOUND",
         "TOOL_VERSION_CONFLICT",
-        "INTERNAL_ERROR"
+        "INTERNAL_ERROR", "RATE_LIMITED"
       ],
       "description": "REQUEST_INVALID=400 Schema 校验失败；UNAUTHENTICATED=401 缺身份头；FORBIDDEN=403 权限不足；NOT_FOUND=404；TOOL_VERSION_CONFLICT=409 重复注册同 toolId@version；INTERNAL_ERROR=500"
     },

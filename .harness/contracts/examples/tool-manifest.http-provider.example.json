@@ -1,0 +1,49 @@
+{
+  "toolId": "order.detail.get",
+  "version": "1.0.0",
+  "domain": "order",
+  "name": "查询订单详情",
+  "description": "按订单号查询订单详情，返回商品、金额、状态与收货信息。只读，无副作用。本示例演示 protocol=http：领域服务是独立进程，hub 经 provider 坐标寻址调用。",
+  "protocol": "http",
+  "provider": {
+    "serviceName": "order-service",
+    "baseUrl": "http://order-service.internal:8080",
+    "instanceId": "order-service-7d9f4b8c6-x2klm"
+  },
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["orderId"],
+    "properties": {
+      "orderId": { "type": "string", "minLength": 1, "maxLength": 64 }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["orderId", "status", "totalAmount", "currency"],
+    "properties": {
+      "orderId": { "type": "string" },
+      "status": { "type": "string" },
+      "totalAmount": { "type": "string", "pattern": "^-?\\d+(\\.\\d{1,2})?$" },
+      "currency": { "type": "string", "enum": ["CNY"] },
+      "createdAt": { "type": "string", "format": "date-time" }
+    }
+  },
+  "risk": {
+    "level": "low",
+    "sideEffect": false,
+    "reversible": true,
+    "confirmation": "never"
+  },
+  "authorization": {},
+  "execution": {
+    "timeoutMs": 3000,
+    "maxRetries": 1,
+    "idempotency": "none"
+  },
+  "owner": {
+    "team": "order-platform"
+  },
+  "status": "active"
+}

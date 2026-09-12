@@ -1,24 +1,21 @@
 import { SparkDeviceProvider, SparkThemeProvider } from '@spark-ui/core';
-import type { QueryClient } from '@tanstack/react-query';
-import { QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
 import { SPARK_TOKENS } from '../styles/tokens';
-import { createQueryClient } from './queryClient';
 
 interface AppProvidersProps {
   children: ReactNode;
-  queryClient?: QueryClient;
 }
 
-/** QueryClient → Spark 端型（挂载一次判定）→ Spark 主题（antd / antd-mobile / --spark-* 同一套令牌）。 */
-export function AppProviders({ children, queryClient }: AppProvidersProps) {
-  const [client] = useState(() => queryClient ?? createQueryClient());
+/**
+ * Spark 端型（挂载一次判定）→ Spark 主题（antd / antd-mobile / --spark-* 同一套令牌）。
+ *
+ * 原先这里还有 QueryClientProvider：运行视图的状态容器改为 `@spark-ui/core/client` 的 runStore
+ * （零框架依赖，经 useSyncExternalStore 接入 React）后，react-query 不再需要。
+ */
+export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <QueryClientProvider client={client}>
-      <SparkDeviceProvider>
-        <SparkThemeProvider tokens={SPARK_TOKENS}>{children}</SparkThemeProvider>
-      </SparkDeviceProvider>
-    </QueryClientProvider>
+    <SparkDeviceProvider>
+      <SparkThemeProvider tokens={SPARK_TOKENS}>{children}</SparkThemeProvider>
+    </SparkDeviceProvider>
   );
 }

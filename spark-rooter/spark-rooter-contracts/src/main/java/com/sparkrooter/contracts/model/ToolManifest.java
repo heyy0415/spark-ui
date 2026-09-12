@@ -12,6 +12,7 @@ public record ToolManifest(
     String name,
     String description,
     Protocol protocol,
+    Provider provider,
     JsonNode inputSchema,
     JsonNode outputSchema,
     Risk risk,
@@ -36,6 +37,17 @@ public record ToolManifest(
       return wire;
     }
   }
+
+  /**
+   * 远程提供方坐标，仅 {@code protocol=http} 时非 null（契约以 if/then 约束：http ⇒ 必填、in-process ⇒ 禁止出现）。
+   *
+   * @param serviceName 逻辑服务名，与调用方认证密钥绑定（防服务 A 注册服务 B 的工具）
+   * @param baseUrl 可空；缺省时由宿主 ProviderEndpointResolver 按 serviceName 解析。允许 http:// 以便内网部署与本地联调，
+   *     但传输未加密，生产应使用 HTTPS 或 mTLS；使用 http:// 时启动 WARN
+   * @param instanceId 可空；仅用于审计与排障，不参与寻址
+   */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record Provider(String serviceName, String baseUrl, String instanceId) {}
 
   public record Risk(
       RiskLevel level, boolean sideEffect, boolean reversible, Confirmation confirmation) {}

@@ -12,9 +12,14 @@ export default defineConfig({
   plugins: [react()],
   build: {
     lib: {
-      entry: abs('./src/index.ts'),
+      // 三个入口：渲染层（.）、headless（./client）、React 绑定（./react）。
+      // 对象形式的 entry 让 rollup 按 key 命名产物，与 package.json 的 exports 一一对应。
+      entry: {
+        index: abs('./src/index.ts'),
+        'client/index': abs('./src/client/index.ts'),
+        'react/index': abs('./src/react/index.ts'),
+      },
       formats: ['es'],
-      fileName: 'index',
       cssFileName: 'style',
     },
     sourcemap: false,

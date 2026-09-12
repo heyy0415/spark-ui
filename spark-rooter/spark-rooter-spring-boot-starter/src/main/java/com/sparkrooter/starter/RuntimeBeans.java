@@ -2,9 +2,11 @@ package com.sparkrooter.starter;
 
 import com.sparkrooter.contracts.SchemaValidator;
 import com.sparkrooter.gateway.api.ToolInvokePort;
+import com.sparkrooter.registry.api.ConfirmationCoveragePolicy;
 import com.sparkrooter.registry.api.ToolSearchPort;
 import com.sparkrooter.runtime.application.ConfirmationTokenService;
 import com.sparkrooter.runtime.application.RecheckRegistry;
+import com.sparkrooter.runtime.application.RegistryConfirmationCoverage;
 import com.sparkrooter.runtime.application.RunOrchestrator;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
@@ -21,11 +23,11 @@ import com.sparkrooter.runtime.infra.inprocess.InProcessToolGatewayClient;
 import com.sparkrooter.runtime.infra.inprocess.InProcessToolRegistryClient;
 import com.sparkrooter.runtime.infra.llm.LlmCircuitBreaker;
 import com.sparkrooter.runtime.infra.llm.LlmFactory;
-import com.sparkrooter.runtime.infra.llm.LogLlmMetricsSink;
 import com.sparkrooter.spi.ConfirmationRecheck;
 import com.sparkrooter.spi.ConversationMemory;
 import com.sparkrooter.spi.LlmMetricsSink;
 import com.sparkrooter.spi.RunContextPropagator;
+import com.sparkrooter.spi.RunMetricsSink;
 import com.sparkrooter.spi.ScreenBuilder;
 import com.sparkrooter.spi.SessionIdResolver;
 import java.time.Clock;
@@ -55,6 +57,19 @@ class RuntimeBeans {
           + "仅本地演示可设 spark.runtime.demo-session-resolver=true 使用演示实现（sessionId = conversationId，无会话隔离）。";
 
   // ---- 宿主端口默认实现
+
+  /**
+   * 注册时的确认覆盖判定（远程 Manifest 的必要一层）。
+   *
+   * <p>hub 的启动自检跑在 ApplicationReadyEvent，而 provider 在**它自己的** ApplicationReadyEvent 才推
+   * Manifest——两个进程无顺序保证。只靠启动自检会让「高风险工具缺重校验」推迟到用户点确认时 才 fail-closed，排查成本高得多。
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  ConfirmationCoveragePolicy sparkRooterConfirmationCoverage(
+      ScreenRegistry screens, RecheckRegistry rechecks) {
+    return new RegistryConfirmationCoverage(screens, rechecks);
+  }
 
   @Bean
   @ConditionalOnMissingBean(SessionIdResolver.class)
@@ -165,12 +180,6 @@ class RuntimeBeans {
   }
 
   /** LLM 埋点：默认落 LLM_METRICS 日志；宿主要接 Micrometer 自行定义同类型 Bean 即覆盖。 */
-  @Bean
-  @ConditionalOnMissingBean(LlmMetricsSink.class)
-  LlmMetricsSink sparkRooterLlmMetricsSink() {
-    return new LogLlmMetricsSink();
-  }
-
   /** 规划器：模型主导；未配置模型 → UnavailablePlanner（任何请求直接失败，不做规则兜底）。可信参数集合 = 各领域 recheck 声明的并集。 */
   @Bean
   @ConditionalOnMissingBean(LlmClient.class)
@@ -233,7 +242,8 @@ class RuntimeBeans {
       ToolMetaRegistry meta,
       ConversationMemory memory,
       SchemaValidator validator,
-      Clock sparkRooterClock) {
+      Clock sparkRooterClock,
+      RunMetricsSink runMetrics) {
     return new RunOrchestrator(
         runs,
         registry,
@@ -246,6 +256,7 @@ class RuntimeBeans {
         meta,
         memory,
         validator,
+        runMetrics,
         sparkRooterClock);
   }
 }

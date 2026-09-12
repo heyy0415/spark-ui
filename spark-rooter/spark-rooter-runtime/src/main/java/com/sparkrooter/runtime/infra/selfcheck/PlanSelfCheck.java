@@ -9,6 +9,8 @@ import com.sparkrooter.runtime.application.port.ToolRegistryClient;
 import com.sparkrooter.runtime.domain.RunFailure;
 import com.sparkrooter.runtime.infra.llm.PlanDraft;
 import com.sparkrooter.runtime.infra.llm.PlanValidator;
+import com.sparkrooter.spi.tool.ParamMeta;
+import com.sparkrooter.spi.tool.ToolMeta;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -58,12 +60,12 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
       return;
     }
     // 找一个需确认且有前置的工具、一个带实体参数的工具，用注解元数据而不是写死的 toolId
-    Optional<ToolMetaRegistry.ToolMeta> confirmTool =
+    Optional<ToolMeta> confirmTool =
         meta.all().stream().filter(m -> !m.prerequisites().isEmpty()).findFirst();
-    Optional<ToolMetaRegistry.ParamMeta> entityParam =
+    Optional<ParamMeta> entityParam =
         meta.all().stream()
             .flatMap(m -> m.params().values().stream())
-            .filter(ToolMetaRegistry.ParamMeta::isEntity)
+            .filter(ParamMeta::isEntity)
             .findFirst();
 
     expectReject(
@@ -102,7 +104,7 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
           String toolId =
               meta.all().stream()
                   .filter(m -> m.params().containsKey(p.name()) && m.prerequisites().isEmpty())
-                  .map(ToolMetaRegistry.ToolMeta::toolId)
+                  .map(ToolMeta::toolId)
                   .findFirst()
                   .orElse(null);
           if (toolId == null) {
@@ -155,8 +157,8 @@ public class PlanSelfCheck implements com.sparkrooter.spi.SelfCheck {
             });
   }
 
-  private static Optional<ToolMetaRegistry.ParamMeta> entityParamOf(ToolMetaRegistry.ToolMeta m) {
-    return m.params().values().stream().filter(ToolMetaRegistry.ParamMeta::isEntity).findFirst();
+  private static Optional<ParamMeta> entityParamOf(ToolMeta m) {
+    return m.params().values().stream().filter(ParamMeta::isEntity).findFirst();
   }
 
   private static PlanDraft draft(String toolId, Map<String, String> args) {

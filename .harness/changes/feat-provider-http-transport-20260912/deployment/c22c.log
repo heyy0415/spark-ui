@@ -1,0 +1,18 @@
+event:run.started
+data:{"runId":"run_90c424c9003944ff","conversationId":"c22c","at":"2026-09-12T15:47:34.649066Z"}
+
+event:tool.selected
+data:{"runId":"run_90c424c9003944ff","toolCallId":"tc_000046","toolId":"order.logistics.get","version":"1.0.0","displayName":"查询订单物流"}
+
+event:tool.started
+data:{"runId":"run_90c424c9003944ff","toolCallId":"tc_000046","at":"2026-09-12T15:47:34.649966Z"}
+
+event:tool.completed
+data:{"runId":"run_90c424c9003944ff","toolCallId":"tc_000046","status":"succeeded","durationMs":0,"summary":"物流状态 DELIVERED"}
+
+event:ui.replace
+data:{"runId":"run_90c424c9003944ff","ui":{"schemaVersion":"1.0","screenId":"logistics","title":"物流轨迹","components":[{"id":"logistics","type":"Card","props":{"title":"订单 10029 物流","items":[{"label":"承运商","value":"顺丰速运"},{"label":"运单号","value":"SF10029231081"},{"label":"状态","value":"DELIVERED"}]}},{"id":"logistics-events","type":"Timeline","props":{"items":[{"time":"2026-09-07T17:03:58Z","label":"已揽收","description":"深圳"},{"time":"2026-09-08T02:03:58Z","label":"已发出","description":"深圳转运中心"},{"time":"2026-09-08T07:03:58Z","label":"到达","description":"上海转运中心"},{"time":"2026-09-08T17:03:58Z","label":"派送中","description":"上海市 浦东新区"},{"time":"2026-09-08T21:03:58Z","label":"已签收","description":"上海市 浦东新区"},{"time":"2026-09-09T02:03:58Z","label":"客户已确认","description":"上海市 浦东新区"}]}}],"actions":[]}}
+
+event:run.completed
+data:{"runId":"run_90c424c9003944ff","at":"2026-09-12T15:47:34.650694Z"}
+

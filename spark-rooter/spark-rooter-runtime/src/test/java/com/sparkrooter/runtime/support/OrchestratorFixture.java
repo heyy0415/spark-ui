@@ -106,8 +106,13 @@ public final class OrchestratorFixture {
             meta,
             memory,
             VALIDATOR,
+            runMetrics::add,
             clock);
   }
+
+  /** Run 埋点采集，供测试断言每个出口都埋了（评审 S-1）。 */
+  public final java.util.List<com.sparkrooter.spi.RunMetricsSink.Sample> runMetrics =
+      new java.util.ArrayList<>();
 
   public static IntentRequest intent(String message) {
     return new IntentRequest(

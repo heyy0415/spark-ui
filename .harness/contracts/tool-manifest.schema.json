@@ -16,7 +16,18 @@
     "domain": { "type": "string", "pattern": "^[a-z][a-z0-9]*$", "maxLength": 32 },
     "name": { "type": "string", "minLength": 1, "maxLength": 80, "description": "用户可读名称，用于 tool.selected.displayName" },
     "description": { "type": "string", "minLength": 1, "maxLength": 500 },
-    "protocol": { "type": "string", "enum": ["in-process", "http", "mcp"], "description": "首期只实现 in-process" },
+    "protocol": { "type": "string", "enum": ["in-process", "http", "mcp"], "description": "in-process = 领域服务与内核同进程（单体内嵌）；http = 领域服务为独立进程（微服务），必须给出 provider 坐标；mcp 保留未实现，Registry 注册时拒绝" },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "远程提供方坐标，仅 protocol=http 时出现（protocol=in-process 时禁止出现）。baseUrl 允许 http:// 以便内网部署与本地联调，但传输未加密，生产应使用 HTTPS 或 mTLS；使用 http:// 时 hub 启动会 WARN。",
+      "required": ["serviceName"],
+      "properties": {
+        "serviceName": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,62}$", "description": "逻辑服务名，与调用方认证密钥绑定（防服务 A 注册服务 B 的工具）" },
+        "baseUrl": { "type": "string", "pattern": "^https?://[^\\s]+$", "description": "可选；缺省时由宿主 ProviderEndpointResolver 按 serviceName 解析（接注册中心场景）。与 serviceName 解析结果均缺失时注册失败" },
+        "instanceId": { "type": "string", "maxLength": 128, "description": "可选；仅用于审计与排障（哪个实例注册的），不参与寻址" }
+      }
+    },
     "inputSchema": { "$ref": "#/$defs/jsonSchemaObject" },
     "outputSchema": { "$ref": "#/$defs/jsonSchemaObject" },
     "risk": {
@@ -80,6 +91,28 @@
         "type": "object",
         "properties": { "execution": { "type": "object", "properties": { "idempotency": { "const": "required" } } } }
       }
+    },
+    {
+      "$comment": "protocol=http ⇒ provider 必填（Gateway 需要坐标才能寻址）。then 里重复声明 provider 的 properties 是 ajv strictRequired 的要求：required 的属性必须在同一 schema 对象内可见",
+      "if": {
+        "type": "object",
+        "properties": { "protocol": { "const": "http" } },
+        "required": ["protocol"]
+      },
+      "then": {
+        "type": "object",
+        "required": ["provider"],
+        "properties": { "provider": { "type": "object" } }
+      }
+    },
+    {
+      "$comment": "protocol=in-process ⇒ provider 禁止出现（单体形态无远程坐标概念，出现即配置错误）",
+      "if": {
+        "type": "object",
+        "properties": { "protocol": { "const": "in-process" } },
+        "required": ["protocol"]
+      },
+      "then": { "type": "object", "not": { "required": ["provider"] } }
     }
   ],
   "$defs": {

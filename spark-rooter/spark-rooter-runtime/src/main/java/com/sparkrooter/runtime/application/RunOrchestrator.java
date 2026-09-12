@@ -26,11 +26,14 @@ import com.sparkrooter.runtime.domain.RunState;
 import com.sparkrooter.runtime.domain.Step;
 import com.sparkrooter.spi.ConfirmationRecheck;
 import com.sparkrooter.spi.ConversationMemory;
+import com.sparkrooter.spi.RunMetricsSink;
 import com.sparkrooter.spi.ScreenContext;
+import com.sparkrooter.spi.tool.ToolMeta;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
@@ -61,6 +64,17 @@ import org.slf4j.MDC;
 public class RunOrchestrator {
 
   private static final Logger log = LoggerFactory.getLogger(RunOrchestrator.class);
+
+  /**
+   * 过载时给用户的文案。
+   *
+   * <p>与 {@code AgentRunController.OVERLOADED_TEXT} 必须一致——两处都是「系统忙」的同一语义
+   * （那边是编排池拒绝，这边是会话并发超限），文案不同会让用户以为是两种问题。
+   *
+   * <p>不共享常量是因为方向：runtime 不能依赖 web-mvc（project-structure §2）。字符串重复两份 优于反向依赖。
+   */
+  private static final String OVERLOADED_TEXT = "当前请求较多，请稍后重试";
+
   private static final String NO_CAPABILITY_TEXT = "当前没有可用能力处理该请求";
 
   /** 领域重校验策略拒绝时的用户文案（区分于令牌 / 并发拒绝）。 */
@@ -72,6 +86,7 @@ public class RunOrchestrator {
   private final LlmClient llm;
   private final ScreenRegistry screens;
   private final RecheckRegistry rechecks;
+  private final RunMetricsSink runMetrics;
   private final ToolDisplayNames displayNames;
   private final ConfirmationTokenService tokens;
   private final ToolMetaRegistry meta;
@@ -108,6 +123,7 @@ public class RunOrchestrator {
       ToolMetaRegistry meta,
       ConversationMemory memory,
       SchemaValidator validator,
+      RunMetricsSink runMetrics,
       Clock clock) {
     this.runs = runs;
     this.registry = registry;
@@ -115,6 +131,7 @@ public class RunOrchestrator {
     this.llm = llm;
     this.screens = screens;
     this.rechecks = rechecks;
+    this.runMetrics = runMetrics;
     this.displayNames = displayNames;
     this.tokens = tokens;
     this.meta = meta;
@@ -376,6 +393,8 @@ public class RunOrchestrator {
 
   /** 拒绝本次确认请求但不改变 Run 状态：向该连接发 run.failed{CONFIRMATION_REJECTED} 并关闭。 */
   private void rejectRequest(Run run, String internalReason, RunEventSink sink) {
+    // 独立出口：拒绝本次确认请求但不改 Run 状态。不埋这里会让"确认被拒"在成功率里看不见
+    recordRunMetrics(run, "confirmation_rejected");
     log.warn(
         "confirmation rejected runId={} state={} reason={}",
         run.runId(),
@@ -491,12 +510,12 @@ public class RunOrchestrator {
       log.info("clarify: no entityType, falling back to message.delta");
       return false;
     }
-    Optional<ToolMetaRegistry.ToolMeta> clarifier = meta.clarifierFor(entityType);
+    Optional<ToolMeta> clarifier = meta.clarifierFor(entityType);
     if (clarifier.isEmpty()) {
       log.info("clarify: no clarifier registered for entity={}", entityType);
       return false;
     }
-    ToolMetaRegistry.ToolMeta c = clarifier.get();
+    ToolMeta c = clarifier.get();
     JsonNode out;
     try {
       out = invoke(run, c.toolId(), c.version(), Map.of(), traceId, sink, "clarify");
@@ -668,6 +687,11 @@ public class RunOrchestrator {
               ? RunFailureCode.TOOL_OUTPUT_INVALID
               : RunFailureCode.TOOL_EXECUTION_FAILED;
       log.warn("tool invocation failed runId={} tool={} gatewayCode={}", run.runId(), toolId, gw);
+      // 过载与「工具真的执行失败」对用户的含义不同：前者稍后重试有意义，后者可能反复失败。
+      // 契约的 RunFailureCode 不新增值（那会动 sse-events 与前端投影），只把用户文案分开。
+      if (gw == ToolInvoke.ErrorCode.RATE_LIMITED) {
+        throw RunFailure.withUserText(code.name(), "session rate limited", OVERLOADED_TEXT);
+      }
       throw new ToolCallFailed(code, gw, toolId, null);
     }
     return resp.output();
@@ -736,11 +760,13 @@ public class RunOrchestrator {
     stepOutputs.remove(run.runId());
     inputSchemas.remove(run.runId());
     emit(sink, SseEvent.RUN_COMPLETED, new SseEvent.RunCompletedData(run.runId(), now()));
+    recordRunMetrics(run, "completed");
     sink.close();
   }
 
   private void fail(Run run, RunFailure e, RunEventSink sink) {
     log.warn("run failed runId={} code={} reason={}", run.runId(), e.code(), e.getMessage());
+    recordRunMetrics(run, e.code());
     if (!run.state().terminal()) {
       run.fail(e.code(), now());
     }
@@ -759,6 +785,24 @@ public class RunOrchestrator {
               now()));
     } finally {
       sink.close();
+    }
+  }
+
+  /**
+   * 写 Run 埋点，**失败不影响对话**（评审 S-2 同一手法）。
+   *
+   * <p>覆盖三个出口：{@code complete()} / {@code fail()} / {@code rejectRequest()}。漏任一个，
+   * 成功率指标就失真——而"看起来有监控但数字是错的"比没监控更危险（评审 S-1）。
+   *
+   * <p>steps 取计划步数；无计划（澄清屏 / 无能力 / 规划失败）时为 0。
+   */
+  private void recordRunMetrics(Run run, String outcome) {
+    try {
+      long ms = Duration.between(run.createdAt(), now()).toMillis();
+      int steps = run.plan().map(p -> p.steps().size()).orElse(0);
+      runMetrics.record(new RunMetricsSink.Sample(outcome, ms, steps));
+    } catch (RuntimeException e) {
+      log.warn("run_metrics_failed runId={} outcome={}", run.runId(), outcome, e);
     }
   }
 

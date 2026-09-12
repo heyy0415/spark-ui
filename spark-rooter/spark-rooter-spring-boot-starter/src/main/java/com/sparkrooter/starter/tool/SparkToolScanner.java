@@ -1,14 +1,15 @@
 package com.sparkrooter.starter.tool;
 
 import com.sparkrooter.contracts.model.ToolManifest;
-import com.sparkrooter.gateway.application.InvokeToolUseCase;
+import com.sparkrooter.contracts.tool.ManifestDeriver;
+import com.sparkrooter.gateway.infra.transport.InProcessToolTransport;
 import com.sparkrooter.registry.application.RegisterToolUseCase;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
-import com.sparkrooter.spi.ToolContext;
 import com.sparkrooter.spi.ToolNameSink;
 import com.sparkrooter.spi.annotation.SparkTool;
+import com.sparkrooter.spi.tool.AnnotatedToolHandler;
+import com.sparkrooter.spi.tool.SparkToolSignature;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,7 +36,7 @@ public final class SparkToolScanner implements SmartInitializingSingleton {
   private final ApplicationContext context;
   private final ManifestDeriver deriver;
   private final RegisterToolUseCase register;
-  private final InvokeToolUseCase gateway;
+  private final InProcessToolTransport transport;
   private final ToolMetaRegistry meta;
   private final List<ToolNameSink> nameSinks;
 
@@ -43,13 +44,13 @@ public final class SparkToolScanner implements SmartInitializingSingleton {
       ApplicationContext context,
       ManifestDeriver deriver,
       RegisterToolUseCase register,
-      InvokeToolUseCase gateway,
+      InProcessToolTransport transport,
       ToolMetaRegistry meta,
       List<ToolNameSink> nameSinks) {
     this.context = context;
     this.deriver = deriver;
     this.register = register;
-    this.gateway = gateway;
+    this.transport = transport;
     this.meta = meta;
     this.nameSinks = List.copyOf(nameSinks);
   }
@@ -81,28 +82,10 @@ public final class SparkToolScanner implements SmartInitializingSingleton {
 
   private void registerOne(Object proxy, Class<?> target, Method m, SparkTool tool) {
     String where = target.getSimpleName() + "#" + m.getName();
-    if (!Modifier.isPublic(m.getModifiers())) {
-      throw new IllegalStateException("@SparkTool method must be public: " + where);
-    }
-    if (Modifier.isFinal(m.getModifiers())) {
-      throw new IllegalStateException(
-          "@SparkTool method must not be final (host aspects would silently not apply): " + where);
-    }
-    if (Modifier.isFinal(target.getModifiers())) {
-      throw new IllegalStateException(
-          "@SparkTool class must not be final (cannot be proxied, host aspects would silently not apply): "
-              + target.getName());
-    }
-    if (target.isAnnotationPresent(Configuration.class)) {
-      throw new IllegalStateException(
-          "@SparkTool must not be declared on a @Configuration class: " + where);
-    }
+    // 签名规则与 provider 侧共用（SparkToolSignature），避免两种形态下合法性判定漂移
+    boolean wantsCtx =
+        SparkToolSignature.validate(target, m, target.isAnnotationPresent(Configuration.class));
     Class<?>[] params = m.getParameterTypes();
-    boolean wantsCtx = params.length == 2 && params[1] == ToolContext.class;
-    if (!(params.length == 1 || wantsCtx)) {
-      throw new IllegalStateException(
-          "@SparkTool signature must be Out m(In) or Out m(In, ToolContext): " + where);
-    }
     ManifestDeriver.Derived d = deriver.derive(m, params[0], m.getReturnType());
     // 先写元数据表（同 id 二次注册在这里失败），再注册 Manifest（与手写来源同 id@version 冲突在这里失败）
     meta.register(d.meta());
@@ -110,7 +93,7 @@ public final class SparkToolScanner implements SmartInitializingSingleton {
     // 可在代理上调用的 Method：CGLIB 代理用最具体的重写，JDK 接口代理用接口方法
     Method specific = ClassUtils.getMostSpecificMethod(m, proxy.getClass());
     Method invocable = AopUtils.selectInvocableMethod(specific, proxy.getClass());
-    gateway.registerHandler(
+    transport.register(
         new AnnotatedToolHandler(
             tool.id(), tool.version(), proxy, invocable, params[0], wantsCtx, deriver.mapper()));
     nameSinks.forEach(s -> s.register(registered.toolId(), registered.name()));

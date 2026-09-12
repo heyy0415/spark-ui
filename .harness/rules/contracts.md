@@ -8,7 +8,7 @@
 |---|---|---|
 | 契约 | `.harness/contracts/*.schema.json`（JSON Schema 2020-12） | **真源** |
 | 示例 | `.harness/contracts/examples/*.json` | 每个 Schema ≥ 1 个合法示例，CI 校验 |
-| 前端 | ui-schema：`spark-ui/packages/core/src/schema/uiSchema.ts`；其余 8 个：`spark-ui/apps/chat/src/entities/*/model/types.ts`（Zod） | 投影，字段与约束必须与 Schema 一致 |
+| 前端 | 全在 `spark-ui/packages/core`：ui-schema 在 `src/schema/uiSchema.ts`，intent-request / action-request / sse-events / run-summary / error-response 在 `src/client/contracts.ts`（Zod）。tool-manifest / tool-search / tool-invoke 是后端内部契约，**无前端投影** | 投影，字段与约束必须与 Schema 一致 |
 | 后端 | `spark-rooter/spark-rooter-contracts/`（record + 校验器；`src/main/resources/contracts/` 是真源的机械副本，由 `pnpm -C .harness run sync-contracts` 生成、`check-contracts` 校验一致，勿手改） | 投影 |
 
 变更顺序固定：**先改 Schema 与示例 → 跑 `check-contracts` → 再改两端**。
@@ -54,6 +54,41 @@
 - `execution.idempotency ∈ {none, required}`；`risk.sideEffect = true` 时必须 `required`。
 - `description` 视为不可信文本，Runtime 注入 prompt 前需转义与长度限制（≤ 500 字符）。
 - `authorization.permission` 可选（refactor-spark-embedded-starter-20260909）：内核不做用户鉴权，`@SparkTool` 推导的 Manifest 输出 `authorization: {}`；宿主要做权限用自己的方法级 AOP 或 `ToolAccessPolicy`。
+
+## 5b. Provider 段与 protocol 语义（feat-provider-http-transport-20260912）
+
+- `protocol` 决定寻址方式：`in-process` = 领域服务与内核同进程（单体内嵌）；`http` = 领域服务为独立进程（微服务）；`mcp` **保留未实现**，Registry 注册时拒绝。
+- `provider` 段仅 `protocol=http` 时出现，两条 `if/then` 硬约束：`http ⇒ provider` 必填；`in-process ⇒ provider` **不得出现**（单体形态无远程坐标概念，出现即配置错误）。
+- `provider.serviceName` 与调用方认证密钥绑定——只校验「令牌有效」不够，那样服务 A 的密钥就能注册服务 B 的工具。
+- `provider.baseUrl` 可选：接注册中心的宿主只给 `serviceName`，由宿主实现的 `ProviderEndpointResolver` 解析。两者都缺 → 注册失败。允许 `http://`（内网部署与本地联调），但 hub 启动会 WARN，生产应用 HTTPS 或 mTLS。
+- `provider.instanceId` 仅用于审计与排障，**不参与寻址**。
+- **非破坏性变更**：`provider` 是新增字段且在 `in-process` 下禁止出现，既有单体 Manifest 一字不改仍合法。`$id` 保持 `/v1/`、`schemaVersion` 保持 `1.0`。
+- 前端**不投影** `tool-manifest`：它是领域服务 → Registry 的后端内部契约。
+
+## 5c. 变更记录：feat-runtime-limits-and-metrics-20260912
+
+两份契约的 `code` enum 各增 **`RATE_LIMITED`**（单会话并发超限的拒绝）：
+
+| 契约 | 字段 | 前端投影 |
+|---|---|---|
+| `tool-invoke.schema.json` | `response.error.code` | 无（后端内部契约） |
+| `error-response.schema.json` | `code` | **有**（`ErrorResponseSchema` 在 `core/client`，已同步） |
+
+HTTP 映射为 **429 Too Many Requests**（不是 503）：语义是「你请求太多」而非「服务不可用」，且让调用方知道退避重试有意义。
+
+**新增值，非破坏性**。核实依据：
+
+| 核实项 | 结果 |
+|---|---|
+| 前端是否投影 `tool-invoke` | **不投影**（后端内部契约，见 §1） |
+| 消费方 | 4 个，全在仓内：`ToolInvoke` / `InvokeToolUseCase` / `GatewayException` / `RunOrchestrator` |
+| 外部消费方 | 无 |
+
+故 `$id` 保持 `/v1/`、`schemaVersion` 保持 `1.0`（与 `provider` 段、组件白名单收敛同例）。**首个外部消费方出现后再改必须发 `/v2/`。**
+
+`RATE_LIMITED` 与 `FORBIDDEN` 必须分开的理由：二者对调用方的含义相反——前者稍后重试有意义，后者重试无意义。合并会让调用方无法判断，而这正是错误码存在的目的。
+
+新增 invalid 示例 `tool-invoke.unknown-error-code.invalid.json`：加了枚举值之后，enum **仍必须拒绝未知值**，否则 `code` 形同自由文本。
 
 ## 5a. 变更记录：refactor-spark-embedded-starter-20260909
 
