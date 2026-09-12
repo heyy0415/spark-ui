@@ -21,8 +21,8 @@
 | 4 | 编码评审 | SKIP | 0/2 | 用户要求直接提交 | — |
 | 5 | 代码推送 | DONE | — | 03a7838 + 3a32c36 | 2026-09-11 |
 | 6 | CI 验证 | SKIP | — | 未配置 GitHub Actions | — |
-| 7 | 部署验证 | TODO | — | — | — |
-| 8 | 用户确认 | TODO | — | — | — |
+| 7 | 部署验证 | DONE | — | 收口时补跑（此前 `deployment/` 为空，阶段 7 确实从未执行）：`deploy-verify` **12 passed, 0 failed**（`planner=fake-e2e`，自检 9/9，事件序列完整至 `run.completed`，console.error 0）；产物冻结于 `deployment/` | 2026-09-13 |
+| 8 | 用户确认 | DONE | — | 用户「确认交付」 | 2026-09-13 |
 
 ## 契约变更
 - `tool-search.schema.json`：domain 字段从 required 移除，缺省返回全部可发现工具

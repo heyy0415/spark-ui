@@ -22,7 +22,7 @@
 | 5 | 代码推送 | DONE | — | 本地 commit（push 待用户执行） | 2026-09-12 |
 | 6 | CI 验证 | DONE | — | `pnpm -C .harness run ci` 9 步退出 0（阶段 6 的门禁定义，GitHub Actions 已按用户决定移除） | 2026-09-12 |
 | 7 | 部署验证 | DONE | — | e2e-backend 161 passed / e2e-frontend 7 passed / deploy-verify 12 passed，**三套零回归** | 2026-09-12 |
-| 8 | 用户确认 | TODO | — | — | — |
+| 8 | 用户确认 | DONE | — | 用户「确认交付」。遗留：`spark.llm.*` 指标本轮从未用真实模型验证（假规划器不经 `LlmPlanner`），需配 `SPARK_LLM_*` 真 key 才能取证 | 2026-09-13 |
 
 ## 契约变更
 - NONE（§2.2 论证了为何不新增 `RunFailureCode` 枚举值：前端对该场景的处理与 `INTERNAL_ERROR` 无差异，用 `withUserText` 区分文案即可）

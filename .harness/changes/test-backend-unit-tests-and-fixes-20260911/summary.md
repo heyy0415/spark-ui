@@ -22,7 +22,7 @@
 | 5 | 代码推送 | DONE | — | 2a36634 | 2026-09-11 |
 | 6 | CI 验证 | SKIP | — | 未配置 GitHub Actions（改造第 4 项）；本地 `pnpm -C .harness run ci` 退出 0 见 ci_result/ci_and_e2e_stage4.txt | 2026-09-11 |
 | 7 | 部署验证 | PARTIAL | — | deployment/preview_report.md：8/12 通过；4 项失败全因本机无模型（UnavailablePlanner），与改动无关 | 2026-09-11 |
-| 8 | 用户确认 | PENDING | — | 待用户书面「确认交付」 | — |
+| 8 | 用户确认 | DONE | — | 用户「确认交付」。阶段 7 的 4 项失败已在后续 `test-e2e-playwright-fake-llm` change 用假规划器解决（该 change 达 12/12） | 2026-09-13 |
 
 ## 契约变更
 - NONE（新增契约副本目录 `spark-rooter-contracts/src/main/resources/contracts/`，由 sync-contracts 从真源同步）

@@ -22,7 +22,7 @@
 | 5 | 代码推送 | DONE | — | eef46d5 | 2026-09-11 |
 | 6 | CI 验证 | SKIP | — | 未配置 GitHub Actions（改造第 4 项）；本地 ci 退出 0 见 ci_result/ci_stage4.txt | 2026-09-11 |
 | 7 | 部署验证 | SKIP | — | 本 change 不改运行时产物（build:chat 同 hash 同体积，评审 INFO 已核对），沿用上一 change 的 deploy-verify 结论 | 2026-09-11 |
-| 8 | 用户确认 | PENDING | — | 待用户书面「确认交付」 | — |
+| 8 | 用户确认 | DONE | — | 用户「确认交付」 | 2026-09-13 |
 
 ## 契约变更
 - NONE

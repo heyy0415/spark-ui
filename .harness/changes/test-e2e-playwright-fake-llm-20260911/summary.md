@@ -22,7 +22,7 @@
 | 5 | 代码推送 | DONE | — | 本地 commit `55cc589`（26 文件，+999/−543）；push 待用户执行 | 2026-09-12 |
 | 6 | CI 验证 | DEFERRED | — | 仓库尚无 `.github/workflows`；本 change 的门禁已在本地全绿（`pnpm -C .harness run ci` exit 0），CI 验证由改造清单第 4 项配置后的首次运行覆盖 | 2026-09-12 |
 | 7 | 部署验证 | DONE | — | preview_report.md（**12 passed, 0 failed**，`planner=fake-e2e`） | 2026-09-12 |
-| 8 | 用户确认 | TODO | — | — | — |
+| 8 | 用户确认 | DONE | — | 用户「确认交付」。阶段 4 评审非独立（subagent 通道 `400 专用渠道限制`），局限见 `code_review_v1.md` §4 | 2026-09-13 |
 
 ## 契约变更
 - NONE
