@@ -19,7 +19,7 @@
 | 2 | 需求评审 | DONE | 1/3 | spec_review_v1.md（**APPROVED**，0 MUST FIX / 3 SHOULD，全部已落实） | 2026-09-12 |
 | 3 | 编码实现 | DONE | — | [coding/coding_report_v1.md](coding/coding_report_v1.md)（T01–T08 全完成；spark-ui ci 0、harness ci 0、106 单测、e2e 161/7/12 全绿） | 2026-09-12 |
 | 4 | 编码评审 | DONE | 1/2 | [coding/code_review_v1.md](coding/code_review_v1.md)（0 MUST FIX 遗留；自评审，**不满足独立性**，通道受限） | 2026-09-12 |
-| 5 | 代码推送 | TODO | — | — | — |
+| 5 | 代码推送 | DONE（本地提交） | — | 提交 `5fe1f87` 于分支 `feat/provider-http-transport`；**未 push**（禁止直接 push 主分支，远端推送待用户在目标分支策略下执行） | 2026-09-12 |
 | 6 | CI 验证 | TODO | — | — | — |
 | 7 | 部署验证 | TODO | — | — | — |
 | 8 | 用户确认 | TODO | — | — | — |
