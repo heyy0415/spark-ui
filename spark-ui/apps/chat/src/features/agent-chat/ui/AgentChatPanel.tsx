@@ -8,12 +8,12 @@ import {
   SchemaRenderer,
   SchemaSkeleton,
 } from '@spark-ui/core';
-import { HttpError } from '@shared/api';
+import { HttpError } from '@spark-ui/core/client';
 import { env } from '@shared/config';
 import { Button } from '@shared/ui';
-import { FormIncompleteError, useAgentRun } from '../api/useAgentRun';
-import type { ChatTurn } from '../model/runView';
-import { skeletonVariant } from '../model/runView';
+import { FormIncompleteError, useSparkRun } from '@spark-ui/core/react';
+import type { ChatTurn } from '@spark-ui/core/client';
+import { skeletonVariant } from '@spark-ui/core/client';
 import styles from './AgentChatPanel.module.css';
 
 /**
@@ -45,7 +45,7 @@ export function AgentChatPanel({ conversationId, baseUrl, fetch: hostFetch }: Ag
     }),
     [baseUrl, hostFetch],
   );
-  const { view, start, submitAction, onFormChange, busy } = useAgentRun({
+  const { view, start, submitAction, onFormChange, busy } = useSparkRun({
     conversationId,
     transport,
   });

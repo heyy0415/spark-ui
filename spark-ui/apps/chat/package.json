@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@spark-ui/core": "workspace:*",
-    "@tanstack/react-query": "5.102.8",
     "antd": "catalog:",
     "antd-mobile": "catalog:",
     "react": "catalog:",

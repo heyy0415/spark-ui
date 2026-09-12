@@ -2,21 +2,22 @@
  * pnpm -C spark-ui run verify-examples（= vite-node -c apps/chat/vite.config.ts scripts/verify-examples.ts，serve 模式，@spark-ui/core 解析到 core src）
  *
  * 用前端 Zod 投影逐个校验契约示例（.harness/contracts/examples/*.example.json），
- * 保证 ui-schema 投影（@spark-ui/core）与其余投影（apps/chat entities）与契约真源一致（contracts.md §1）。
+ * 保证前端投影与契约真源一致（contracts.md §1）。全部 9 个投影都在 @spark-ui/core：
+ * ui-schema 在 schema/，其余在 client/contracts.ts。
  * 前端只投影 6 个契约：intent / action / ui-schema / run-summary / sse-events / error 的全部示例（数量随 .harness/contracts/examples 变化）。
  * 同时校验 examples/invalid/*.invalid.json 必须被 Zod 拒绝（投影比契约宽会在此暴露）。输出 "N examples OK"；任一失败退出码 1。以 vite-node 运行（路径别名由 vite.config 解析），不在 typecheck 范围。
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { UiSchemaSchema } from '@spark-ui/core';
-import type { ZodType } from 'zod';
 import {
   ActionRequestSchema,
   ErrorResponseSchema,
   IntentRequestSchema,
   RunSummarySchema,
   SseEventSchema,
-} from '@entities/agent-run';
+} from '@spark-ui/core/client';
+import type { ZodType } from 'zod';
 
 const examplesDir = join(process.cwd(), '..', '.harness', 'contracts', 'examples'); // cwd = spark-ui
 

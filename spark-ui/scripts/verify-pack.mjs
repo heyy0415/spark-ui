@@ -2,15 +2,16 @@
 /**
  * pnpm -C spark-ui run verify-pack
  *
- * @spark-ui/core 发包就绪校验（spec §6.2 (a)–(g)）。一切子进程 cwd = packages/core，临时目录 packages/core/.verify-pack/
+ * @spark-ui/core 发包就绪校验（spec §6.2 (a)–(g)；(h) 由 refactor-headless-client-into-core-20260912 增补）。一切子进程 cwd = packages/core，临时目录 packages/core/.verify-pack/
  * （zod / react / @types/react 只安装在 core 的 node_modules，vite-node 与 tsc 都从被加载文件所在目录向上解析）。
  *   (a) tarball 只含 package.json / README.md / dist/**
- *   (b) 解包后 package.json：exports 指 dist（publishConfig 已覆盖）、5 peer、无 dependencies、files
- *   (c) es-module-lexer 静态解析 dist/index.js 导出名 == 17 项运行时清单
+ *   (b) 解包后 package.json：exports 指 dist（publishConfig 已覆盖）、5 peer（渲染层 4 个标 optional）、无 dependencies、files
+ *   (c) es-module-lexer 静态解析 dist/index.js 导出名 == RUNTIME_EXPORTS 清单
  *   (d) vite-node 加载解包后的 dist/index.js 成功
- *   (e) consumer.ts 引用 17 运行时 + 19 类型导出，EOPT 开 / 关两次 tsc --noEmit 均 0
+ *   (e) consumer.ts 引用全部运行时 + 类型导出，EOPT 开 / 关两次 tsc --noEmit 均 0
  *   (f) dist 体积 ≤ 基线 × 1.1（首次运行写入 verify-pack.baseline.json）
  *   (g) dist 内 .d.ts 不 import antd / antd-mobile / @ant-design
+ *   (h) 三入口外部依赖闭包：'./client' 只需 zod、'./react' 只需 react + zod、'.' 才需 antd（headless 承诺的产物级证据）
  * 退出码 0 = 全部通过。结束（含失败）时删除 .verify-pack/。
  */
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -23,7 +24,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { dirname, join, normalize, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { init, parse } from 'es-module-lexer';
 
@@ -94,6 +95,8 @@ const check = (cond, okMsg, failMsg) => {
   else fail(failMsg);
 };
 const sameSet = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+/** 裸说明符归一到包名：'antd/locale/zh_CN' → 'antd'、'react/jsx-runtime' → 'react'。 */
+const pkgOf = (spec) => (spec.startsWith('@') ? spec.split('/', 2).join('/') : spec.split('/')[0]);
 
 function* walk(dir) {
   for (const e of readdirSync(dir)) {
@@ -170,6 +173,17 @@ try {
     '(b) peer ranges match catalog major versions',
     `(b) peer/catalog major mismatch: ${peerMajorMismatch.map(([n, r]) => `${n} ${r} vs catalog ${catalog[n]}`).join(', ')}`,
   );
+  // 渲染层 peer 必须标 optional：只装 './client'（headless）的宿主不该因为缺 antd / react 被包管理器告警。
+  // zod 三个入口都要，故必填。README 对外承诺了这点，这里守住它。
+  const OPTIONAL_PEERS = ['antd', 'antd-mobile', 'react', 'react-dom'];
+  const notOptional = OPTIONAL_PEERS.filter(
+    (n) => pkg.peerDependenciesMeta?.[n]?.optional !== true,
+  );
+  check(
+    notOptional.length === 0 && pkg.peerDependenciesMeta?.zod === undefined,
+    '(b) render-layer peers are optional, zod stays required',
+    `(b) peerDependenciesMeta wrong: not-optional=[${notOptional.join(', ')}] zodMarked=${pkg.peerDependenciesMeta?.zod !== undefined}`,
+  );
   check(
     pkg.dependencies === undefined || Object.keys(pkg.dependencies).length === 0,
     '(b) no dependencies',
@@ -209,6 +223,55 @@ try {
     '(g) antd runtime not bundled (no cssinjs signature)',
     '(g) antd source bundled into dist',
   );
+
+  // (h) 三入口的外部依赖闭包 —— headless 承诺的机械证据。
+  // 逐入口跟着相对 import 走完整个 chunk 图，收集所有裸模块说明符。
+  // 只装 './client' 的宿主必须只需要 zod：这是 README 与 project-structure 对外的承诺，
+  // 靠 lint 规则只能守源码，产物层面必须单独验（例如某个 chunk 被两个入口共享而意外带进 react）。
+  //
+  // 用 es-module-lexer 而非手写正则：rollup 把「只为副作用保留的外部依赖」编译成**无 from 的裸导入**
+  // （`import "react";`），`/from\s*['"]…/` 会漏掉它 —— 本检查第一版就栽在这上面，自证没变红。
+  const entryExternals = (entryRel) => {
+    const distDir = join(pkgDir, 'dist');
+    const seen = new Set();
+    const external = new Set();
+    const visit = (rel) => {
+      if (seen.has(rel)) return;
+      seen.add(rel);
+      let code;
+      try {
+        code = readFileSync(join(distDir, rel), 'utf-8');
+      } catch {
+        return;
+      }
+      const [imports] = parse(code);
+      for (const imp of imports) {
+        const spec = imp.n;
+        // imp.n 为 undefined 时说明是动态 import 且说明符非字面量；dist 里不该出现
+        if (spec === undefined) continue;
+        if (spec.startsWith('.')) {
+          visit(normalize(join(dirname(rel), spec)));
+        } else {
+          external.add(spec);
+        }
+      }
+    };
+    visit(entryRel);
+    return [...external].toSorted();
+  };
+  const ENTRY_EXPECTED = {
+    'client/index.js': ['zod'],
+    'react/index.js': ['react', 'zod'],
+    'index.js': ['antd', 'antd-mobile', 'react', 'zod'],
+  };
+  for (const [entry, expected] of Object.entries(ENTRY_EXPECTED)) {
+    const actual = [...new Set(entryExternals(entry).map(pkgOf))].toSorted();
+    check(
+      sameSet(actual, expected),
+      `(h) ${entry} external deps = [${expected.join(', ')}]`,
+      `(h) ${entry} external deps = [${actual.join(', ')}], expected [${expected.join(', ')}]`,
+    );
+  }
 
   // (d)
   const loader = join(work, 'load.mjs');

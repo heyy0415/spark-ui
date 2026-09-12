@@ -1,5 +1,5 @@
 {
-  "distKb": 47,
-  "recordedAt": "2026-09-10T09:13:55.615Z",
-  "note": "change feat-chat-conversation-ui: RunStatus + SchemaSkeleton 两端实现（39 → 47 KB）"
+  "distKb": 80,
+  "recordedAt": "2026-09-12T11:22:37.097Z",
+  "note": "change refactor-headless-client-into-core: build 改为三入口（. / ./client / ./react），headless 层从 apps/chat 迁入（契约投影 + SSE 分帧 + 事件归约）。47 → 80 KB 是代码位置转移，chat 的 bundle 相应减少，不是新增体积。"
 }

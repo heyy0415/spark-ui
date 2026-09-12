@@ -1,0 +1,71 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::               (v3.5.16)
+
+2026-09-12T20:19:44.642+08:00  INFO 2833 --- [           main] com.example.demo.HostDemoApplication     : Starting HostDemoApplication v0.1.0-SNAPSHOT using Java 21.0.11 with PID 2833 (/Users/fangtao/strato_ui/spark-rooter/examples/host-demo/target/host-demo.jar started by fangtao in /Users/fangtao/strato_ui)
+2026-09-12T20:19:44.643+08:00  INFO 2833 --- [           main] com.example.demo.HostDemoApplication     : The following 1 profile is active: "e2e-ttl"
+2026-09-12T20:19:45.231+08:00  INFO 2833 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8091 (http)
+2026-09-12T20:19:45.238+08:00  INFO 2833 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-09-12T20:19:45.238+08:00  INFO 2833 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.55]
+2026-09-12T20:19:45.249+08:00  INFO 2833 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-09-12T20:19:45.250+08:00  INFO 2833 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 582 ms
+2026-09-12T20:19:45.361+08:00  INFO 2833 --- [           main] c.s.e.order.infra.SeededOrderRepository  : order seed loaded orders=30 items=49 logisticsEvents=85
+2026-09-12T20:19:45.440+08:00  WARN 2833 --- [           main] com.example.demo.e2e.FakeLlmPlanner      : e2e 假规划器已装配（profile=e2e/e2e-ttl），仅供测试；生产 profile 下不存在
+2026-09-12T20:19:45.453+08:00  INFO 2833 --- [           main] c.s.e.p.infra.SeededProductRepository    : product seed loaded products=20
+2026-09-12T20:19:45.456+08:00  INFO 2833 --- [           main] c.s.e.a.infra.SeededAftersaleRepository  : aftersale seed loaded aftersales=4
+2026-09-12T20:19:45.461+08:00  INFO 2833 --- [           main] c.s.e.r.infra.SeededRefundRepository     : refund seed loaded refunds=3
+2026-09-12T20:19:45.644+08:00  INFO 2833 --- [           main] c.s.g.application.InvokeToolUseCase      : gateway handlers registered: []
+2026-09-12T20:19:45.646+08:00  WARN 2833 --- [           main] com.sparkrooter.starter.RuntimeBeans     : SessionIdResolver 为 demo 实现（sessionId = conversationId，无隔离）；生产必须由宿主实现为绑定自己的登录态
+2026-09-12T20:19:45.649+08:00  WARN 2833 --- [           main] c.s.runtime.infra.llm.LlmFactory         : spark.llm.base-url / api-key / model (or SPARK_LLM_*) not fully set; planner UNAVAILABLE — every request will fail until a model is configured
+2026-09-12T20:19:45.743+08:00  INFO 2833 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-09-12T20:19:45.764+08:00  INFO 2833 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool demo.whoami@1.0.0 domain=demo risk=low
+2026-09-12T20:19:45.764+08:00  INFO 2833 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered demo.whoami@1.0.0 from DemoTools#whoami
+2026-09-12T20:19:45.767+08:00  INFO 2833 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.detail.get@1.1.0 domain=order risk=low
+2026-09-12T20:19:45.767+08:00  INFO 2833 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered order.detail.get@1.1.0 from OrderTools#detail
+2026-09-12T20:19:45.768+08:00  INFO 2833 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.logistics.get@1.0.0 domain=order risk=low
+2026-09-12T20:19:45.768+08:00  INFO 2833 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered order.logistics.get@1.0.0 from OrderTools#logistics
+2026-09-12T20:19:45.768+08:00  INFO 2833 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.list.search@1.1.0 domain=order risk=low
+2026-09-12T20:19:45.768+08:00  INFO 2833 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered order.list.search@1.1.0 from OrderTools#list
+2026-09-12T20:19:45.769+08:00  INFO 2833 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool order.delete@1.0.0 domain=order risk=high
+2026-09-12T20:19:45.769+08:00  INFO 2833 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered order.delete@1.0.0 from OrderTools#delete
+2026-09-12T20:19:45.770+08:00  INFO 2833 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool product.detail.get@1.0.0 domain=product risk=low
+2026-09-12T20:19:45.770+08:00  INFO 2833 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered product.detail.get@1.0.0 from ProductTools#detail
+2026-09-12T20:19:45.771+08:00  INFO 2833 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool product.list.search@1.0.0 domain=product risk=low
+2026-09-12T20:19:45.771+08:00  INFO 2833 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered product.list.search@1.0.0 from ProductTools#list
+2026-09-12T20:19:45.771+08:00  INFO 2833 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool aftersale.list.get@1.0.0 domain=aftersale risk=low
+2026-09-12T20:19:45.771+08:00  INFO 2833 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered aftersale.list.get@1.0.0 from AftersaleTools#list
+2026-09-12T20:19:45.772+08:00  INFO 2833 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool aftersale.create@1.0.0 domain=aftersale risk=high
+2026-09-12T20:19:45.772+08:00  INFO 2833 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered aftersale.create@1.0.0 from AftersaleTools#create
+2026-09-12T20:19:45.773+08:00  INFO 2833 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.eligibility.check@1.3.0 domain=refund risk=low
+2026-09-12T20:19:45.773+08:00  INFO 2833 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered refund.eligibility.check@1.3.0 from RefundTools#eligibility
+2026-09-12T20:19:45.773+08:00  INFO 2833 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.preview@1.3.0 domain=refund risk=low
+2026-09-12T20:19:45.773+08:00  INFO 2833 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered refund.preview@1.3.0 from RefundTools#preview
+2026-09-12T20:19:45.773+08:00  INFO 2833 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.status.get@1.0.0 domain=refund risk=low
+2026-09-12T20:19:45.774+08:00  INFO 2833 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered refund.status.get@1.0.0 from RefundTools#status
+2026-09-12T20:19:45.775+08:00  INFO 2833 --- [           main] c.s.r.application.RegisterToolUseCase    : registered tool refund.create@2.1.0 domain=refund risk=high
+2026-09-12T20:19:45.775+08:00  INFO 2833 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: registered refund.create@2.1.0 from RefundTools#create
+2026-09-12T20:19:45.841+08:00  INFO 2833 --- [           main] c.s.starter.tool.SparkToolScanner        : spark-rooter: 13 tools registered from 5 beans
+2026-09-12T20:19:45.857+08:00  INFO 2833 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8091 (http) with context path '/'
+2026-09-12T20:19:45.863+08:00  INFO 2833 --- [           main] com.example.demo.HostDemoApplication     : Started HostDemoApplication in 1.387 seconds (process running for 1.565)
+2026-09-12T20:19:45.887+08:00  INFO 2833 --- [           main] c.s.r.infra.StartupManifestRegistrar     : startup registration done: 0 tools from 0 sources
+2026-09-12T20:19:46.357+08:00  INFO 2833 --- [nio-8091-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-09-12T20:19:46.358+08:00  INFO 2833 --- [nio-8091-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-09-12T20:19:46.358+08:00  INFO 2833 --- [nio-8091-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
+2026-09-12T20:19:46.402+08:00  INFO 2833 --- [nio-8091-exec-2] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c23
+2026-09-12T20:19:46.417+08:00  INFO 2833 --- [    agent-run-1] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T20:19:46.419+08:00  INFO 2833 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : decision runId=run_cd334cb0622c4375 kind=Planned planner=fake-e2e
+2026-09-12T20:19:46.421+08:00  INFO 2833 --- [    agent-run-1] c.s.runtime.application.RunOrchestrator  : plan attached runId=run_cd334cb0622c4375 steps=1 planner=fake-e2e
+2026-09-12T20:19:46.432+08:00  INFO 2833 --- [    agent-run-1] AUDIT                                    : audit runId=run_cd334cb0622c4375 toolCallId=tc_000001 toolId=order.logistics.get version=1.0.0 sessionId=c23 argsDigest=24dbefae60bc57d2a776389feef7a757 status=succeeded durationMs=7 traceId=trace_e2e
+2026-09-12T20:19:48.470+08:00  INFO 2833 --- [nio-8091-exec-5] c.s.webmvc.runtime.AgentRunController    : start_run, conversationId=c23
+2026-09-12T20:19:48.472+08:00  INFO 2833 --- [    agent-run-2] c.s.r.application.SearchToolsUseCase     : search domain=* candidates=13
+2026-09-12T20:19:48.474+08:00  INFO 2833 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : decision runId=run_7640be1004894470 kind=Clarify planner=fake-e2e
+2026-09-12T20:19:48.484+08:00  INFO 2833 --- [    agent-run-2] AUDIT                                    : audit runId=run_7640be1004894470 toolCallId=tc_000002 toolId=order.list.search version=1.1.0 sessionId=c23 argsDigest=44136fa355b3678a1146ad16f7e8649e status=succeeded durationMs=7 traceId=trace_e2e
+2026-09-12T20:19:48.489+08:00  INFO 2833 --- [    agent-run-2] c.s.runtime.application.RunOrchestrator  : clarification screen runId=run_7640be1004894470 entity=order tool=order.list.search
+2026-09-12T20:19:48.571+08:00  INFO 2833 --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-09-12T20:19:48.574+08:00  INFO 2833 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
