@@ -46,6 +46,10 @@
 - 有副作用的工具调用必须携带 `idempotencyKey`，Gateway 用 `(tenantId, idempotencyKey)` 去重。
 - 超时、重试、熔断由 Gateway 依据 Manifest `execution` 配置执行；**禁止**在 Runtime 或领域服务里私自重试。
 - Run 状态机迁移必须是幂等的，同一事件重放不产生第二次副作用。
+- **线程池必须有界**：禁止 `Executors.newFixedThreadPool` / `newCachedThreadPool` 等工厂方法（队列无界，过载时任务堆到 OOM，用户侧表现为连接挂着既不失败也不返回）。统一用 `NamedThreads.boundedPool(core, queueCapacity, prefix)`——显式 `ThreadPoolExecutor` + `ArrayBlockingQueue` + `AbortPolicy` + 命名守护线程。
+- **拒绝必须对用户可见**：`RejectedExecutionException` 不能只落日志。SSE 场景下 emitter 已返回给客户端，无法改 HTTP 状态码，必须发 `run.failed` 终态事件并 close，否则连接会挂到 SSE 超时。
+- **例外**：`ScheduledThreadPoolExecutor` 的队列固定为私有 `DelayedWorkQueue`，四个构造器都不接受 `BlockingQueue`，设不了界。此类池允许无界，但**必须在注释里说明任务量为何不会失控**（如「固定周期心跳，数量与活跃连接同阶」）。
+- **熔断只统计传输失败**：业务层面的失败（如模型输出不合规）不得计入熔断计数，否则「能用但不够好」会被判成「服务宕机」。
 
 ## 7. 配置与安全
 

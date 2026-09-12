@@ -43,15 +43,31 @@ bash .harness/scripts/e2e-backend.sh                        # 端到端验收（
 |---|---|---|
 | `spark.llm.base-url / api-key / model` | 空 | 缺任一 → `UnavailablePlanner`：启动 WARN，所有请求返回「未配置模型，无法理解请求」；兼容环境变量 `SPARK_LLM_*`（密钥禁止写进代码 / yml / 日志） |
 | `spark.runtime.demo-session-resolver` | `false` | 宿主未提供 `SessionIdResolver` 时默认拒绝启动；`true` 放行演示实现（sessionId = conversationId，无会话隔离），仅本地演示 |
-| `spark.runtime.run-pool / ping-pool` | 8 / 2 | 线程池 |
+| `spark.llm.read-timeout` | `90s` | 上游读超时。与 `sse-timeout` 对齐——超过它没有意义（SSE 先断，用户看不到结果而后端还在等）。**推理模型需要更久时，两者要一起配大** |
+| `spark.llm.circuit.enabled` | `true` | 连续传输失败后熔断，不再发请求。关掉则模型网关挂掉时每个请求各自等满 `read-timeout`，线程池很快占满 |
+| `spark.llm.circuit.failure-threshold` | 2 | 连续失败阈值。**这里的「一次失败」= 3 次真实网关请求**，因为 Spring AI 的 RetryTemplate 已在内部重试 3 次；取 2 即约 6 次真实请求后熔断。只统计传输失败，模型输出不合规不计入 |
+| `spark.llm.circuit.open-duration` | `30s` | 熔断静默期，之后放一个探测请求；成功则恢复，失败则重新计时 |
+| `spark.runtime.run-pool / run-queue` | 8 / 32 | Run 编排池与队列。**队列满时立刻返回「当前请求较多，请稍后重试」而非静默排队**。32 ≈ 4 倍核心数：按规划耗时 9–39s 估算，排到第 32 位的等待已超出 `sse-timeout`，再排也等不到结果 |
+| `spark.runtime.ping-pool` | 2 | SSE 心跳调度。队列无法设界（`ScheduledThreadPoolExecutor` 用私有的 DelayedWorkQueue），但任务是固定 15s 心跳、数量与活跃连接同阶，不会独立失控 |
 | `spark.runtime.sse-timeout / token-ttl / memory-ttl` | 90s / 10m / 30m | SSE 超时、确认令牌有效期、会话记忆有效期 |
-| `spark.gateway.tool-pool` | 8 | 工具执行线程池 |
+| `spark.gateway.tool-pool / tool-queue` | 8 / 64 | 工具执行池与队列。64 取 `run-queue` 的 2 倍，因为一个 Run 可能有多个工具步骤（退款链是 3 步）。队列满时该 Run 失败为 `TOOL_EXECUTION_FAILED` |
 | `spark.web.base-path` | `/agent` | `/runs` 端点前缀 |
 | `spark.web.internal-endpoints` | `false` | 是否装配 `/internal/**` 三个端点 |
 | `spark.selfcheck.enabled` | `false` | 启动自检（示例宿主打开；生产建议关） |
 | `spark.owner-team` | `host` | 推导 Manifest 的 `owner.team` |
 
 `SPARK_LLM_BASE_URL` 以 `/v{n}` 结尾时只追加 `/chat/completions`，否则按 Spring AI 默认追加 `/v1/chat/completions`。
+
+### LLM 埋点
+
+每次规划调用在 `LLM_METRICS` logger 落一行，含 outcome（`planned` / `clarify` / `no_capability` / `invalid_output` / `transport_error` / `circuit_open`）、耗时、token 用量、尝试次数：
+
+```
+llm outcome=planned durationMs=8421 promptTokens=1832 completionTokens=96 attempts=1 circuitOpen=false
+llm outcome=circuit_open durationMs=0 promptTokens=- completionTokens=- attempts=0 circuitOpen=true
+```
+
+token 为 `-` 表示上游网关未返回 usage（不是 0 —— 那会被误读成「没消耗」）。要接 Micrometer / Prometheus，宿主定义 `LlmMetricsSink` Bean 即覆盖默认的日志实现。
 
 ## 参数与多轮
 

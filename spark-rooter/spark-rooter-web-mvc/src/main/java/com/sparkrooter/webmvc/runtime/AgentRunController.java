@@ -5,15 +5,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sparkrooter.contracts.SchemaValidator;
 import com.sparkrooter.contracts.model.ActionRequest;
 import com.sparkrooter.contracts.model.IntentRequest;
+import com.sparkrooter.contracts.model.RunFailureCode;
 import com.sparkrooter.contracts.model.RunSummary;
+import com.sparkrooter.contracts.model.SseEvent;
 import com.sparkrooter.contracts.model.UiSchema;
 import com.sparkrooter.runtime.application.RunOrchestrator;
+import com.sparkrooter.runtime.application.port.RunEventSink;
 import com.sparkrooter.runtime.domain.Run;
 import com.sparkrooter.spi.RunContextPropagator;
 import com.sparkrooter.spi.SessionIdResolver;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -35,6 +41,15 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class AgentRunController {
 
   private static final Logger log = LoggerFactory.getLogger(AgentRunController.class);
+
+  /**
+   * 过载被拒时的占位 runId：Run 尚未创建（编排器没跑起来），但契约要求 run.failed 带一个 匹配 {@code ^run_[A-Za-z0-9_-]{1,60}$} 的
+   * runId，否则前端 Zod 校验会拒掉这一帧。
+   */
+  static final String REJECTED_RUN_ID = "run_rejected";
+
+  /** 过载的用户可见文案。契约码仍是 INTERNAL_ERROR，靠文案区分原因。 */
+  static final String OVERLOADED_TEXT = "当前请求较多，请稍后重试";
 
   private final RunOrchestrator orchestrator;
   private final SchemaValidator validator;
@@ -74,7 +89,7 @@ public class AgentRunController {
     log.info("start_run, conversationId={}", intent.conversationId());
     SseEmitter emitter = new SseEmitter(sseTimeoutMs);
     SseRunEventSink sink = new SseRunEventSink(emitter, mapper, pingScheduler);
-    submit(() -> orchestrator.start(intent, sessionId, traceId, sink));
+    submit(sink, () -> orchestrator.start(intent, sessionId, traceId, sink));
     return emitter;
   }
 
@@ -93,6 +108,7 @@ public class AgentRunController {
     SseRunEventSink sink = new SseRunEventSink(emitter, mapper, pingScheduler);
     Map<String, Object> formData = action.formData();
     submit(
+        sink,
         () ->
             orchestrator.confirm(
                 runId, actionId, action.confirmationToken(), formData, sessionId, traceId, sink));
@@ -116,17 +132,48 @@ public class AgentRunController {
         run.updatedAt());
   }
 
-  /** 切到 agent-run-* 线程前捕获宿主上下文，工作线程 restore / clear（finally）。 */
-  private void submit(Runnable task) {
+  /**
+   * 切到 agent-run-* 线程前捕获宿主上下文，工作线程 restore / clear（finally）。
+   *
+   * <p>线程池有界（{@code spark.runtime.run-queue}），队列满时 {@code submit} 抛 {@link
+   * RejectedExecutionException}。此时 {@code SseEmitter} 已经返回给客户端，无法再改 HTTP 状态码， 只能通过 SSE
+   * 发终态事件——否则连接会挂到 SSE 超时，用户既看不到结果也看不到失败。
+   *
+   * <p>失败码用 {@code INTERNAL_ERROR} 而不新增契约枚举值：前端对「过载」与「内部错误」的处理完全一致
+   * （显示文案、允许重发），为一个无差异的展示分支改契约不值。用户可见文案由 {@code message} 区分。
+   */
+  private void submit(RunEventSink sink, Runnable task) {
     Object hostCtx = propagator.capture();
-    runExecutor.submit(
-        () -> {
-          propagator.restore(hostCtx);
-          try {
-            task.run();
-          } finally {
-            propagator.clear();
-          }
-        });
+    try {
+      runExecutor.submit(
+          () -> {
+            propagator.restore(hostCtx);
+            try {
+              task.run();
+            } finally {
+              propagator.clear();
+            }
+          });
+    } catch (RejectedExecutionException e) {
+      log.warn("run rejected: agent-run executor saturated, queued={}", queueDepth());
+      emitOverloaded(sink);
+    }
+  }
+
+  /** 队列深度用于判断是否该调大 spark.runtime.run-queue；非 ThreadPoolExecutor 时返回 -1（不让日志本身出错）。 */
+  private int queueDepth() {
+    return runExecutor instanceof ThreadPoolExecutor tpe ? tpe.getQueue().size() : -1;
+  }
+
+  /** 过载：向该连接发 run.failed 并关闭。runId 用占位值——Run 还没被创建，编排器根本没跑起来。 */
+  private void emitOverloaded(RunEventSink sink) {
+    try {
+      SseEvent.RunFailedData data =
+          new SseEvent.RunFailedData(
+              REJECTED_RUN_ID, RunFailureCode.INTERNAL_ERROR, OVERLOADED_TEXT, Instant.now());
+      sink.emit(new SseEvent(SseEvent.RUN_FAILED, mapper.valueToTree(data)));
+    } finally {
+      sink.close();
+    }
   }
 }

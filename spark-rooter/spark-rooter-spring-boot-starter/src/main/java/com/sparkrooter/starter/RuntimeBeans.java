@@ -19,16 +19,18 @@ import com.sparkrooter.runtime.infra.InMemoryConversationMemory;
 import com.sparkrooter.runtime.infra.InMemoryRunRepository;
 import com.sparkrooter.runtime.infra.inprocess.InProcessToolGatewayClient;
 import com.sparkrooter.runtime.infra.inprocess.InProcessToolRegistryClient;
+import com.sparkrooter.runtime.infra.llm.LlmCircuitBreaker;
 import com.sparkrooter.runtime.infra.llm.LlmFactory;
+import com.sparkrooter.runtime.infra.llm.LogLlmMetricsSink;
 import com.sparkrooter.spi.ConfirmationRecheck;
 import com.sparkrooter.spi.ConversationMemory;
+import com.sparkrooter.spi.LlmMetricsSink;
 import com.sparkrooter.spi.RunContextPropagator;
 import com.sparkrooter.spi.ScreenBuilder;
 import com.sparkrooter.spi.SessionIdResolver;
 import java.time.Clock;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -109,10 +111,11 @@ class RuntimeBeans {
     return new InMemoryConfirmationTokenStore();
   }
 
+  /** Run 编排池：有界 + AbortPolicy，过载时由 AgentRunController 转成 SSE run.failed 而非静默排队。 */
   @Bean(destroyMethod = "shutdown")
   ExecutorService sparkRooterRunExecutor(SparkRooterProperties props) {
-    return Executors.newFixedThreadPool(
-        props.runtime().runPool(), NamedThreads.named("agent-run-"));
+    return NamedThreads.boundedPool(
+        props.runtime().runPool(), props.runtime().runQueue(), "agent-run-");
   }
 
   @Bean
@@ -147,7 +150,25 @@ class RuntimeBeans {
     return LlmFactory.chat(
         pick(props.llm().baseUrl(), env, "SPARK_LLM_BASE_URL"),
         pick(props.llm().apiKey(), env, "SPARK_LLM_API_KEY"),
-        pick(props.llm().model(), env, "SPARK_LLM_MODEL"));
+        pick(props.llm().model(), env, "SPARK_LLM_MODEL"),
+        props.llm().readTimeout());
+  }
+
+  /** LLM 熔断器：连续传输失败达阈值后短路，避免模型网关挂掉时线程池被占满。 */
+  @Bean
+  @ConditionalOnMissingBean(LlmCircuitBreaker.class)
+  LlmCircuitBreaker sparkRooterLlmCircuitBreaker(
+      SparkRooterProperties props, Clock sparkRooterClock) {
+    var c = props.llm().circuit();
+    return new LlmCircuitBreaker(
+        c.enabled(), c.failureThreshold(), c.openDuration(), sparkRooterClock);
+  }
+
+  /** LLM 埋点：默认落 LLM_METRICS 日志；宿主要接 Micrometer 自行定义同类型 Bean 即覆盖。 */
+  @Bean
+  @ConditionalOnMissingBean(LlmMetricsSink.class)
+  LlmMetricsSink sparkRooterLlmMetricsSink() {
+    return new LogLlmMetricsSink();
   }
 
   /** 规划器：模型主导；未配置模型 → UnavailablePlanner（任何请求直接失败，不做规则兜底）。可信参数集合 = 各领域 recheck 声明的并集。 */
@@ -160,11 +181,20 @@ class RuntimeBeans {
       SchemaValidator validator,
       ObjectProvider<ConfirmationRecheck> rechecks,
       SparkRooterProperties props,
-      Environment env) {
+      Environment env,
+      LlmCircuitBreaker circuit,
+      LlmMetricsSink llmMetrics) {
     Set<String> trusted = new java.util.HashSet<>();
     rechecks.orderedStream().forEach(r -> trusted.addAll(r.trustedArgKeys()));
     return LlmFactory.llmClient(
-        chat, names, meta, validator, trusted, pick(props.llm().model(), env, "SPARK_LLM_MODEL"));
+        chat,
+        names,
+        meta,
+        validator,
+        trusted,
+        pick(props.llm().model(), env, "SPARK_LLM_MODEL"),
+        circuit,
+        llmMetrics);
   }
 
   private static String pick(String fromProps, Environment env, String envVar) {

@@ -15,8 +15,8 @@ import com.sparkrooter.webmvc.registry.ToolRegistryController;
 import com.sparkrooter.webmvc.runtime.AgentRunController;
 import com.sparkrooter.webmvc.runtime.RuntimeExceptionHandler;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -32,9 +32,17 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class SparkRooterWebMvcAutoConfiguration {
 
+  /**
+   * SSE 心跳调度池。
+   *
+   * <p><b>为何不像另两个池那样设队列容量</b>：{@code ScheduledThreadPoolExecutor} 的队列固定为私有的 {@code
+   * DelayedWorkQueue}，四个构造器都不接受 {@code BlockingQueue}，{@code remainingCapacity()} 恒为 {@code
+   * Integer.MAX_VALUE} —— 本质无界，设不了。这里可以接受：任务是固定 15s 周期的心跳，在途任务数与活跃 SSE 连接数同阶，而连接数已被 {@code
+   * runQueue} 和 servlet 容器的连接上限约束，不会独立失控。
+   */
   @Bean(destroyMethod = "shutdown")
   ScheduledExecutorService sparkRooterPingScheduler(SparkRooterProperties props) {
-    return Executors.newScheduledThreadPool(
+    return new ScheduledThreadPoolExecutor(
         props.runtime().pingPool(), NamedThreads.named("sse-ping-"));
   }
 

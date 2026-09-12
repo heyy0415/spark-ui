@@ -4,6 +4,7 @@ import com.sparkrooter.contracts.SchemaValidator;
 import com.sparkrooter.runtime.application.ToolDisplayNames;
 import com.sparkrooter.runtime.application.meta.ToolMetaRegistry;
 import com.sparkrooter.runtime.application.port.LlmClient;
+import com.sparkrooter.spi.LlmMetricsSink;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
@@ -27,9 +28,6 @@ public final class LlmFactory {
 
   private static final Logger log = LoggerFactory.getLogger(LlmFactory.class);
 
-  /** 规划请求的读超时：推理型模型单次规划可达分钟级；短于此会被误判为传输失败。 */
-  static final Duration READ_TIMEOUT = Duration.ofMinutes(3);
-
   private LlmFactory() {}
 
   /** 是否配置齐三个环境变量。 */
@@ -40,16 +38,20 @@ public final class LlmFactory {
   /** 共用 ChatClient 的持有者：只在三个变量齐全时创建 ChatClient；缺失时为 empty。 */
   public record SharedChat(Optional<ChatClient> client) {}
 
-  public static SharedChat chat(String baseUrl, String apiKey, String model) {
+  /**
+   * @param readTimeout 上游读超时。由 spark.llm.read-timeout 配置（默认 90s，与 sse-timeout 对齐）—— 读超时超过 SSE
+   *     超时没有意义：SSE 先断，用户看不到结果而后端还在等
+   */
+  public static SharedChat chat(String baseUrl, String apiKey, String model, Duration readTimeout) {
     if (!configured(baseUrl, apiKey, model)) {
       log.warn(
           "spark.llm.base-url / api-key / model (or SPARK_LLM_*) not fully set; planner UNAVAILABLE — every request will fail until a model is configured");
       return new SharedChat(Optional.empty());
     }
     // 显式配置 HTTP 超时：Spring AI 默认 RestClient 的读超时对推理型模型太短（实测规划请求 10～60s，
-    // 默认设置下直接 ResourceAccessException）。连接 15s、读取 sse-timeout 同量级。
+    // 默认设置下直接 ResourceAccessException）。
     var factory = new JdkClientHttpRequestFactory();
-    factory.setReadTimeout(READ_TIMEOUT);
+    factory.setReadTimeout(readTimeout);
     OpenAiApi api =
         OpenAiApi.builder()
             .baseUrl(baseUrl)
@@ -72,9 +74,13 @@ public final class LlmFactory {
       ToolMetaRegistry meta,
       SchemaValidator validator,
       Set<String> trustedOnlyArgs,
-      String model) {
+      String model,
+      LlmCircuitBreaker circuit,
+      LlmMetricsSink metrics) {
     return chat.client()
-        .<LlmClient>map(c -> new LlmPlanner(c, model, names, meta, validator, trustedOnlyArgs))
+        .<LlmClient>map(
+            c ->
+                new LlmPlanner(c, model, names, meta, validator, trustedOnlyArgs, circuit, metrics))
         .orElseGet(UnavailablePlanner::new);
   }
 
