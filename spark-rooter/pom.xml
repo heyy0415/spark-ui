@@ -18,13 +18,11 @@
     <module>spark-rooter-runtime</module>
     <module>spark-rooter-web-mvc</module>
     <module>spark-rooter-spring-boot-starter</module>
+    <!-- 可选：hub 多副本时把四个状态存储换成 Redis；平台模块不得反向依赖它 -->
+    <module>spark-rooter-redis</module>
     <!-- 微服务形态：领域服务侧的薄 starter（JDK 17 下限，不含 Spring AI / runtime / gateway） -->
     <module>spark-provider-spring-boot-starter</module>
-    <module>examples/demo-support</module>
-    <module>examples/domains/order-service</module>
-    <module>examples/domains/product-service</module>
-    <module>examples/domains/aftersale-service</module>
-    <module>examples/domains/refund-service</module>
+    <!-- examples/* 在下方 examples profile 里（默认激活）：别人 `mvn deploy -P '!examples'` 只发平台 artifact -->
   </modules>
 
   <properties>
@@ -143,4 +141,61 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <!--
+      示例领域与支撑模块。默认激活（本仓 ci / e2e 都要它们），但独立成 profile 是为了自发包：
+      `mvn deploy -P '!examples'` 只推 8 个平台 artifact，不把 order-service 这类示例领域塞进别人的私服。
+      check-module-deps 守：examples/* 不得回到顶层 <modules>。
+    -->
+    <profile>
+      <id>examples</id>
+      <activation><activeByDefault>true</activeByDefault></activation>
+      <modules>
+        <module>examples/demo-support</module>
+        <module>examples/domains/order-service</module>
+        <module>examples/domains/product-service</module>
+        <module>examples/domains/aftersale-service</module>
+        <module>examples/domains/refund-service</module>
+      </modules>
+    </profile>
+    <!--
+      发布产物补全：sources / javadoc jar。默认不激活——日常构建不需要，javadoc 生成还慢。
+      别人发到私服时 `mvn deploy -P release,'!examples'`；Maven Central 强制要求这两个 jar，私服通常不强制。
+      doclint 关掉：Spring / Jackson 注解与中文 javadoc 里的符号会触发大量无意义告警。
+    -->
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>3.3.1</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals><goal>jar-no-fork</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>3.11.2</version>
+            <configuration>
+              <doclint>none</doclint>
+              <quiet>true</quiet>
+              <failOnError>false</failOnError>
+            </configuration>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals><goal>jar</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

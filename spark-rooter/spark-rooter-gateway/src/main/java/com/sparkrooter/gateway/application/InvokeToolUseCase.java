@@ -326,6 +326,8 @@ public class InvokeToolUseCase implements ToolInvokePort {
             log.info("idempotent await toolId={} key={}", req.toolId(), ec.idempotencyKey());
             return Optional.of(r);
           } catch (TimeoutException e) {
+            // 放弃等待要告诉 future：共享存储实现（Redis）靠轮询完成它，不 cancel 会让轮询一直跑到 key 消失
+            a.future().cancel(false);
             throw new GatewayException(
                 ToolInvoke.ErrorCode.TIMEOUT,
                 "idempotent owner did not finish in " + timeoutMs + "ms",

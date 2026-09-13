@@ -75,6 +75,7 @@ hub 没配 `spark.providers.tokens.*` 时不接受远程工具，也不装配 HT
 
 ```
 starter → web-mvc, runtime, registry, gateway, contracts, spi（AutoConfiguration.imports；全部默认实现 @ConditionalOnMissingBean，Bean 名前缀 sparkRooter*）
+redis → runtime, gateway, spi, contracts, starter（可选；spark.storage.type=redis 时把四个状态存储换成 Redis，hub 可多副本）
 provider-starter → spi, contracts（薄依赖：不含 Spring AI / runtime / registry / gateway / web 栈）
 web-mvc → runtime, registry, gateway
 runtime → { registry(api), gateway(api) }, contracts, spi
@@ -84,7 +85,7 @@ examples/domains/* → spi, contracts, demo-support（@SparkTool；互不 import
 examples/host-demo → starter + examples/domains/*（独立工程，本地仓坐标）
 ```
 
-宿主可替换端口（定义同类型 Bean 即覆盖）：`RunRepository` / `ConfirmationTokenStore` / `IdempotencyStore` / `ToolRegistryRepository` / `ConversationMemory`（默认内存）、`AuditSink`（默认日志）、`LlmClient`（默认 Spring AI；未配置模型为 `UnavailablePlanner`，所有请求直接失败）、`SessionIdResolver`（**无默认**：缺 Bean 拒绝启动，`spark.runtime.demo-session-resolver=true` 才放行演示实现）、`ToolAccessPolicy`（默认全放行）、`RunContextPropagator`（默认 no-op，宿主强烈建议实现）、`ProviderAuth`（**无默认**：不配 `spark.providers.tokens.*` 则不接受远程工具）、`ProviderEndpointResolver`（默认取 Manifest 的 `baseUrl`；接注册中心的宿主自行替换）、`ProviderIdempotencyStore`（provider 侧，默认进程内；多实例部署要强一致需换共享存储）。
+宿主可替换端口（定义同类型 Bean 即覆盖）：`RunRepository` / `ConfirmationTokenStore` / `IdempotencyStore` / `ConversationMemory`（默认内存；引 `spark-rooter-redis` + `spark.storage.type=redis` 换成 Redis，多副本用）、`ToolRegistryRepository`（默认内存）、`AuditSink`（默认日志）、`LlmClient`（默认 Spring AI；未配置模型为 `UnavailablePlanner`，所有请求直接失败）、`SessionIdResolver`（**无默认**：缺 Bean 拒绝启动，`spark.runtime.demo-session-resolver=true` 才放行演示实现）、`ToolAccessPolicy`（默认全放行）、`RunContextPropagator`（默认 no-op，宿主强烈建议实现）、`ProviderAuth`（**无默认**：不配 `spark.providers.tokens.*` 则不接受远程工具）、`ProviderEndpointResolver`（默认取 Manifest 的 `baseUrl`；接注册中心的宿主自行替换）、`ProviderIdempotencyStore`（provider 侧，默认进程内；多实例部署要强一致需换共享存储）。
 
 ## 状态管理边界（前端）
 

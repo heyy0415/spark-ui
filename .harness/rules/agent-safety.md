@@ -25,7 +25,9 @@
 ## 3. 执行计划与确认
 
 - 执行计划保存在后端 Run 中，**不完整下发**前端；前端只拿到 `actionId` 与不透明 `confirmationToken`。
-- `confirmationToken`：后端签发（随机 + 存储），绑定 `runId`、`actionId`、工具参数摘要、`conversationId`、`sessionId`（宿主 `SessionIdResolver` 产出；缺该 Bean 时 starter 拒绝启动，演示实现 = conversationId 需显式开关）、过期时间（`spark.runtime.token-ttl`，默认 10 分钟）、一次性；任一不一致 → `CONFIRMATION_REJECTED`。
+- **Run 自包含**（feat-production-hardening-20260912）：确认所需的一切——最近一次屏、前置步骤输出、计划各步骤的 inputSchema——都在 `Run` 聚合里随 `RunRepository` 走，编排器不持有按 runId 的进程内缓存。确认请求落到任意 hub 副本都能凭仓储里那一条记录完成。用户原话（`Run.message`）**不进共享存储**：规划后没有路径再读它，落 Redis 只多一个泄露面。
+- **确认互斥靠令牌原子消费**，不靠实例内的锁：`ConfirmationTokenStore.consume` 是原子的「取出并删除」（内存 `ConcurrentHashMap.remove`；Redis `GETDEL`），并发 / 重放的确认请求里只有一个能拿到令牌，其余得 `TokenUnknown` → 拒绝且**不改 Run 状态**。这条原子性是安全前提——换成先 GET 再 DEL 就是双执行；内存与 Redis 两实现都有「32 线程并发消费恰好 1 成功」的测试锁住。
+- `confirmationToken`：后端签发（随机 + 存储），绑定 `runId`、`actionId`、工具参数摘要、`conversationId`、`sessionId`（宿主 `SessionIdResolver` 产出；缺该 Bean 时 starter 拒绝启动，演示实现 = conversationId 需显式开关）、过期时间（`spark.runtime.token-ttl`，默认 10 分钟）、一次性；任一不一致 → `CONFIRMATION_REJECTED`。未被消费的令牌到期后由存储清扫（内存：写入时顺手；Redis：key TTL），不会无界堆积。
 - 用户确认时，后端用 Token 找回原始计划，**重新校验**：金额、订单状态、Token 有效期与未使用、会话一致；宿主权限在 Gateway 代理调用时由宿主切面触发。任何一项失败 → 拒绝并结束 Run。
 - 重校验契约化：每个需确认工具必须有领域提供的 `ConfirmationRecheck`（spi）——runtime 经 Gateway 重调其 `recheckToolId`（版本取计划中前置只读步骤），领域 `reject(recheckOutput, shownUi)` 判定（策略留在领域，runtime 只编排），`trustedArgs` 覆盖 formData（键与确认屏 Form 字段互斥）。缺 recheck 或确认屏 → fail-closed `INTERNAL_ERROR`；`ConfirmationCoverageSelfCheck` 在启动时断言 Registry 中全部 `confirmation=required` 工具都被覆盖。
 - 策略拒绝与令牌拒绝同 code（`CONFIRMATION_REJECTED`）但用户文案区分（`RunFailure.userText`）；内部原因只进日志。

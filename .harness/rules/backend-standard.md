@@ -58,6 +58,28 @@
 - 对外端点**不带身份头**：内核不识别用户；宿主用自己的拦截器 / 登录态建立上下文，并实现 `SessionIdResolver`（会话隔离键）与 `RunContextPropagator`（跨到 spark 工作线程）。
 - **测试替身（fake planner）只允许放在宿主工程并以 profile 隔离**，内核不得出现：它必须认识领域动词，而平台模块有 `DOMAIN_WORDS` 红线。替身只负责「原话 → `PlanDraft`」这一段（真模型的职责），产出的草案必须经 `PlanValidator.decide`，与真模型走同一条校验路径——不得自行构造 `Plan` 绕过校验。生产 profile 下替身不得装配。**缺 `SessionIdResolver` Bean 时 starter 拒绝启动**；只有本地演示才设 `spark.runtime.demo-session-resolver=true` 放行「sessionId = conversationId」的演示实现（无会话隔离，启动 WARN）。
 
+## 7b. 多副本（feat-production-hardening-20260912）
+
+hub 能不能起多个副本，取决于状态放哪。规则：
+
+- **哪些状态必须共享**：Run、确认令牌、幂等记录、会话记忆。四者任一留在进程内，两副本就会各判各的：写操作在 A claim、重试落 B → 重复执行；令牌在 A 签发、确认到 B → 找不到。
+- **哪些可以留在进程内**：工具注册表（单体形态每副本各自扫描同一批 `@SparkTool`；provider 形态 Manifest 推给每个副本）、`ToolMetaRegistry`、线程池、限流计数（`SessionConcurrencyLimiter` 按副本限流是可接受的近似）、熔断器状态（按副本熔断反而更稳）。
+- **编排器不得持有按 runId 的进程内缓存**。确认所需的一切进 `Run` 聚合。判据：第二个 `RunOrchestrator` 实例只共享 `RunRepository` 就能完成确认——`RunOrchestratorConfirmTest.confirmOnAnotherReplicaSucceedsWithSharedRepository` 锁住这条。
+- **内存实现必须有界**：`InMemoryConfirmationTokenStore` 写入时清过期项；`InMemoryIdempotencyStore` 已完成记录按 `spark.gateway.idempotency-ttl` 淘汰（占位中的不动）。「加了存储又引入新泄漏」是典型错误，每个内存 Map 都要回答"什么时候变小"。
+- **配了 `spark.storage.type=redis` 却装配不到，WARN 而不是静默回落**：多副本下回落内存是数据错误不是降级。不拒绝启动是因为单副本 + 误配的宿主不该被拒。
+- **Redis 实现的两条原子性**：令牌 `GETDEL`；幂等 `SET NX PX`。`claim-ttl` 必须大于任何工具的 `timeoutMs`，否则占位在 owner 执行完之前过期、等待方重 claim → 双执行。
+- **用户原话不进共享存储**：`RunSnapshot` 刻意不带 `Run.message`，与日志红线同一口径。
+
+`e2e-multi-instance.sh` 用两个 hub 共享一个 Redis 验证这条：在 A 发起、在 B 确认、回 A 重放被拒、跨副本幂等 replayed、A 写记忆 B 读到。
+
+## 7c. 客户端断开
+
+SSE 客户端断开后，编排器在**只读步骤**前检查 `RunEventSink.isClosed()`，已断则终止 Run（`INTERNAL_ERROR`，日志 `run abandoned … reason=client_gone`）——没人看的结果不值得再调一次工具。**写步骤照跑**（不留半截写链），确认后的执行路径不检查（用户已明确确认）。`sideEffect` 从 `ToolMetaRegistry` 取，取不到视为写（fail-safe）——http provider 工具目前没有 `ToolMeta`，这条优化对它们不生效，已记入已知限制。
+
+## 7d. 健康探针
+
+starter 在宿主有 actuator 时注册 `sparkRooter` 健康指示器：规划器为 `UnavailablePlanner` → DOWN；否则 UP。**熔断 OPEN 不改状态只进 detail**——`LlmCircuitBreaker` 的 OPEN → HALF_OPEN 转换只发生在真实请求调用 `shouldSkip()` 时，熔断即摘流量会让它永不恢复。宿主把 `sparkRooter` 加进 readiness 组；重启类探针（liveness / Docker HEALTHCHECK）**不要**打根 `/actuator/health`——它聚合了 sparkRooter，没配模型时是 DOWN，那是「不接流量」不是「进程坏了」。
+
 ## 8. 提交
 
 - Conventional Commits，scope 用模块名：`feat(gateway): validate output schema`。

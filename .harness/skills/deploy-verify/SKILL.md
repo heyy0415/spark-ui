@@ -48,6 +48,10 @@ ls -la spark-rooter/examples/host-demo/target/host-demo.jar | awk '{print $5, $9
 - `deployment/preview_report.md`：前端 bundle 与 baseline 对比、关键页面截图与 console.error 数、后端 health 结果、示例 Run 的 SSE 事件序列（脱敏）。
 - **必须记录实际规划器**：脚本 stdout 会打印 `planner=fake-e2e`（无 `SPARK_LLM_API_KEY`，自动启用 e2e profile 的假规划器）或 `planner=llm`（生产形态）。报告里照抄该行——同一份「12 passed」在两种规划器下含义不同，不写会让读者误以为验的是生产链路。
 
+## 注意
+
+- **不要与 `e2e-backend.sh` 并行跑在同一个 change 目录下**：两者都往 `deployment/backend.log` 写（`>` 截断），后起的会抹掉先起的启动日志段，让 15 条 grep 启动日志的断言假红。change feat-production-hardening 踩过一次。串行跑，或用 `SPARK_CHANGE` 指到不同 change。
+
 ## 失败回退
 - console.error > 0 或 health 非 UP → 回阶段 3
 - 示例 Run 未到 `confirmation.required` / `run.completed` → 回阶段 3

@@ -103,7 +103,8 @@ public final class ManifestDeriver {
             pre == null ? List.of() : Arrays.asList(pre.value()),
             tool.clarifiesEntity(),
             Arrays.asList(tool.verbs()),
-            params);
+            params,
+            risk != null && risk.sideEffect());
     return new Derived(m, meta);
   }
 

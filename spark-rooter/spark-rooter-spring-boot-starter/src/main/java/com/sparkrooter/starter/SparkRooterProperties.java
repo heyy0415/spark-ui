@@ -17,7 +17,18 @@ public record SparkRooterProperties(
     @DefaultValue Web web,
     @DefaultValue Selfcheck selfcheck,
     @DefaultValue Providers providers,
+    @DefaultValue Storage storage,
     @DefaultValue("host") String ownerTeam) {
+
+  /**
+   * 四个状态存储（Run / 确认令牌 / 幂等 / 会话记忆）放在哪。
+   *
+   * <p>{@code memory}：进程内，单副本或粘性路由下可用；重启即丢。{@code redis}：需引入 {@code spark-rooter-redis} 模块并配 {@code
+   * spring.data.redis.*}，hub 可任意多副本。取值不认识时按 memory 处理并 WARN——不静默换成别的。
+   *
+   * @param type memory | redis
+   */
+  public record Storage(@DefaultValue("memory") String type) {}
 
   /**
    * 远程 provider 的调用方认证（微服务形态）。
@@ -67,8 +78,10 @@ public record SparkRooterProperties(
    * @param runTtl Run 记录保留时间（按 updatedAt；到期后 GET /agent/runs/{id} 404，确认令牌自身有更短的 TTL）
    * @param demoSessionResolver 宿主未提供 {@code SessionIdResolver} 时是否允许用演示实现（sessionId =
    *     conversationId，无会话隔离）。 默认 false：缺宿主实现直接拒绝启动，避免 starter「默认不安全」；只在本地演示时显式打开。
-   * @param runQueue Run 编排队列容量。默认 32 ≈ 4 倍核心数：按规划实测 9–39s 估算，排到第 32 位的预期等待 (32/8)×9~39s = 36~156s
-   *     已超出 sseTimeout 上限，即后来者必然等不到结果，不如直接拒绝。调整时请按 sseTimeout 与实际规划耗时重算
+   * @param runQueue Run 编排队列容量。默认 32 ≈ 4 倍核心数：排到第 32 位的预期等待 (32/8)×9~39s = 36~156s 已超出
+   *     sseTimeout，后来者必然等不到结果，不如直接拒绝。<b>压测实测</b>（fake planner，见 change feat-production-hardening 的
+   *     load_test.md）：独立会话 32 并发 0 拒绝、p99 55ms；64 并发从第 8 个请求开始拒绝，拒绝毫秒级返回， 无一条挂到超时。接真模型后一个线程被占几十秒，约
+   *     40 个并发对话是单副本实际上限——要更多就水平扩，别调大队列（只是把拒绝延后成超时）
    */
   public record Runtime(
       @DefaultValue("8") int runPool,
@@ -81,18 +94,21 @@ public record SparkRooterProperties(
       @DefaultValue("32") int runQueue) {}
 
   /**
-   * 工具执行线程池。
+   * 工具执行线程池与幂等表。
    *
-   * @param toolQueue 队列容量。默认 64 取 runQueue 的 2 倍，因为一个 Run 的计划可能含多个工具步骤（需确认的工具还要先跑前置只读步骤）
-   */
-  /**
+   * @param toolQueue 队列容量。默认 64 取 runQueue 的 2 倍，因为一个 Run 的计划可能含多个工具步骤（需确认的工具还要先跑前置只读步骤）。 压测实测：128
+   *     并发下拒绝全部来自编排池，工具池从未成为瓶颈
    * @param maxConcurrentPerSession 单会话在飞工具调用上限；≤ 0 关闭限制。默认 4 与 {@code toolQueue=64} 挂钩——需 16
-   *     个并发会话才能占满池，让「一个用户拖垮所有人」不再可能，同时 4 个并发只读查询对 正常交互（一次对话一个请求）有充足余量。**改 toolQueue 时应同步复核此值**
+   *     个并发会话才能占满池，让「一个用户拖垮所有人」不再可能，同时 4 个并发只读查询对 正常交互（一次对话一个请求）有充足余量。**改 toolQueue 时应同步复核此值**。
+   *     压测实测：同会话 4 并发 0 拒绝，8 并发开始出现 session busy
+   * @param idempotencyTtl 幂等结果保留窗口（内存实现按它淘汰已完成记录；Redis 实现作 key TTL）。默认 24h：应长于任何合理的客户端重试窗口，
+   *     短于一天没人会重试同一个 key；再长只是白占内存
    */
   public record Gateway(
       @DefaultValue("8") int toolPool,
       @DefaultValue("64") int toolQueue,
-      @DefaultValue("4") int maxConcurrentPerSession) {}
+      @DefaultValue("4") int maxConcurrentPerSession,
+      @DefaultValue("24h") Duration idempotencyTtl) {}
 
   /**
    * @param basePath /runs 端点前缀

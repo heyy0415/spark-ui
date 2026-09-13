@@ -1,0 +1,18 @@
+event:run.started
+data:{"runId":"run_22dd70d07afb48aa","conversationId":"c11","at":"2026-09-13T09:19:11.427848Z"}
+
+event:tool.selected
+data:{"runId":"run_22dd70d07afb48aa","toolCallId":"tc_000017","toolId":"aftersale.list.get","version":"1.0.0","displayName":"查询售后单"}
+
+event:tool.started
+data:{"runId":"run_22dd70d07afb48aa","toolCallId":"tc_000017","at":"2026-09-13T09:19:11.428701Z"}
+
+event:tool.completed
+data:{"runId":"run_22dd70d07afb48aa","toolCallId":"tc_000017","status":"succeeded","durationMs":2,"summary":"该订单有 0 条售后记录"}
+
+event:ui.replace
+data:{"runId":"run_22dd70d07afb48aa","ui":{"schemaVersion":"1.0","screenId":"aftersale-confirmation","title":"申请售后","components":[{"id":"order","type":"Card","props":{"title":"订单 10002","items":[{"label":"商品","value":"蓝牙耳机"},{"label":"件数","value":"1"},{"label":"金额","value":"299.00 CNY"},{"label":"状态","value":"SHIPPED"}]}},{"id":"aftersale-form","type":"Form","props":{"fields":[{"name":"type","type":"select","label":"售后类型","required":true,"options":[{"label":"退货","value":"RETURN"},{"label":"换货","value":"EXCHANGE"},{"label":"维修","value":"REPAIR"}]},{"name":"reason","type":"text","label":"问题描述","required":true}]}}],"actions":[{"id":"confirm-aftersale","type":"submit","label":"提交售后申请","style":"primary","confirmationToken":"ct_O3mL4BjQu6LhYZp5uqMmNi6IR7_tp_JD"},{"id":"cancel","type":"cancel","label":"取消","style":"default"}]}}
+
+event:confirmation.required
+data:{"runId":"run_22dd70d07afb48aa","actionId":"confirm-aftersale","expiresAt":"2026-09-13T09:29:11.431777Z"}
+

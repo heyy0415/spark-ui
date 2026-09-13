@@ -1,5 +1,6 @@
 package com.sparkrooter.runtime.application;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -35,6 +36,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,9 +45,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -58,8 +58,11 @@ import org.slf4j.MDC;
  * <p>屏与领域策略都不在这里：确认屏 / 结果屏查 ScreenRegistry（领域 ScreenBuilder），确认后重校验查 RecheckRegistry（领域
  * ConfirmationRecheck）；需确认工具缺任一者 → fail-closed INTERNAL_ERROR。
  *
- * <p>确认路径按 runId 互斥：并发 / 重放的确认请求要么等待，要么因令牌已消费被拒绝，且这类前置拒绝不改变 Run 状态， 保证成功执行的写操作不会被并发请求报告为
- * FAILED。可信参数（如金额）一律取重校验结果并与确认屏展示值比对，模型或前端都无法决定。
+ * <p><b>本类不持有按 Run 的进程内状态</b>：最近一次屏、前置步骤输出、步骤 inputSchema、是否出过澄清屏都在 {@link Run} 聚合里随 {@link
+ * RunRepository} 走，确认请求落到任意 hub 副本都能凭仓储里的那条记录完成。
+ *
+ * <p>确认路径的互斥靠<b>令牌原子消费</b>（agent-safety §3）：并发 / 重放的确认请求里只有一个能 consume 到令牌，其余得到 TokenUnknown
+ * 而被拒绝，且这类前置拒绝不改变 Run 状态， 保证成功执行的写操作不会被并发请求报告为 FAILED。可信参数（如金额）一律取重校验结果并与确认屏展示值比对， 模型或前端都无法决定。
  */
 public class RunOrchestrator {
 
@@ -95,21 +98,6 @@ public class RunOrchestrator {
   private final ObjectMapper mapper;
   private final Clock clock;
   private final AtomicLong callSeq = new AtomicLong();
-
-  /** 每个 Run 最近一次下发的 UI（供 GET /agent/runs/{id}）。 */
-  private final Map<String, UiSchema> lastUi = new java.util.concurrent.ConcurrentHashMap<>();
-
-  /** 候选工具的 inputSchema（toolId → schema），按 runId；参数值在 Step 里是字符串，调用前按 schema 类型化。 */
-  private final Map<String, Map<String, JsonNode>> inputSchemas = new ConcurrentHashMap<>();
-
-  /** 确认屏所需的中间结果缓存（前置只读步骤的输出），按 runId。 */
-  private final Map<String, Map<String, JsonNode>> stepOutputs = new ConcurrentHashMap<>();
-
-  /** 本 Run 已出澄清屏（记忆已由 clarify 写入，终态不再覆盖）。 */
-  private final Set<String> clarified = ConcurrentHashMap.newKeySet();
-
-  /** 确认路径的按 Run 互斥锁（agent-safety §3：同一 Run 同时只处理一个确认；拿不到锁立即拒绝，不排队占用执行器）。 */
-  private final Map<String, ReentrantLock> confirmLocks = new ConcurrentHashMap<>();
 
   public RunOrchestrator(
       RunRepository runs,
@@ -181,9 +169,6 @@ public class RunOrchestrator {
         complete(run, sink);
         return runId;
       }
-      Map<String, JsonNode> schemas = new ConcurrentHashMap<>();
-      found.tools().forEach(c -> schemas.put(c.toolId(), c.inputSchema()));
-      inputSchemas.put(runId, schemas);
 
       // ③ 模型规划 + ④ 通用校验（都在 LlmClient 内）；日志不记原话
       LlmClient.Decision decision =
@@ -211,7 +196,8 @@ public class RunOrchestrator {
         }
         case LlmClient.Planned p -> plan = p.plan();
       }
-      run.attachPlan(plan, now());
+      // 计划各步骤的 inputSchema 随 Run 快照：确认可能落到另一副本，那时不能再依赖注册表的当下状态
+      run.attachPlan(plan, schemaSnapshot(found), now());
       log.info(
           "plan attached runId={} steps={} planner={}", runId, plan.steps().size(), llm.name());
 
@@ -242,68 +228,50 @@ public class RunOrchestrator {
       RunEventSink sink) {
     Run run = runs.find(runId).orElseThrow(() -> new RunNotFound(runId));
     MDC.put("runId", runId);
-    ReentrantLock lock = confirmLocks.computeIfAbsent(runId, k -> new ReentrantLock());
-    if (!lock.tryLock()) {
-      // 另一条确认正在执行：不排队（排队会占满 agent-run 线程池），直接拒绝本次请求
-      try {
-        rejectRequest(run, "another confirmation is in progress", sink);
-      } finally {
-        MDC.remove("runId");
-      }
-      return;
-    }
     try {
+      // ---- 前置校验：任一失败只拒绝本次请求，不改变 Run 状态（并发 / 重放不能破坏执行中的 Run）
+      if (run.state() != RunState.WAITING_CONFIRMATION) {
+        rejectRequest(run, "run not waiting for confirmation: " + run.state(), sink);
+        return;
+      }
+      if (!run.sessionId().equals(sessionId)) {
+        rejectRequest(run, "session mismatch", sink);
+        return;
+      }
+      Step step =
+          run.currentStep()
+              .orElseThrow(
+                  () -> new RunFailure(RunFailureCode.INTERNAL_ERROR.name(), "no pending step"));
+      ConfirmationToken token;
       try {
-        // ---- 前置校验：任一失败只拒绝本次请求，不改变 Run 状态（并发 / 重放不能破坏执行中的 Run）
-        if (run.state() != RunState.WAITING_CONFIRMATION) {
-          rejectRequest(run, "run not waiting for confirmation: " + run.state(), sink);
-          return;
-        }
-        if (!run.sessionId().equals(sessionId)) {
-          rejectRequest(run, "session mismatch", sink);
-          return;
-        }
-        Step step =
-            run.currentStep()
-                .orElseThrow(
-                    () -> new RunFailure(RunFailureCode.INTERNAL_ERROR.name(), "no pending step"));
-        ConfirmationToken token;
-        try {
-          token =
-              tokens.consume(
-                  rawToken,
-                  runId,
-                  actionId,
-                  argsDigest(step.fixedArgs()),
-                  run.conversationId(),
-                  sessionId,
-                  formData);
-        } catch (ConfirmationTokenService.TokenUnknown e) {
-          rejectRequest(run, e.getMessage(), sink);
-          return;
-        }
-        log.info(
-            "confirmation accepted runId={} step={} tool={}", runId, step.seq(), step.toolId());
+        // 原子消费：并发 / 重放请求里只有一个能拿到令牌，这就是确认路径唯一需要的互斥
+        token =
+            tokens.consume(
+                rawToken,
+                runId,
+                actionId,
+                argsDigest(step.fixedArgs()),
+                run.conversationId(),
+                sessionId,
+                formData);
+      } catch (ConfirmationTokenService.TokenUnknown e) {
+        rejectRequest(run, e.getMessage(), sink);
+        return;
+      }
+      log.info("confirmation accepted runId={} step={} tool={}", runId, step.seq(), step.toolId());
 
-        // ---- 令牌已消费：此后的失败才把 Run 置为 FAILED
-        run.transition(RunState.EXECUTING, now());
-        executeConfirmed(run, step, token, formData, traceId, sink);
-      } catch (RunFailure e) {
-        fail(run, e, sink);
-      } catch (RuntimeException e) {
-        log.error("confirm_unhandled runId={}", runId, e);
-        fail(run, new RunFailure(RunFailureCode.INTERNAL_ERROR.name(), "internal error", e), sink);
-      } finally {
-        MDC.remove("runId");
-        if (run.state().terminal()) {
-          stepOutputs.remove(runId);
-        }
-      }
+      // ---- 令牌已消费：此后的失败才把 Run 置为 FAILED。
+      // 立即落库：共享存储下每次 find 是新副本，不 save 则另一副本的 GET 在执行窗口内看到过时状态
+      run.transition(RunState.EXECUTING, now());
+      runs.save(run);
+      executeConfirmed(run, step, token, formData, traceId, sink);
+    } catch (RunFailure e) {
+      fail(run, e, sink);
+    } catch (RuntimeException e) {
+      log.error("confirm_unhandled runId={}", runId, e);
+      fail(run, new RunFailure(RunFailureCode.INTERNAL_ERROR.name(), "internal error", e), sink);
     } finally {
-      lock.unlock();
-      if (run.state().terminal()) {
-        confirmLocks.remove(runId);
-      }
+      MDC.remove("runId");
     }
   }
 
@@ -354,9 +322,8 @@ public class RunOrchestrator {
           ? new RunFailure(RunFailureCode.CONFIRMATION_REJECTED.name(), "permission denied", e)
           : e;
     }
-    UiSchema shown = lastUi.get(runId);
-    Optional<String> rejected =
-        rc.reject(recheck, shown == null ? mapper.createObjectNode() : mapper.valueToTree(shown));
+    JsonNode shown = run.currentUi().map(this::readTree).orElseGet(mapper::createObjectNode);
+    Optional<String> rejected = rc.reject(recheck, shown);
     if (rejected.isPresent()) {
       // 内部原因只进日志；用户看到的是策略类文案（区分于令牌 / 并发拒绝）
       throw RunFailure.withUserText(
@@ -386,7 +353,7 @@ public class RunOrchestrator {
     log.info("confirmed step executed runId={} tokenStep={}", runId, token.stepSeq());
 
     UiSchema result = screens.result(step.toolId(), created, screenContext(run));
-    lastUi.put(runId, result);
+    setUi(run, result);
     emit(sink, SseEvent.UI_REPLACE, new SseEvent.UiReplaceData(runId, result));
     complete(run, sink);
   }
@@ -418,8 +385,18 @@ public class RunOrchestrator {
     return runs.find(runId);
   }
 
+  /** 最近一次下发的屏：从仓储读，不在本实例缓存——GET 可能落到与执行不同的副本。 */
   public Optional<UiSchema> lastUi(String runId) {
-    return Optional.ofNullable(lastUi.get(runId));
+    return runs.find(runId)
+        .flatMap(Run::currentUi)
+        .map(
+            json -> {
+              try {
+                return mapper.readValue(json, UiSchema.class);
+              } catch (JsonProcessingException e) {
+                throw new IllegalStateException("stored currentUi is not a UiSchema", e);
+              }
+            });
   }
 
   // ------------------------------------------------------------------ 内部
@@ -432,14 +409,12 @@ public class RunOrchestrator {
         lastExecuted(run)
             .ifPresent(
                 last -> {
-                  UiSchema ui =
-                      screens.result(
-                          last.toolId(),
-                          stepOutputs
-                              .getOrDefault(run.runId(), Map.of())
-                              .getOrDefault(last.toolId(), mapper.createObjectNode()),
-                          screenContext(run));
-                  lastUi.put(run.runId(), ui);
+                  JsonNode out =
+                      run.stepOutput(last.toolId())
+                          .map(this::readTree)
+                          .orElseGet(mapper::createObjectNode);
+                  UiSchema ui = screens.result(last.toolId(), out, screenContext(run));
+                  setUi(run, ui);
                   emit(sink, SseEvent.UI_REPLACE, new SseEvent.UiReplaceData(run.runId(), ui));
                 });
         complete(run, sink);
@@ -450,13 +425,25 @@ public class RunOrchestrator {
         waitForConfirmation(run, step, sink);
         return;
       }
+      // 客户端已断开：只读步骤没人看结果，白烧一次工具调用；写步骤照跑（不留半截的写链）。
+      // sideEffect 取不到（如 http provider 工具无 ToolMeta）视为写，宁多跑一步只读不砍掉一步写
+      if (sink.isClosed() && !isWrite(step.toolId())) {
+        log.info(
+            "run abandoned runId={} step={} tool={} reason=client_gone",
+            run.runId(),
+            step.seq(),
+            step.toolId());
+        throw new RunFailure(RunFailureCode.INTERNAL_ERROR.name(), "client gone");
+      }
       JsonNode out =
           invoke(run, step.toolId(), step.version(), step.fixedArgs(), traceId, sink, "step");
-      stepOutputs
-          .computeIfAbsent(run.runId(), k -> new java.util.concurrent.ConcurrentHashMap<>())
-          .put(step.toolId(), out);
+      run.putStepOutput(step.toolId(), out.toString(), now());
       run.advance(now());
     }
+  }
+
+  private boolean isWrite(String toolId) {
+    return meta.find(toolId).map(ToolMeta::sideEffect).orElse(true);
   }
 
   private void waitForConfirmation(Run run, Step step, RunEventSink sink) {
@@ -465,7 +452,8 @@ public class RunOrchestrator {
       throw new RunFailure(
           RunFailureCode.INTERNAL_ERROR.name(), "no confirmation screen for " + step.toolId());
     }
-    Map<String, JsonNode> cache = stepOutputs.getOrDefault(run.runId(), Map.of());
+    Map<String, JsonNode> cache = new HashMap<>();
+    run.stepOutputs().forEach((k, v) -> cache.put(k, readTree(v)));
     ScreenContext ctx = screenContext(run);
     // 两遍生成：令牌绑定 actionId 且屏需要 token 字符串，先用占位令牌读出 action id 与 Form 字段白名单，再签发正式令牌生成正式屏
     UiSchema probe =
@@ -489,7 +477,7 @@ public class RunOrchestrator {
           RunFailureCode.INTERNAL_ERROR.name(),
           "confirmation screen not stable across token issue");
     }
-    lastUi.put(run.runId(), ui);
+    setUi(run, ui);
     emit(sink, SseEvent.UI_REPLACE, new SseEvent.UiReplaceData(run.runId(), ui));
     emit(
         sink,
@@ -530,7 +518,7 @@ public class RunOrchestrator {
       return false;
     }
     UiSchema ui = screens.toUi(screen.get());
-    lastUi.put(run.runId(), ui);
+    setUi(run, ui);
     emit(sink, SseEvent.UI_REPLACE, new SseEvent.UiReplaceData(run.runId(), ui));
     emit(
         sink,
@@ -553,7 +541,7 @@ public class RunOrchestrator {
             Map.of(),
             new ConversationMemory.LastTable(c.toolId(), ids, message),
             now()));
-    clarified.add(run.runId());
+    run.markClarified(now());
     log.info(
         "clarification screen runId={} entity={} tool={}", run.runId(), entityType, c.toolId());
     return true;
@@ -564,7 +552,7 @@ public class RunOrchestrator {
    * 写入，这里不再覆盖（评审 M-4：否则 lastTable.toolId 被空串覆盖，「第二个」失效）。
    */
   private void remember(Run run) {
-    if (clarified.remove(run.runId())) {
+    if (run.clarified()) {
       return;
     }
     Map<String, String> ents = new LinkedHashMap<>();
@@ -582,9 +570,9 @@ public class RunOrchestrator {
                 });
       }
     }
-    UiSchema ui = lastUi.get(run.runId());
-    if (ui != null) {
-      for (UiSchema.Component comp : ui.components()) {
+    Optional<UiSchema> ui = run.currentUi().map(this::readUi);
+    if (ui.isPresent()) {
+      for (UiSchema.Component comp : ui.get().components()) {
         if (comp.type() == UiSchema.ComponentType.Table) {
           List<String> ids = new java.util.ArrayList<>();
           comp.props().path("rows").forEach(r -> ids.add(r.path("id").asText()));
@@ -640,7 +628,7 @@ public class RunOrchestrator {
         SseEvent.TOOL_SELECTED,
         new SseEvent.ToolSelectedData(run.runId(), toolCallId, toolId, version, displayName));
     emit(sink, SseEvent.TOOL_STARTED, new SseEvent.ToolStartedData(run.runId(), toolCallId, now()));
-    ObjectNode argNode = typedArgs(run.runId(), toolId, args);
+    ObjectNode argNode = typedArgs(run, toolId, args);
     String idem =
         run.runId()
             + "-"
@@ -698,15 +686,15 @@ public class RunOrchestrator {
   }
 
   /**
-   * Step.fixedArgs 一律字符串（参与 argsDigest）；按候选 inputSchema 把 integer / boolean 类型的参数转成对应 JSON
+   * Step.fixedArgs 一律字符串（参与 argsDigest）；按 Run 里快照的 inputSchema 把 integer / boolean 类型的参数转成对应 JSON
    * 类型，其余保持字符串。
    */
-  private ObjectNode typedArgs(String runId, String toolId, Map<String, String> args) {
+  private ObjectNode typedArgs(Run run, String toolId, Map<String, String> args) {
     ObjectNode node = mapper.createObjectNode();
     JsonNode props =
-        inputSchemas
-            .getOrDefault(runId, Map.of())
-            .getOrDefault(toolId, mapper.createObjectNode())
+        run.stepSchema(toolId)
+            .map(this::readTree)
+            .orElseGet(mapper::createObjectNode)
             .path("properties");
     args.forEach(
         (k, v) -> {
@@ -725,6 +713,37 @@ public class RunOrchestrator {
     return node;
   }
 
+  /** 候选工具的 inputSchema → 字符串，供 Run 按计划步骤快照。 */
+  private static Map<String, String> schemaSnapshot(ToolSearch.Response found) {
+    Map<String, String> m = new HashMap<>();
+    found.tools().forEach(c -> m.put(c.toolId(), c.inputSchema().toString()));
+    return m;
+  }
+
+  private void setUi(Run run, UiSchema ui) {
+    try {
+      run.setCurrentUi(mapper.writeValueAsString(ui), now());
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("cannot serialize UiSchema", e);
+    }
+  }
+
+  private JsonNode readTree(String json) {
+    try {
+      return mapper.readTree(json);
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("stored JSON is malformed", e);
+    }
+  }
+
+  private UiSchema readUi(String json) {
+    try {
+      return mapper.readValue(json, UiSchema.class);
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("stored currentUi is not a UiSchema", e);
+    }
+  }
+
   /** 一次工具调用失败：携带 Gateway 结构化错误码，供确认路径把 FORBIDDEN 映射为 CONFIRMATION_REJECTED。 */
   static final class ToolCallFailed extends RunFailure {
     private static final long serialVersionUID = 1L;
@@ -741,24 +760,18 @@ public class RunOrchestrator {
     }
   }
 
-  /** 每次终态顺手淘汰过期 Run 并清理它们按 runId 的缓存（lastUi / stepOutputs / inputSchemas / 锁）。 */
-  private void evictExpired() {
-    for (String gone : runs.evictExpired()) {
-      lastUi.remove(gone);
-      stepOutputs.remove(gone);
-      inputSchemas.remove(gone);
-      confirmLocks.remove(gone);
-      clarified.remove(gone);
-    }
-  }
-
   private void complete(Run run, RunEventSink sink) {
     run.transition(RunState.COMPLETED, now());
+    // 终态后前置输出无人再读，清掉以减小存储；currentUi 保留（GET 需要）
+    run.clearStepOutputs();
+    // 先落终态再写记忆：记忆是锦上添花，它抛异常不该让共享存储里的 Run 停在 EXECUTING（另一副本会看到一个永远"执行中"的 Run）
     runs.save(run);
-    remember(run);
-    evictExpired();
-    stepOutputs.remove(run.runId());
-    inputSchemas.remove(run.runId());
+    try {
+      remember(run);
+    } catch (RuntimeException e) {
+      log.warn("memory_write_failed runId={}", run.runId(), e);
+    }
+    runs.evictExpired();
     emit(sink, SseEvent.RUN_COMPLETED, new SseEvent.RunCompletedData(run.runId(), now()));
     recordRunMetrics(run, "completed");
     sink.close();
@@ -770,10 +783,9 @@ public class RunOrchestrator {
     if (!run.state().terminal()) {
       run.fail(e.code(), now());
     }
+    run.clearStepOutputs();
     runs.save(run);
-    evictExpired();
-    stepOutputs.remove(run.runId());
-    inputSchemas.remove(run.runId());
+    runs.evictExpired();
     try {
       emit(
           sink,

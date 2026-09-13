@@ -1,11 +1,40 @@
 server:
   port: 8080
+  # SIGTERM 后先停止接新连接，等在飞的 Run / SSE 收尾再退出；配合下面的 timeout-per-shutdown-phase
+  shutdown: graceful
+  tomcat:
+    # 请求体上限：intent-request.message 契约已限 2000 字符，这里防的是非契约路径（如直调 /internal/**）
+    max-http-form-post-size: 64KB
+    max-swallow-size: 64KB
+
+spring:
+  lifecycle:
+    # 一次规划 + 三步工具链实测 < 30s；超过说明有请求卡死，不值得再等
+    timeout-per-shutdown-phase: 30s
 
 management:
   endpoints:
     web:
       exposure:
-        include: health
+        # metrics 供 spark.* 指标查询（Micrometer 已随 actuator 装配）；生产按需再收窄
+        include: health,metrics
+  endpoint:
+    health:
+      # 把 K8s 探针端点分成 liveness / readiness 两组
+      probes:
+        enabled: true
+      group:
+        readiness:
+          # sparkRooter 指示器：模型没配 → DOWN → 不接流量。熔断只进 detail 不改状态（starter 的 HealthBeans 写了为什么）
+          include: readinessState,sparkRooter
+      # 注意根 /actuator/health 聚合全部指示器，没配模型时它也是 DOWN。重启类探针（Docker HEALTHCHECK、K8s liveness）
+      # 请打 /actuator/health/liveness——模型没配是「不接流量」不是「进程坏了」，用根端点会让容器被反复重启
+      show-details: always
+  health:
+    redis:
+      # host-demo 引了 spark-rooter-redis 以便演示多副本；默认 memory 形态下 Redis 可能根本没起，
+      # 不能让 actuator 自带的 Redis 探针把 health 打成 DOWN。redis profile 里再打开
+      enabled: false
 
 spark:
   selfcheck:
@@ -32,3 +61,22 @@ spring:
 spark:
   runtime:
     memory-ttl: 1s         # e2e ㉓：会话记忆 1s 过期
+
+---
+# 多副本形态：四个状态存储走 Redis。两个 hub 副本配同一个 Redis 即可互相接力（e2e-multi-instance.sh 验证）。
+spring:
+  config:
+    activate:
+      on-profile: redis
+  data:
+    redis:
+      host: ${SPARK_REDIS_HOST:127.0.0.1}
+      port: ${SPARK_REDIS_PORT:6379}
+      database: ${SPARK_REDIS_DB:0}
+spark:
+  storage:
+    type: redis
+management:
+  health:
+    redis:
+      enabled: true

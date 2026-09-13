@@ -26,6 +26,9 @@
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-aop</artifactId></dependency>
     <!-- 宿主唯一需要的 spark 坐标 -->
     <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-spring-boot-starter</artifactId><version>${spark-rooter.version}</version></dependency>
+    <!-- 可选：多副本形态的共享存储。默认 spark.storage.type=memory 时它不装配任何 Bean；
+         `-Dspring.profiles.active=redis` 才启用（见 application.yml 的 redis profile 与 e2e-multi-instance.sh） -->
+    <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-redis</artifactId><version>${spark-rooter.version}</version></dependency>
     <!-- 四个示例领域（@SparkTool 形态）+ 示例用户上下文 -->
     <dependency><groupId>com.sparkrooter</groupId><artifactId>order-service</artifactId><version>${spark-rooter.version}</version></dependency>
     <dependency><groupId>com.sparkrooter</groupId><artifactId>product-service</artifactId><version>${spark-rooter.version}</version></dependency>

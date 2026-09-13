@@ -33,5 +33,7 @@ COPY --from=be /src/spark-rooter/examples/host-demo/target/host-demo.jar app.jar
 ENV JAVA_TOOL_OPTIONS="-Xmx300m -XX:+UseSerialGC"
 ENV SERVER_PORT=8080
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s CMD wget -qO- http://localhost:8080/actuator/health || exit 1
+# 打 liveness 而不是根 /actuator/health：根端点聚合了 sparkRooter 指示器，没配模型时是 DOWN——
+# 那是「不该接流量」，不是「进程坏了」，用根端点会让容器被反复重启。readiness 归编排层（K8s readinessProbe）
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s CMD wget -qO- http://localhost:8080/actuator/health/liveness || exit 1
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

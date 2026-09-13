@@ -39,8 +39,12 @@ else
 fi
 (JAVA_HOME="$JAVA_HOME_RESOLVED" "$JAVA_BIN" -jar "$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar" --server.port="$PORT" $PROFILE_ARG > "$DEPLOY/backend.log" 2>&1 &)
 for _ in $(seq 1 40); do sleep 1; curl -sf "localhost:$PORT/actuator/health" >/dev/null 2>&1 && break; done
-check "health" '{"status":"UP"}' "$(curl -s "localhost:$PORT/actuator/health")"
+# 只看 status 字段：开了 probes / show-details 后响应还带 groups 与 components，整串比对会被无关字段打红
+check "health" UP "$(curl -s "localhost:$PORT/actuator/health" | python3 -c "import sys,json;print(json.load(sys.stdin)['status'])")"
 check "selfcheck all OK" 9 "$(grep -c 'SelfCheckRunner.*selfcheck: .* OK' "$DEPLOY/backend.log")"
+# readiness 分组含 sparkRooter 指示器（feat-production-hardening T05）：fake planner 的 name() 不是 unavailable → UP
+check "readiness group is UP" 200 "$(curl -s -o "$DEPLOY/readiness.json" -w '%{http_code}' "localhost:$PORT/actuator/health/readiness")"
+check "readiness includes sparkRooter=UP" UP "$(python3 -c "import json;print(json.load(open('$DEPLOY/readiness.json'))['components']['sparkRooter']['status'])" 2>/dev/null)"
 
 echo "--- 2. 前端预览（vite preview :4173，代理到 ${PORT}）"
 (cd "$ROOT/spark-ui/apps/chat" && pnpm exec vite preview --port 4173 --strictPort > "$DEPLOY/preview.log" 2>&1 &)

@@ -110,7 +110,20 @@ class RuntimeBeans {
   @Bean
   @ConditionalOnMissingBean(RunRepository.class)
   RunRepository sparkRooterRunRepository(SparkRooterProperties props, Clock sparkRooterClock) {
+    warnIfRedisRequestedButAbsent(props);
     return new InMemoryRunRepository(props.runtime().runTtl(), sparkRooterClock);
+  }
+
+  /**
+   * 配了 {@code spark.storage.type=redis} 却走到了内存实现：说明 {@code spark-rooter-redis} 模块没引、或 {@code
+   * StringRedisTemplate} 没装配。不静默改成内存——多副本下那是数据错误而不是降级；这里只能 WARN 让人看见，因为 单副本 + 误配 redis 的宿主也不该被拒绝启动。
+   */
+  private static void warnIfRedisRequestedButAbsent(SparkRooterProperties props) {
+    if ("redis".equalsIgnoreCase(props.storage().type())) {
+      log.warn(
+          "spark.storage.type=redis 但 Redis 存储未装配（缺 spark-rooter-redis 模块或 spring.data.redis.* 配置），"
+              + "已回落到进程内存储；多副本部署下这会造成幂等与确认失效");
+    }
   }
 
   @Bean
@@ -122,8 +135,8 @@ class RuntimeBeans {
 
   @Bean
   @ConditionalOnMissingBean(ConfirmationTokenStore.class)
-  ConfirmationTokenStore sparkRooterConfirmationTokenStore() {
-    return new InMemoryConfirmationTokenStore();
+  ConfirmationTokenStore sparkRooterConfirmationTokenStore(Clock sparkRooterClock) {
+    return new InMemoryConfirmationTokenStore(sparkRooterClock);
   }
 
   /** Run 编排池：有界 + AbortPolicy，过载时由 AgentRunController 转成 SSE run.failed 而非静默排队。 */

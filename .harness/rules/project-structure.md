@@ -78,6 +78,7 @@ spark-rooter/
 ├── spark-rooter-gateway/                # 执行面：校验 → 幂等 → 代理调用 → 输出校验 → 脱敏 → 审计；不做用户鉴权
 ├── spark-rooter-web-mvc/                # /agent/runs SSE 端点 + /internal/** 端点 + 异常映射；唯一依赖 spring-boot-starter-web 的平台模块
 ├── spark-rooter-spring-boot-starter/    # AutoConfiguration.imports + spark.* 属性 + 全部平台 Bean 的 @ConditionalOnMissingBean 装配 + @SparkTool 扫描 / Manifest 推导；宿主唯一引入坐标
+├── spark-rooter-redis/                  # 可选：四个状态存储的 Redis 实现（spark.storage.type=redis）；只依赖平台模块，平台模块不得反向依赖它
 └── examples/
     ├── demo-support/                    # 示例宿主侧 mock 用户上下文（DemoUserContext），纯 JDK
     ├── domains/{order,product,aftersale,refund}-service/   # @SparkTool 形态的示例领域；只依赖 spi + contracts + demo-support
@@ -90,10 +91,12 @@ spark-rooter/
 spi ↛ 任何 com.sparkrooter；contracts → spi
 runtime / registry / gateway → contracts, spi（三者之间只经对方 api 包接口 ToolSearchPort / ToolInvokePort / ConfirmationCoveragePolicy）
 web-mvc → runtime, registry, gateway；starter → 全部平台模块
+redis → runtime, gateway, spi, contracts, starter（可选模块；平台模块与 provider-starter 不得依赖它，也不得依赖 spring-data-redis）
 provider-starter → **只有** spi + contracts + spring-boot-autoconfigure + spring-web + spring-aop
 examples/domains/* → spi, contracts, demo-support（不依赖任何平台模块；互不 import，跨领域读订单只经 demo-support 的 OrderSnapshotProvider）
 host-demo → starter + examples/domains/*（本地仓坐标）
 平台模块（spi / contracts / runtime / registry / gateway）pom 禁 spring-boot-starter-web / starter-validation
+examples/* 只在 parent pom 的 `examples` profile 里（默认激活），不得回到顶层 `<modules>`——别人 `mvn deploy -P '!examples'` 才能只发平台 artifact
 
 **两种拓扑与 JDK 基线**（feat-provider-http-transport-20260912）：
 
