@@ -43,6 +43,8 @@ const steps = [
       join(harness, 'scripts', 'e2e-backend.sh'),
       join(harness, 'scripts', 'e2e-frontend.sh'),
       join(harness, 'scripts', 'deploy-verify.sh'),
+      join(harness, 'scripts', 'e2e-provider.sh'),
+      join(harness, 'scripts', 'e2e-multi-instance.sh'),
       join(harness, 'scripts', 'lib', 'change-dir.sh'),
       join(harness, 'scripts', 'lib', 'java-home.sh'),
     ],
