@@ -57,4 +57,4 @@ Dockerfile HEALTHCHECK 已改打 `/actuator/health/liveness`。
 2. K8s readinessProbe 打 `/actuator/health/readiness`，livenessProbe 打 `/actuator/health/liveness`——**别打根端点**
 3. `server.shutdown=graceful` + `timeout-per-shutdown-phase` 与 Pod 的 `terminationGracePeriodSeconds` 对齐（后者应更大）
 4. 真模型下单副本约 40 并发对话；按实际规划耗时复核 `run-queue`
-5. CI 工作流首次在 GitHub 上跑后看一眼（本地无法验证 Actions）
+5. ~~CI 工作流首次在 GitHub 上跑后看一眼~~ → 已绿（run `34753846814`，PR #4）

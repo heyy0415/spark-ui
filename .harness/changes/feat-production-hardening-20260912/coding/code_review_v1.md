@@ -74,12 +74,12 @@
 | 压测结论 | ✓ 三个默认值与实测吻合不改；javadoc「估算」0 残留 |
 | README 数字 | ✓ 12 项逐一核对（`coding_report` §4），首稿 32 KB 改 30 KB |
 | 口号词门禁 | ✓ 0 命中 |
-| CI 可运行 | 未验证——`.github/workflows/ci.yml` 复用了上次跑通的骨架并删了 e2e job，但本地无法跑 GitHub Actions；首次 push 后看 |
+| CI 可运行 | ✓ **事后实证**：GitHub run `34753846814` 全部步骤 success。首跑红三次（shellcheck 版本差 / mvnw 内网地址 / host-demo 离线缺 actuator），修复见 PR #3 / #4 与 summary 经验沉淀 #8 |
 
 ## 6. 遗留与已知限制
 
 1. **本评审非独立**（§0）。
-2. **CI 工作流未在 GitHub 上跑过**：结构复用自 `65e5b6c`（当时跑通），改动是删 e2e job + 加 Redis service + shellcheck 安装。首次 push 后需看一眼。
+2. ~~CI 工作流未在 GitHub 上跑过~~ → 已跑通（run `34753846814`）。首跑暴露了三个"本机有、runner 没有"的隐含依赖，其中 mvnw 指向内网 Nexus 是**开源可用性缺陷**（clone 后第一步就挂），已修并加 doctor 门禁。
 3. **provider 工具的断连优化不生效**（S-1）。
 4. **Redis 版 Awaiting 是 50ms 轮询**，不是推送。正常链路零轮询；只在同 key 并发提交时出现。
 5. **`spark.storage.redis.claim-ttl` 与工具 `timeoutMs` 的关系靠文档约束**，没有启动期校验（要遍历全部 Manifest 取最大 timeoutMs，而 http 工具是启动后才推来的）。写进了配置表与 javadoc 的加粗提示。
