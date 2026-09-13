@@ -56,8 +56,12 @@ jobs:
           pnpm -C spark-ui install --frozen-lockfile
           pnpm -C .harness install --frozen-lockfile
 
-      # ci.mjs 的 host-demo 步骤用 mvn -o（离线，证明只依赖本地仓）。host-demo 的 parent 是外部的
-      # spring-boot-starter-parent，缓存为空时它不在 `spark-rooter install` 的下载范围内，先联网解析一次
+      # ci.mjs 的 host-demo 步骤用 mvn -o（离线，证明只依赖本地仓）。缓存为空时有两类东西不在
+      # `spark-rooter install` 的下载范围内，要先联网拉一次：
+      #   1. host-demo 的 parent（外部的 spring-boot-starter-parent）与 boot 插件 → resolve-plugins
+      #   2. host-demo 直接依赖但平台模块闭包里没有的 jar → go-offline。典型是 spring-boot-starter-actuator：
+      #      starter 对它是 <optional>，传递闭包不含，首次 CI 就是在这里离线失败的
+      # go-offline 需要能解析本仓 com.sparkrooter:* 坐标，所以放在 spark-rooter install 之后、ci.mjs 之前
       - name: 预热 host-demo 的 parent 与插件
         working-directory: spark-rooter/examples/host-demo
         run: mvn -q -B -DskipTests dependency:resolve-plugins
@@ -65,8 +69,17 @@ jobs:
       - name: shellcheck
         run: sudo apt-get install -y -qq shellcheck
 
+      # 先把平台模块装进本地仓，再让 host-demo 联网拉齐它的第三方依赖；之后 ci.mjs 里的 host-demo 步骤才能 -o
+      - name: spark-rooter install（供 host-demo go-offline 解析本仓坐标）
+        run: node .harness/scripts/mvn.mjs -q -B install -DskipTests
+
+      - name: 预热 host-demo 的第三方依赖（供离线打包）
+        working-directory: spark-rooter/examples/host-demo
+        run: mvn -q -B dependency:go-offline
+
       # 全量门禁：check-rename / check-contracts / check-module-deps / check-seed /
       # check-log-assertions / check-shell / spark-ui ci / spark-rooter install（含单测）/ host-demo 离线打包
+      # spark-rooter 这一步会重跑 install（这次带单测）——两次 install 的代价是编译多一遍，换来 ci.mjs 与本地完全同一条命令
       - name: pnpm -C .harness run ci
         run: pnpm -C .harness run ci
 
