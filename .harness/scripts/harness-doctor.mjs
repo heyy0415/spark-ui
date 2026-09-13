@@ -294,6 +294,35 @@ for (const name of skillNames) {
   if (hits === 0) ok('changes/** free of secret-shaped literals (LLM key / gateway host / model name)');
 }
 
+// 构建配置不得指向公司内网（fix/mvnw-public-distribution）：
+// maven-wrapper.properties 的 distributionUrl 曾是内网 Nexus——本机 ~/.m2/settings.xml 有镜像，从没暴露；
+// GitHub Actions 第一次真跑就 wget 失败。别人 clone 后也一样跑不起来。
+// 只查可执行 / 可解析的配置文件；changes/** 的历史报告里提到内网地址是事实记录，不算。
+{
+  const INTERNAL_HOST = new RegExp('zhuan' + 'spirit\\.com|zhuan' + 'inc\\.com|bj58\\.com|nexus\\.[a-z0-9-]+\\.(com|cn|net)(?!/repository/maven-releases/$)');
+  const configFiles = [
+    'spark-rooter/.mvn/wrapper/maven-wrapper.properties',
+    'spark-rooter/pom.xml',
+    'spark-rooter/examples/host-demo/pom.xml',
+    'spark-rooter/examples/provider-demo/pom.xml',
+    'spark-ui/.npmrc',
+    'spark-ui/pnpm-workspace.yaml',
+    '.harness/scripts/mvn.mjs',
+    '.harness/scripts/ci.mjs',
+    '.github/workflows/ci.yml',
+    'Dockerfile',
+  ];
+  let internalHits = 0;
+  for (const rel of configFiles) {
+    const p = join(root, rel);
+    if (!existsSync(p)) continue;
+    const text = await readFile(p, 'utf-8');
+    // README 里的 nexus.example.com 是示例占位，不在本清单；这里只扫真配置
+    if (INTERNAL_HOST.test(text)) { err(`internal host in build config: ${rel} (the repo is public; clone-and-build must not depend on a private network)`); internalHits++; }
+  }
+  if (internalHits === 0) ok('build config free of internal hosts (wrapper / pom / npmrc / CI)');
+}
+
 // changes
 const changesDir = join(H, 'changes');
 if (existsSync(changesDir)) {
