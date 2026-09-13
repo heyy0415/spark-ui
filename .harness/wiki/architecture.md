@@ -6,7 +6,9 @@
 
 ## 形态：Spring Boot Starter（embedded）
 
-spark-rooter 不是一个独立部署的平台，而是一个 **Starter 依赖**：任何 Java 服务引入 `com.sparkrooter:spark-rooter-spring-boot-starter`，在自己的 `@Service` 方法上加 `@SparkTool`，启动时扫描器推导 Manifest 并注册，前端 `spark-chat`（或任何嵌入 `@spark-ui/core` 的页面）即可用自然语言驱动这些工具。分布式（远程工具、服务发现）只预留了 `ToolTransport` / `ToolProviderDiscovery` 端口，本期只有进程内实现。
+spark-rooter 不是一个独立部署的平台，而是一个 **Starter 依赖**：任何 Java 服务引入 `com.sparkrooter:spark-rooter-spring-boot-starter`，在自己的 `@Service` 方法上加 `@SparkTool`，启动时扫描器推导 Manifest 并注册，前端 `spark-chat`（或任何嵌入 `@spark-ui/core` 的页面）即可用自然语言驱动这些工具。领域服务也可作为独立 provider 进程经 HTTP 接入（`spark-provider-spring-boot-starter`，见下文「两种拓扑」）；服务发现未做，provider 坐标走配置化 base URL。
+
+> 想按一条请求的实际执行顺序读代码，看 [walkthrough.md](walkthrough.md)：从前端 SSE 分帧到 Gateway 八道工序、确认令牌、多副本，每一跳都标了 `file:line`。
 
 ```
 ┌──────── spark-ui/ apps/chat + @spark-ui/core（Spark UI） ─────────┐
