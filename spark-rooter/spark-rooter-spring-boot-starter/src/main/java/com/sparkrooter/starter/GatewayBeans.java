@@ -18,6 +18,7 @@ import com.sparkrooter.spi.ToolAccessPolicy;
 import com.sparkrooter.spi.ToolHandler;
 import com.sparkrooter.spi.ToolMetricsSink;
 import com.sparkrooter.spi.ToolResolver;
+import java.time.Clock;
 import java.util.concurrent.ExecutorService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,8 +39,9 @@ class GatewayBeans {
 
   @Bean
   @ConditionalOnMissingBean(IdempotencyStore.class)
-  IdempotencyStore sparkRooterIdempotencyStore() {
-    return new InMemoryIdempotencyStore();
+  IdempotencyStore sparkRooterIdempotencyStore(
+      SparkRooterProperties props, Clock sparkRooterClock) {
+    return new InMemoryIdempotencyStore(props.gateway().idempotencyTtl(), sparkRooterClock);
   }
 
   /**

@@ -23,8 +23,6 @@ import com.sparkrooter.runtime.application.screen.ScreenRegistry;
 import com.sparkrooter.runtime.domain.Plan;
 import com.sparkrooter.runtime.domain.Step;
 import com.sparkrooter.runtime.infra.InMemoryConfirmationTokenStore;
-import com.sparkrooter.runtime.infra.InMemoryConversationMemory;
-import com.sparkrooter.runtime.infra.InMemoryRunRepository;
 import com.sparkrooter.spi.ConfirmationRecheck;
 import com.sparkrooter.spi.ScreenBuilder;
 import java.time.Clock;
@@ -52,9 +50,9 @@ public final class OrchestratorFixture {
   public final Fakes.FakeLlm llm = new Fakes.FakeLlm();
   public final Fakes.FakeGateway gateway = new Fakes.FakeGateway();
   public final Fakes.FakeRegistry registryClient;
-  public final InMemoryRunRepository runs;
-  public final InMemoryConversationMemory memory;
-  public final InMemoryConfirmationTokenStore tokenStore = new InMemoryConfirmationTokenStore();
+  public final Fakes.ObservableRunRepository runs;
+  public final Fakes.ObservableConversationMemory memory;
+  public final InMemoryConfirmationTokenStore tokenStore;
   public final ToolMetaRegistry meta;
   public final RunOrchestrator orchestrator;
 
@@ -74,10 +72,42 @@ public final class OrchestratorFixture {
 
   public OrchestratorFixture(
       List<ScreenBuilder> screens, List<ConfirmationRecheck> rechecks, boolean withCandidates) {
+    this(
+        screens,
+        rechecks,
+        withCandidates,
+        new Fakes.ObservableRunRepository(Duration.ofHours(1), Clock.fixed(NOW, ZoneOffset.UTC)),
+        new Fakes.ObservableConversationMemory(
+            Duration.ofMinutes(30), Clock.fixed(NOW, ZoneOffset.UTC)),
+        new InMemoryConfirmationTokenStore());
+  }
+
+  /**
+   * 模拟另一个 hub 副本：只共享 {@code runs} / {@code memory} / {@code tokenStore} 三个"存储"，其他协作者（LLM / Gateway
+   * / 屏 / 重校验 / 元数据）全部是新的实例。凭这三个共享存储就能完成确认，就是"Run 自包含"的证明。
+   */
+  public static OrchestratorFixture replicaOf(OrchestratorFixture a) {
+    return new OrchestratorFixture(
+        List.of(new Fakes.FakeScreens(Set.of(LIST, GET, CLOSE), Set.of(CLOSE))),
+        List.of(new Fakes.FakeRecheck(CLOSE, GET)),
+        true,
+        a.runs,
+        a.memory,
+        a.tokenStore);
+  }
+
+  private OrchestratorFixture(
+      List<ScreenBuilder> screens,
+      List<ConfirmationRecheck> rechecks,
+      boolean withCandidates,
+      Fakes.ObservableRunRepository runs,
+      Fakes.ObservableConversationMemory memory,
+      InMemoryConfirmationTokenStore tokenStore) {
     Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     this.registryClient = new Fakes.FakeRegistry(withCandidates ? candidates : List.of());
-    this.runs = new InMemoryRunRepository(Duration.ofHours(1), clock);
-    this.memory = new InMemoryConversationMemory(Duration.ofMinutes(30), clock);
+    this.runs = runs;
+    this.memory = memory;
+    this.tokenStore = tokenStore;
     this.meta =
         registry(
             meta(

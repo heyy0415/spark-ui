@@ -1,0 +1,33 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::               (v3.5.16)
+
+2026-09-13T17:19:09.999+08:00  INFO 37224 --- [           main] c.e.provider.ProviderDemoApplication     : Starting ProviderDemoApplication v0.1.0-SNAPSHOT using Java 21.0.11 with PID 37224 (/Users/fangtao/strato_ui/spark-rooter/examples/provider-demo/target/provider-demo.jar started by fangtao in /Users/fangtao/strato_ui)
+2026-09-13T17:19:10.000+08:00  INFO 37224 --- [           main] c.e.provider.ProviderDemoApplication     : No active profile set, falling back to 1 default profile: "default"
+2026-09-13T17:19:10.339+08:00  INFO 37224 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8094 (http)
+2026-09-13T17:19:10.346+08:00  INFO 37224 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-09-13T17:19:10.346+08:00  INFO 37224 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.55]
+2026-09-13T17:19:10.358+08:00  INFO 37224 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-09-13T17:19:10.359+08:00  INFO 37224 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 339 ms
+2026-09-13T17:19:10.412+08:00  INFO 37224 --- [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-09-13T17:19:10.553+08:00  WARN 37224 --- [           main] c.s.p.SparkProviderAutoConfiguration     : spark-provider: baseUrl http://127.0.0.1:8094 is plaintext HTTP; tool payloads travel unencrypted. Use HTTPS or mTLS in production.
+2026-09-13T17:19:10.593+08:00  INFO 37224 --- [           main] c.s.provider.ProviderToolScanner         : spark-provider: scanned inventory.stock.get@1.0.0 from InventoryTools#stock
+2026-09-13T17:19:10.663+08:00  INFO 37224 --- [           main] c.s.provider.ProviderToolScanner         : spark-provider: 1 tools scanned from 1 beans, service=inventory-service
+2026-09-13T17:19:10.675+08:00  INFO 37224 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8094 (http) with context path '/'
+2026-09-13T17:19:10.685+08:00  INFO 37224 --- [           main] c.e.provider.ProviderDemoApplication     : Started ProviderDemoApplication in 0.883 seconds (process running for 1.114)
+2026-09-13T17:19:10.713+08:00  INFO 37224 --- [           main] c.s.provider.ManifestPublisher           : spark-provider: published inventory.stock.get@1.0.0 to hub=http://127.0.0.1:8093
+2026-09-13T17:19:10.713+08:00  INFO 37224 --- [           main] c.s.provider.ManifestPublisher           : spark-provider: published 1/1 manifests
+2026-09-13T17:19:12.721+08:00  INFO 37224 --- [nio-8094-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-09-13T17:19:12.721+08:00  INFO 37224 --- [nio-8094-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-09-13T17:19:12.722+08:00  INFO 37224 --- [nio-8094-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-09-13T17:19:12.754+08:00  INFO 37224 --- [nio-8094-exec-1] c.s.provider.ProviderInvokeController    : provider_invoke_ok toolId=inventory.stock.get runId=run_e2e_provider
+2026-09-13T17:19:12.801+08:00  INFO 37224 --- [nio-8094-exec-2] c.s.provider.ProviderInvokeController    : provider_invoke_replayed toolId=inventory.stock.get runId=run_e2e_provider key=idem_e2e_1
+2026-09-13T17:19:12.811+08:00  WARN 37224 --- [nio-8094-exec-3] c.s.provider.ProviderInvokeController    : provider_invoke_denied toolId=inventory.stock.get runId=run_x reason=bad_token
+2026-09-13T17:19:12.877+08:00  INFO 37224 --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-09-13T17:19:12.883+08:00  INFO 37224 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete

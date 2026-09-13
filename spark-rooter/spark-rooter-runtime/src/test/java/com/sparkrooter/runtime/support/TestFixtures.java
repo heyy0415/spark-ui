@@ -111,11 +111,22 @@ public final class TestFixtures {
 
   public static ToolMeta meta(
       String toolId, List<String> prerequisites, String clarifiesEntity, ParamMeta... params) {
+    return meta(toolId, prerequisites, clarifiesEntity, false, params);
+  }
+
+  /** 带 sideEffect 的元数据（写工具）：编排器据此在客户端断开后决定能否提前终止。 */
+  public static ToolMeta meta(
+      String toolId,
+      List<String> prerequisites,
+      String clarifiesEntity,
+      boolean sideEffect,
+      ParamMeta... params) {
     Map<String, ParamMeta> byName = new LinkedHashMap<>();
     for (ParamMeta p : params) {
       byName.put(p.name(), p);
     }
-    return new ToolMeta(toolId, "1.0.0", "demo", prerequisites, clarifiesEntity, List.of(), byName);
+    return new ToolMeta(
+        toolId, "1.0.0", "demo", prerequisites, clarifiesEntity, List.of(), byName, sideEffect);
   }
 
   public static ToolMetaRegistry registry(ToolMeta... metas) {

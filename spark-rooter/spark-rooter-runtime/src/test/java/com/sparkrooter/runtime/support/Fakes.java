@@ -10,10 +10,15 @@ import com.sparkrooter.runtime.application.port.LlmClient;
 import com.sparkrooter.runtime.application.port.RunEventSink;
 import com.sparkrooter.runtime.application.port.ToolGatewayClient;
 import com.sparkrooter.runtime.application.port.ToolRegistryClient;
+import com.sparkrooter.runtime.domain.Run;
+import com.sparkrooter.runtime.infra.InMemoryConversationMemory;
+import com.sparkrooter.runtime.infra.InMemoryRunRepository;
 import com.sparkrooter.spi.ConfirmationRecheck;
 import com.sparkrooter.spi.ScreenBuilder;
 import com.sparkrooter.spi.ScreenContext;
 import com.sparkrooter.spi.UiNodes;
+import java.time.Clock;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -21,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -265,9 +271,17 @@ public final class Fakes {
     public final List<SseEvent> events = new ArrayList<>();
     public int closed;
 
+    /** 模拟客户端已断开：编排器据此在只读步骤前提前终止。emit 仍录制（断言用）。 */
+    public volatile boolean gone;
+
     @Override
     public void emit(SseEvent event) {
       events.add(event);
+    }
+
+    @Override
+    public boolean isClosed() {
+      return gone;
     }
 
     @Override
@@ -293,6 +307,41 @@ public final class Fakes {
         throw new AssertionError("no event " + eventName + " in " + names());
       }
       return hits.get(hits.size() - 1).data();
+    }
+  }
+
+  // ---------------------------------------------------------------- 可观察存储
+
+  /** 记录每次 save 时的 Run 状态：用来钉住"落库那一刻"的状态，而不是事后看对象引用（内存版对象引用会掩盖顺序 bug）。 */
+  public static final class ObservableRunRepository extends InMemoryRunRepository {
+    public volatile Consumer<Run> onSave = r -> {};
+
+    public ObservableRunRepository(Duration ttl, Clock clock) {
+      super(ttl, clock);
+    }
+
+    @Override
+    public void save(Run run) {
+      onSave.accept(run);
+      super.save(run);
+    }
+  }
+
+  /** 可让下一次 put 抛异常：模拟共享存储（Redis）写记忆失败。 */
+  public static final class ObservableConversationMemory extends InMemoryConversationMemory {
+    public volatile boolean failNextPut;
+
+    public ObservableConversationMemory(Duration ttl, Clock clock) {
+      super(ttl, clock);
+    }
+
+    @Override
+    public void put(String sessionId, String conversationId, Memory memory) {
+      if (failNextPut) {
+        failNextPut = false;
+        throw new IllegalStateException("memory store unavailable (test)");
+      }
+      super.put(sessionId, conversationId, memory);
     }
   }
 }

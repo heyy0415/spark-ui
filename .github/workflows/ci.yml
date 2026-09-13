@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 同一分支的新推送取消旧运行
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # change-dir 要求「恰一个非 DONE 的 change」；CI 上可能有多个，显式指到当前 change
+  SPARK_CHANGE: feat-production-hardening-20260912
+
+jobs:
+  gates:
+    name: 门禁（契约 / 依赖 / 单测 / 构建）
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      # Redis 契约测试（spark-rooter-redis）只在 6379 通时跑；没有它们会被 skip 而不是 pass
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: |
+            spark-ui/pnpm-lock.yaml
+            .harness/pnpm-lock.yaml
+
+      - name: 安装依赖
+        run: |
+          pnpm -C spark-ui install --frozen-lockfile
+          pnpm -C .harness install --frozen-lockfile
+
+      # ci.mjs 的 host-demo 步骤用 mvn -o（离线，证明只依赖本地仓）。host-demo 的 parent 是外部的
+      # spring-boot-starter-parent，缓存为空时它不在 `spark-rooter install` 的下载范围内，先联网解析一次
+      - name: 预热 host-demo 的 parent 与插件
+        working-directory: spark-rooter/examples/host-demo
+        run: mvn -q -B -DskipTests dependency:resolve-plugins
+
+      - name: shellcheck
+        run: sudo apt-get install -y -qq shellcheck
+
+      # 全量门禁：check-rename / check-contracts / check-module-deps / check-seed /
+      # check-log-assertions / check-shell / spark-ui ci / spark-rooter install（含单测）/ host-demo 离线打包
+      - name: pnpm -C .harness run ci
+        run: pnpm -C .harness run ci
+
+      - name: pnpm -C .harness run doctor
+        run: pnpm -C .harness run doctor
+
+      # e2e（e2e-backend / e2e-frontend / deploy-verify / e2e-provider / e2e-multi-instance）不在 CI 跑：
+      # 需要两三个进程与 Playwright 浏览器，首版 CI 只守门禁。本地命令见 README「开发与质量门禁」

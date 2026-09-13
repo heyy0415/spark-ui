@@ -254,6 +254,99 @@ final class RunOrchestratorConfirmTest {
     assertThat(f.runs.find(runId)).map(r -> r.state()).contains(RunState.FAILED);
   }
 
+  // ---------------------------------------------------------------- 多副本：在 A 发起，在 B 确认
+
+  /**
+   * 确认落到另一个编排器实例（模拟另一个 hub 副本），只共享 RunRepository / 令牌表 / 记忆：仍能重校验并执行。
+   *
+   * <p>改造前确认屏所需的前置输出与 lastUi 都在实例 A 的 Map 里，B 拿不到——这条就是"临时态进 Run 聚合"要证明的事。
+   */
+  @Test
+  void confirmOnAnotherReplicaSucceedsWithSharedRepository() {
+    OrchestratorFixture a = new OrchestratorFixture();
+    Fakes.RecordingSink first = new Fakes.RecordingSink();
+    String runId = startUntilWaiting(a, first, "OPEN");
+    String token = tokenOf(first);
+
+    // 副本 B：共享 A 的 runs / tokenStore / memory，其他协作者全新
+    OrchestratorFixture b = OrchestratorFixture.replicaOf(a);
+    b.gateway.on(
+        GET,
+        args ->
+            MAPPER
+                .createObjectNode()
+                .put("itemId", "10001")
+                .put("status", "OPEN")
+                .put("amount", "9.50"));
+    b.gateway.on(CLOSE, args -> MAPPER.createObjectNode().put("closed", true));
+    Fakes.RecordingSink sink = new Fakes.RecordingSink();
+
+    b.orchestrator.confirm(
+        runId, "confirm-close", token, Map.of("reason", "DAMAGED"), SESSION, TRACE, sink);
+
+    assertThat(sink.names()).endsWith("ui.replace", "run.completed");
+    assertThat(b.gateway.calledToolIds()).containsExactly(GET, CLOSE);
+    assertThat(b.gateway.calls.get(1).arguments().path("amount").asText()).isEqualTo("9.50");
+    assertThat(a.runs.find(runId)).map(r -> r.state()).contains(RunState.COMPLETED);
+    // A 上重放同一令牌：已被 B 消费 → 拒绝且状态不变
+    Fakes.RecordingSink replay = new Fakes.RecordingSink();
+    a.orchestrator.confirm(
+        runId, "confirm-close", token, Map.of("reason", "DAMAGED"), SESSION, TRACE, replay);
+    assertThat(replay.data("run.failed").path("code").asText()).isEqualTo("CONFIRMATION_REJECTED");
+    assertThat(a.runs.find(runId)).map(r -> r.state()).contains(RunState.COMPLETED);
+  }
+
+  /**
+   * 并发确认只有一个通过（agent-safety §3）。互斥完全靠令牌原子消费——没有实例内的锁。
+   *
+   * <p>32 个线程同时用同一令牌确认：恰好 1 个执行了目标工具，其余 31 个被拒且 Run 仍是 COMPLETED。
+   */
+  @Test
+  void concurrentConfirmationsExecuteExactlyOnce() throws Exception {
+    OrchestratorFixture f = new OrchestratorFixture();
+    Fakes.RecordingSink first = new Fakes.RecordingSink();
+    String runId = startUntilWaiting(f, first, "OPEN");
+    String token = tokenOf(first);
+    int threads = 32;
+    java.util.concurrent.ExecutorService pool =
+        java.util.concurrent.Executors.newFixedThreadPool(threads);
+    java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+    java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(threads);
+    java.util.List<Fakes.RecordingSink> sinks =
+        java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+    try {
+      for (int i = 0; i < threads; i++) {
+        pool.submit(
+            () -> {
+              Fakes.RecordingSink s = new Fakes.RecordingSink();
+              sinks.add(s);
+              try {
+                start.await();
+                f.orchestrator.confirm(
+                    runId, "confirm-close", token, Map.of("reason", "DAMAGED"), SESSION, TRACE, s);
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+              } finally {
+                done.countDown();
+              }
+            });
+      }
+      start.countDown();
+      assertThat(done.await(10, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+    } finally {
+      pool.shutdownNow();
+    }
+
+    long completed = sinks.stream().filter(s -> s.names().contains("run.completed")).count();
+    long rejected = sinks.stream().filter(s -> s.names().equals(List.of("run.failed"))).count();
+    assertThat(completed).as("恰好一个确认真正执行").isEqualTo(1);
+    assertThat(rejected).isEqualTo(threads - 1);
+    assertThat(f.gateway.calledToolIds().stream().filter(CLOSE::equals).count())
+        .as("目标工具只执行一次")
+        .isEqualTo(1);
+    assertThat(f.runs.find(runId)).map(r -> r.state()).contains(RunState.COMPLETED);
+  }
+
   // 附：未知 runId 的确认 → RunNotFound
   @Test
   void confirmUnknownRunThrowsRunNotFound() {

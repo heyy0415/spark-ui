@@ -114,4 +114,78 @@ final class RunTest {
     assertThat(plan().step(2).toolId()).isEqualTo("demo.item.close");
     assertThatThrownBy(() -> plan().step(3)).isInstanceOf(IllegalArgumentException.class);
   }
+
+  // ---------------------------------------------------------------- 自包含状态（多副本前置）
+
+  /** attachPlan 只快照计划里出现的工具 schema；其余候选丢弃。 */
+  @Test
+  void attachPlanSnapshotsSchemasForPlannedToolsOnly() {
+    Run r = run();
+    r.attachPlan(
+        plan(),
+        Map.of(
+            "demo.item.get", "{\"type\":\"object\"}",
+            "demo.item.close", "{\"type\":\"object\",\"x\":1}",
+            "demo.item.list", "{\"unused\":true}"),
+        T1);
+    assertThat(r.stepSchemas().keySet())
+        .containsExactlyInAnyOrder("demo.item.get", "demo.item.close");
+    assertThat(r.stepSchema("demo.item.list")).isEmpty();
+  }
+
+  /** 屏 / 前置输出 / 澄清标记都是可变状态，写入刷新 updatedAt；clearStepOutputs 只清输出不清屏。 */
+  @Test
+  void transientStateLivesOnRunAndClearsSelectively() {
+    Run r = run();
+    r.setCurrentUi("{\"screenId\":\"s\"}", T1);
+    r.putStepOutput("demo.item.get", "{\"status\":\"OPEN\"}", T1.plusSeconds(1));
+    r.markClarified(T1.plusSeconds(2));
+
+    assertThat(r.currentUi()).contains("{\"screenId\":\"s\"}");
+    assertThat(r.stepOutput("demo.item.get")).contains("{\"status\":\"OPEN\"}");
+    assertThat(r.clarified()).isTrue();
+    assertThat(r.updatedAt()).isEqualTo(T1.plusSeconds(2));
+
+    r.clearStepOutputs();
+    assertThat(r.stepOutputs()).isEmpty();
+    assertThat(r.currentUi()).isPresent();
+  }
+
+  /** restore 逐字段还原（供共享存储反序列化）；不校验迁移合法性——快照里的状态就是事实。 */
+  @Test
+  void restoreRebuildsEveryField() {
+    Run restored =
+        Run.restore(
+            "run_r",
+            "conv",
+            "sess",
+            "msg",
+            T0,
+            T1,
+            RunState.WAITING_CONFIRMATION,
+            plan(),
+            2,
+            null,
+            "{\"screenId\":\"c\"}",
+            Map.of("demo.item.get", "{\"a\":1}"),
+            Map.of("demo.item.close", "{\"type\":\"object\"}"),
+            true);
+    assertThat(restored.runId()).isEqualTo("run_r");
+    assertThat(restored.state()).isEqualTo(RunState.WAITING_CONFIRMATION);
+    assertThat(restored.createdAt()).isEqualTo(T0);
+    assertThat(restored.updatedAt()).isEqualTo(T1);
+    assertThat(restored.nextSeq()).isEqualTo(2);
+    assertThat(restored.currentStep()).map(Step::toolId).contains("demo.item.close");
+    assertThat(restored.currentUi()).contains("{\"screenId\":\"c\"}");
+    assertThat(restored.stepOutput("demo.item.get")).contains("{\"a\":1}");
+    assertThat(restored.stepSchema("demo.item.close")).isPresent();
+    assertThat(restored.clarified()).isTrue();
+    assertThat(restored.failureCode()).isEmpty();
+    // null 集合安全
+    Run bare =
+        Run.restore(
+            "r", "c", "s", "m", T0, T0, RunState.CREATED, null, 1, null, null, null, null, false);
+    assertThat(bare.stepOutputs()).isEmpty();
+    assertThat(bare.stepSchemas()).isEmpty();
+  }
 }

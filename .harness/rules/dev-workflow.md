@@ -80,7 +80,7 @@
 | 项 | 内容 |
 |---|---|
 | 入场 | 阶段 5 完成 |
-| Skill | （CI 中触发） |
+| Skill | （CI 中触发：`.github/workflows/ci.yml` 在 push / PR 时跑同一条命令；e2e 不在 CI，本地跑） |
 | 产出 | `ci_result/ci_summary.md`（各步骤退出码、前端 bundle 大小、后端 jar 大小） |
 | 门禁（**程序化**） | `pnpm -C .harness run ci` 退出码 == 0（9 步：check-rename / check-contracts / check-module-deps / check-seed / check-log-assertions / check-shell / spark-ui ci / spark-rooter install / host-demo 离线打包） |
 | 规划器口径 | 未设 `SPARK_LLM_*` 时，e2e 与 deploy-verify 走示例宿主的假规划器（`planner=fake-e2e`）。验的是校验边界 / 编排 / 网关 / 领域 / 前端渲染；**模型的意图理解质量不在这套验收覆盖范围**，需带真 key 单独验 |

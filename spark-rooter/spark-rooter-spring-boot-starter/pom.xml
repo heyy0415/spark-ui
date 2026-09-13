@@ -33,6 +33,13 @@
       <artifactId>micrometer-core</artifactId>
       <optional>true</optional>
     </dependency>
+    <!-- 健康探针：同 micrometer 的理由，optional=true 是硬要求。宿主装了 actuator 才有 HealthIndicator，
+         @ConditionalOnClass 据此装配 readiness 指示器；没装的宿主连类加载都不发生。 -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-actuator</artifactId>
+      <optional>true</optional>
+    </dependency>
     <!-- 单元测试：版本由 spring-boot-dependencies 管理 -->
     <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
     <dependency><groupId>org.assertj</groupId><artifactId>assertj-core</artifactId><scope>test</scope></dependency>

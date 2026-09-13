@@ -379,6 +379,25 @@ echo "--- 无能力路径"
 curl -s -N --max-time "$SSE_T" -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_003","message":"今天天气怎么样","clientCapabilities":{"uiSchemaVersion":"1.0","components":["Card"]}}' > "$DEPLOY/nocap_events.log"
 check "events" "run.started message.delta run.completed" "$(events "$DEPLOY/nocap_events.log")"
 
+echo "--- 客户端断开后只读步骤提前终止（feat-production-hardening T04）"
+# 发起一条 3 步只读链后 0.3s 就断开；编排器在下一步只读工具前看到 sink 已关 → 终止并记 run abandoned。
+# fake planner 毫秒级，0.3s 内至少 run.started 已发出、第一步可能已在跑；断开后剩余步骤不该再调 Gateway。
+curl -s -N --max-time 0.3 -X POST "$BASE/agent/runs" "${HDR[@]}" -d '{"conversationId":"conv_gone","message":"看看我的订单",'"$CAP"'}' > "$DEPLOY/gone_events.log" 2>/dev/null
+sleep 1
+GONE_ID=$(runid_of gone_events 2>/dev/null || data "$DEPLOY/gone_events.log" run.started | json "d['runId']")
+if [ -n "$GONE_ID" ]; then
+  gone_state=$(curl -s "$BASE/agent/runs/$GONE_ID" | json "d['state']")
+  # 只读单步链：断开时若第一步已完成则 Run 已 COMPLETED（终止点在"下一步之前"，没有下一步）；
+  # 若尚未执行则 FAILED + abandoned。两种都是正确行为，断言的是"没有第三种"
+  check "client-gone run reaches a terminal state" 1 "$([ "$gone_state" = "COMPLETED" ] || [ "$gone_state" = "FAILED" ] && echo 1 || echo 0)"
+else
+  check "client-gone run.started captured" 1 0
+fi
+# 不在 e2e 里断言「剩余只读步骤被终止」：fake planner 下三步退款链全程 ~2ms，curl 最短 --max-time 0.05s
+# 也来不及在两步之间断开（实测两步都在断开前完成，断言恒 0）。这条行为由 RunOrchestratorTest 的
+# clientGoneBeforeReadOnlyStepAbandonsRun / clientGoneBeforeWriteStepStillExecutes 用可控的 sink 证明；
+# e2e 只守「断开后 Run 必到终态、不悬挂」这一条可观测结果。
+
 echo "--- 其他"
 check "unknown runId → 404" 404 "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/agent/runs/run_nope/actions/x" "${HDR[@]}" -d '{"confirmationToken":"ct_xxxxxxxxxxxxxxxx","formData":{}}')"
 check "§6.2.14 audit fields" 9 "$(grep -m1 'audit runId=' "$DEPLOY/backend.log" | grep -o '[a-zA-Z]*=' | wc -l | tr -d ' ')"

@@ -289,4 +289,120 @@ final class RunOrchestratorTest {
     assertThat(f.orchestrator.find("run_nope")).isEmpty();
     assertThat(f.orchestrator.lastUi("run_nope")).isEmpty();
   }
+
+  // ---------------------------------------------------------------- Run 自包含（多副本前置）
+
+  /**
+   * 最近一次屏从仓储读，不在编排器实例里：第二个编排器（模拟另一个 hub 副本）共享同一仓储即能取到同一屏。
+   *
+   * <p>改造前 lastUi 是实例内的 Map，这条会得到 empty——它就是"确认请求可以落到任意副本"的最小证明。
+   */
+  @Test
+  void lastUiIsReadFromRepositoryNotFromInstance() {
+    OrchestratorFixture f = new OrchestratorFixture();
+    f.llm.returns(new LlmClient.Planned(plan(step(1, GET, Map.of("itemId", "10001"), false))));
+    f.gateway.on(GET, args -> MAPPER.createObjectNode().put("itemId", "10001"));
+    String runId = f.start("看看 10001", new Fakes.RecordingSink());
+
+    // 另一个副本：全新的编排器，只共享 RunRepository
+    OrchestratorFixture other = OrchestratorFixture.replicaOf(f);
+
+    assertThat(other.orchestrator.lastUi(runId)).isPresent();
+    assertThat(other.orchestrator.lastUi(runId).map(u -> u.components().get(0).type().name()))
+        .contains("Card");
+    assertThat(f.runs.find(runId).flatMap(r -> r.currentUi())).isPresent();
+  }
+
+  /** 计划各步骤的 inputSchema 随 Run 快照（不依赖注册表当下状态）；只保留计划里的工具。 */
+  @Test
+  void attachPlanSnapshotsOnlyPlannedToolSchemas() {
+    OrchestratorFixture f = new OrchestratorFixture();
+    f.llm.returns(new LlmClient.Planned(plan(step(1, GET, Map.of("itemId", "10001"), false))));
+    f.gateway.on(GET, args -> MAPPER.createObjectNode());
+    String runId = f.start("看看 10001", new Fakes.RecordingSink());
+
+    var run = f.runs.find(runId).orElseThrow();
+    assertThat(run.stepSchemas().keySet()).containsExactly(GET);
+    assertThat(run.stepSchema(GET).orElseThrow()).contains("\"itemId\"");
+    // 终态后前置输出已清空，屏保留
+    assertThat(run.stepOutputs()).isEmpty();
+    assertThat(run.currentUi()).isPresent();
+  }
+
+  // ---------------------------------------------------------------- 客户端断开
+
+  /** 断开后下一步是只读工具：终止，不再调用 Gateway，Run FAILED（没人在看结果，白烧一次调用）。 */
+  @Test
+  void clientGoneBeforeReadOnlyStepAbandonsRun() {
+    OrchestratorFixture f = new OrchestratorFixture();
+    f.llm.returns(new LlmClient.Planned(plan(step(1, GET, Map.of("itemId", "10001"), false))));
+    f.gateway.on(GET, args -> MAPPER.createObjectNode());
+    Fakes.RecordingSink sink = new Fakes.RecordingSink();
+    sink.gone = true;
+
+    String runId = f.start("看看 10001", sink);
+
+    assertThat(f.gateway.calls).as("只读步骤不该再执行").isEmpty();
+    assertThat(f.runs.find(runId)).map(r -> r.state()).contains(RunState.FAILED);
+    assertThat(f.runs.find(runId).flatMap(r -> r.failureCode())).contains("INTERNAL_ERROR");
+  }
+
+  /** 断开后下一步是写工具：照跑——不留半截的写链。 */
+  @Test
+  void clientGoneBeforeWriteStepStillExecutes() {
+    OrchestratorFixture f = new OrchestratorFixture();
+    String touch = "demo.item.touch";
+    f.meta.register(
+        com.sparkrooter.runtime.support.TestFixtures.meta(touch, List.of(), null, true));
+    f.llm.returns(new LlmClient.Planned(plan(step(1, touch, Map.of(), false))));
+    f.gateway.on(touch, args -> MAPPER.createObjectNode().put("touched", true));
+    Fakes.RecordingSink sink = new Fakes.RecordingSink();
+    sink.gone = true;
+
+    String runId = f.start("touch", sink);
+
+    assertThat(f.gateway.calledToolIds()).containsExactly(touch);
+    assertThat(f.runs.find(runId)).map(r -> r.state()).contains(RunState.COMPLETED);
+  }
+
+  /** 元数据里没有这个工具（如 http provider 工具）：取不到 sideEffect 视为写，fail-safe 照跑。 */
+  @Test
+  void clientGoneWithUnknownToolMetaIsTreatedAsWrite() {
+    OrchestratorFixture f = new OrchestratorFixture();
+    String unknown = "demo.item.remote";
+    f.llm.returns(new LlmClient.Planned(plan(step(1, unknown, Map.of(), false))));
+    f.gateway.on(unknown, args -> MAPPER.createObjectNode().put("ok", true));
+    Fakes.RecordingSink sink = new Fakes.RecordingSink();
+    sink.gone = true;
+
+    String runId = f.start("remote", sink);
+
+    assertThat(f.gateway.calledToolIds()).containsExactly(unknown);
+    assertThat(f.runs.find(runId)).map(r -> r.state()).contains(RunState.COMPLETED);
+  }
+
+  // ---------------------------------------------------------------- 终态落库顺序（多副本）
+
+  /**
+   * 记忆写入抛异常，Run 仍必须以 COMPLETED 落库。
+   *
+   * <p>改造前顺序是 remember → save；remember 抛了就跳过 save，共享存储里的 Run 永远停在 EXECUTING，另一副本看到一个 永远"执行中"的
+   * Run。内存版对象引用已是 COMPLETED 所以看不出来——这是只在多副本下暴露的顺序 bug（评审 F-3）。 用一个 save 时快照状态的仓储把"落库那一刻的状态"钉住。
+   */
+  @Test
+  void completeSavesTerminalStateEvenIfMemoryWriteThrows() {
+    OrchestratorFixture f = new OrchestratorFixture();
+    f.memory.failNextPut = true;
+    java.util.List<RunState> savedStates = new java.util.ArrayList<>();
+    f.runs.onSave = r -> savedStates.add(r.state());
+    f.llm.returns(new LlmClient.Planned(plan(step(1, GET, Map.of("itemId", "10001"), false))));
+    f.gateway.on(GET, args -> MAPPER.createObjectNode().put("itemId", "10001"));
+    Fakes.RecordingSink sink = new Fakes.RecordingSink();
+
+    String runId = f.start("看看 10001", sink);
+
+    assertThat(savedStates).as("落库过 COMPLETED").contains(RunState.COMPLETED);
+    assertThat(f.runs.find(runId)).map(r -> r.state()).contains(RunState.COMPLETED);
+    assertThat(sink.names()).endsWith("run.completed");
+  }
 }

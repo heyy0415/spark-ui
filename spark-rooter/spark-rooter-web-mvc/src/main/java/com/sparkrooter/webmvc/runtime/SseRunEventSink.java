@@ -64,6 +64,11 @@ final class SseRunEventSink implements RunEventSink {
   }
 
   @Override
+  public boolean isClosed() {
+    return closed.get();
+  }
+
+  @Override
   public void close() {
     if (closed.compareAndSet(false, true)) {
       ping.cancel(false);

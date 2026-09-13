@@ -20,7 +20,8 @@ Java 21 / Spring Boot 3.5 / Spring AI 1.1 / Maven 多模块。**形态是一个 
 | `spark-rooter-registry` | 注册 / 发现 / 版本；无转发端点 | [README](spark-rooter-registry/README.md) |
 | `spark-rooter-gateway` | 校验 → 幂等 → 经 Spring 代理调用 → 输出校验 → 脱敏 → 审计 | [README](spark-rooter-gateway/README.md) |
 | `spark-rooter-web-mvc` | `/agent/runs` SSE 端点、`/internal/**`（可选）、异常映射；唯一依赖 starter-web 的平台模块 | — |
-| `spark-rooter-spring-boot-starter` | `AutoConfiguration.imports`、`spark.*` 属性、全部默认实现 `@ConditionalOnMissingBean`、`@SparkTool` 扫描 / Manifest 推导 / 代理调用适配、启动自检 | — |
+| `spark-rooter-spring-boot-starter` | `AutoConfiguration.imports`、`spark.*` 属性、全部默认实现 `@ConditionalOnMissingBean`、`@SparkTool` 扫描 / Manifest 推导 / 代理调用适配、启动自检、readiness 指示器（宿主有 actuator 时） | — |
+| `spark-rooter-redis` | **可选**。四个状态存储的 Redis 实现（`spark.storage.type=redis` 时装配），hub 多副本用；只依赖平台模块，平台模块不得反向依赖它 | — |
 | `examples/demo-support` | 示例宿主的 mock 用户上下文 `DemoUserContext` + 示例领域间的 `OrderSnapshotProvider` 只读端口（纯 JDK；tenantId 等业务字段只在这里，内核不识别） | — |
 | `examples/domains/*` | 四个示例领域（order / product / aftersale / refund，12 个工具）`@SparkTool` 形态 + `ScreenBuilder` / `ConfirmationRecheck` + 种子数据 | 各目录 README |
 | `examples/host-demo` | **独立 Maven 工程**（parent `spring-boot-starter-parent`，不在根 modules）：引入 starter + 示例领域即可运行的验收物；含拦截器、传播器、方法级权限切面正反例 | [README](examples/host-demo/README.md) |
@@ -51,6 +52,10 @@ bash .harness/scripts/e2e-backend.sh                        # 端到端验收（
 | `spark.runtime.ping-pool` | 2 | SSE 心跳调度。队列无法设界（`ScheduledThreadPoolExecutor` 用私有的 DelayedWorkQueue），但任务是固定 15s 心跳、数量与活跃连接同阶，不会独立失控 |
 | `spark.runtime.sse-timeout / token-ttl / memory-ttl` | 90s / 10m / 30m | SSE 超时、确认令牌有效期、会话记忆有效期 |
 | `spark.gateway.tool-pool / tool-queue` | 8 / 64 | 工具执行池与队列。64 取 `run-queue` 的 2 倍，因为一个 Run 可能有多个工具步骤（退款链是 3 步）。队列满时该 Run 失败为 `TOOL_EXECUTION_FAILED` |
+| `spark.gateway.max-concurrent-per-session` | 4 | 单会话在飞工具调用上限，≤ 0 关闭。防只读查询洪水：一个会话不能占满整池 |
+| `spark.gateway.idempotency-ttl` | `24h` | 幂等结果保留窗口。内存实现按它淘汰已完成记录（每 64 次 complete 扫一遍）；Redis 实现作 key TTL。应长于任何合理的客户端重试窗口 |
+| `spark.storage.type` | `memory` | 四个状态存储（Run / 确认令牌 / 幂等 / 会话记忆）放哪。`memory` 单副本可用、重启即丢；`redis` 需引 `spark-rooter-redis` 并配 `spring.data.redis.*`，hub 可任意多副本。配了 redis 却没装配到会启动 WARN 并回落内存——多副本下那是数据错误，不是降级 |
+| `spark.storage.redis.claim-ttl` | `5m` | 幂等占位 key 的存活时间，**必须大于任何工具的 `timeoutMs`**：占位在 owner 执行完之前过期，等待方会重 claim，同一个写操作就执行两次 |
 | `spark.web.base-path` | `/agent` | `/runs` 端点前缀 |
 | `spark.web.internal-endpoints` | `false` | 是否装配 `/internal/**` 三个端点 |
 | `spark.selfcheck.enabled` | `false` | 启动自检（示例宿主打开；生产建议关） |

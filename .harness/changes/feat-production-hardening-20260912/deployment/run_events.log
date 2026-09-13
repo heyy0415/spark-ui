@@ -1,0 +1,27 @@
+event:run.started
+data:{"runId":"run_6b2a438b053143ff","conversationId":"conv_001","at":"2026-09-13T09:19:58.585523Z"}
+
+event:tool.selected
+data:{"runId":"run_6b2a438b053143ff","toolCallId":"tc_000001","toolId":"refund.eligibility.check","version":"1.3.0","displayName":"检查退款资格"}
+
+event:tool.started
+data:{"runId":"run_6b2a438b053143ff","toolCallId":"tc_000001","at":"2026-09-13T09:19:58.590843Z"}
+
+event:tool.completed
+data:{"runId":"run_6b2a438b053143ff","toolCallId":"tc_000001","status":"succeeded","durationMs":1,"summary":"订单满足退款条件"}
+
+event:tool.selected
+data:{"runId":"run_6b2a438b053143ff","toolCallId":"tc_000002","toolId":"refund.preview","version":"1.3.0","displayName":"退款试算"}
+
+event:tool.started
+data:{"runId":"run_6b2a438b053143ff","toolCallId":"tc_000002","at":"2026-09-13T09:19:58.594778Z"}
+
+event:tool.completed
+data:{"runId":"run_6b2a438b053143ff","toolCallId":"tc_000002","status":"succeeded","durationMs":0,"summary":"可退 128.00 元，预计 3 天到账"}
+
+event:ui.replace
+data:{"runId":"run_6b2a438b053143ff","ui":{"schemaVersion":"1.0","screenId":"refund-confirmation","title":"确认退款","components":[{"id":"order","type":"Card","props":{"title":"订单 10001","items":[{"label":"商品","value":"精品咖啡豆 500g"},{"label":"件数","value":"1"},{"label":"金额","value":"128.00 CNY"},{"label":"状态","value":"PAID"}]}},{"id":"refund-summary","type":"Card","props":{"title":"退款信息","items":[{"label":"退款金额","value":"128.00"},{"label":"币种","value":"CNY"},{"label":"退款资格","value":"满足","tone":"success"},{"label":"预计到账","value":"3 天"}]}},{"id":"refund-form","type":"Form","props":{"fields":[{"name":"reason","type":"select","label":"退款原因","required":true,"options":[{"label":"商品破损","value":"DAMAGED"},{"label":"未收到货","value":"NOT_RECEIVED"},{"label":"买错了","value":"CHANGED_MIND"}]}]}}],"actions":[{"id":"confirm-refund","type":"submit","label":"确认退款","style":"danger","confirmationToken":"ct_nqLrVYrFs2TuYL_DXA7Rt7JYWsPx1v76"},{"id":"cancel","type":"cancel","label":"取消","style":"default"}]}}
+
+event:confirmation.required
+data:{"runId":"run_6b2a438b053143ff","actionId":"confirm-refund","expiresAt":"2026-09-13T09:29:58.596450Z"}
+

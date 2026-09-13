@@ -134,6 +134,45 @@ final class InMemoryStoresTest {
     assertThat(store.consume("ct_never")).isEmpty();
   }
 
+  /**
+   * 令牌表写入时清扫过期项（B1）。
+   *
+   * <p>用户看到确认屏却不点是常态，这些令牌到期后没人再来消费；不清扫则表随「发起但未确认」次数无界增长。
+   */
+  @Test
+  void tokenStorePutSweepsExpiredTokens() {
+    MutableClock clock = new MutableClock(T0);
+    InMemoryConfirmationTokenStore store = new InMemoryConfirmationTokenStore(clock);
+    Instant tenMin = T0.plus(Duration.ofMinutes(10));
+    store.put(token("ct_old1", tenMin));
+    store.put(token("ct_old2", tenMin));
+    clock.advance(Duration.ofMinutes(11));
+    // 第三个令牌在 11 分钟后签发，自身未过期
+    store.put(token("ct_fresh", clock.instant().plus(Duration.ofMinutes(10))));
+
+    assertThat(store.size()).as("两个过期令牌应在写入时被清掉").isEqualTo(1);
+    assertThat(store.consume("ct_old1")).isEmpty();
+    assertThat(store.consume("ct_fresh")).isPresent();
+  }
+
+  /** 未过期的令牌不会被清扫误伤——清扫只看 expiresAt。 */
+  @Test
+  void tokenStoreSweepKeepsLiveTokens() {
+    MutableClock clock = new MutableClock(T0);
+    InMemoryConfirmationTokenStore store = new InMemoryConfirmationTokenStore(clock);
+    Instant tenMin = T0.plus(Duration.ofMinutes(10));
+    store.put(token("ct_a", tenMin));
+    clock.advance(Duration.ofMinutes(9));
+    store.put(token("ct_b", clock.instant().plus(Duration.ofMinutes(10))));
+
+    assertThat(store.size()).isEqualTo(2);
+    assertThat(store.consume("ct_a")).isPresent();
+  }
+
+  private static ConfirmationToken token(String id, Instant expiresAt) {
+    return new ConfirmationToken(id, "run_1", "confirm", 1, "d", "c", "s", Set.of(), expiresAt);
+  }
+
   @Test
   void tokenRecordCopiesFormKeys() {
     Set<String> keys = new java.util.HashSet<>(Set.of("reason"));

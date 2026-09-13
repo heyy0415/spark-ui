@@ -5,6 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.sparkrooter.contracts.model.SseEvent;
 import com.sparkrooter.contracts.model.ToolInvoke;
 import com.sparkrooter.gateway.domain.IdempotencyStore.Claim;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -88,6 +92,93 @@ final class InMemoryIdempotencyStoreTest {
     assertThat(store.find(SCOPE, "unknown")).isEmpty();
     store.claim(SCOPE, "held");
     assertThat(store.find(SCOPE, "held")).isEmpty();
+  }
+
+  // ---------------------------------------------------------------- TTL 淘汰（B2）
+
+  /** 可手动前进的时钟。 */
+  static final class MutableClock extends Clock {
+    private Instant now;
+
+    MutableClock(Instant start) {
+      this.now = start;
+    }
+
+    void advance(Duration d) {
+      now = now.plus(d);
+    }
+
+    @Override
+    public ZoneOffset getZone() {
+      return ZoneOffset.UTC;
+    }
+
+    @Override
+    public Clock withZone(java.time.ZoneId zone) {
+      return this;
+    }
+
+    @Override
+    public Instant instant() {
+      return now;
+    }
+  }
+
+  private static final Instant T0 = Instant.parse("2026-09-13T00:00:00Z");
+
+  /**
+   * 已完成且超过 TTL 的记录被清掉；未过期的保留。
+   *
+   * <p>release 刻意不删已完成的 key（否则重放失效），于是每次幂等写留一条永久记录——不淘汰就随写操作数无界增长。
+   */
+  @Test
+  void sweepRemovesCompletedEntriesOlderThanTtl() {
+    MutableClock clock = new MutableClock(T0);
+    InMemoryIdempotencyStore s = new InMemoryIdempotencyStore(Duration.ofHours(1), clock);
+    s.claim(SCOPE, "old");
+    s.complete(SCOPE, "old", response("tc_old"));
+    clock.advance(Duration.ofMinutes(59));
+    s.claim(SCOPE, "fresh");
+    s.complete(SCOPE, "fresh", response("tc_fresh"));
+    clock.advance(Duration.ofMinutes(2));
+
+    s.sweep();
+
+    assertThat(s.find(SCOPE, "old")).as("完成于 61 分钟前，应被淘汰").isEmpty();
+    assertThat(s.find(SCOPE, "fresh")).as("完成于 2 分钟前，应保留").isPresent();
+    assertThat(s.size()).isEqualTo(1);
+  }
+
+  /** 占位中的槽位没有 completedAt，无论多久都不能被清扫——它由执行者的 complete / release 收尾。 */
+  @Test
+  void sweepNeverRemovesPendingClaims() {
+    MutableClock clock = new MutableClock(T0);
+    InMemoryIdempotencyStore s = new InMemoryIdempotencyStore(Duration.ofMinutes(1), clock);
+    s.claim(SCOPE, "pending");
+    clock.advance(Duration.ofDays(1));
+
+    s.sweep();
+
+    assertThat(s.size()).isEqualTo(1);
+    assertThat(s.claim(SCOPE, "pending")).isInstanceOf(Claim.Awaiting.class);
+  }
+
+  /** 清扫按 complete 次数节流触发，不需要外部调度器。 */
+  @Test
+  void completeTriggersSweepEveryNCalls() {
+    MutableClock clock = new MutableClock(T0);
+    InMemoryIdempotencyStore s = new InMemoryIdempotencyStore(Duration.ofMinutes(1), clock);
+    s.claim(SCOPE, "stale");
+    s.complete(SCOPE, "stale", response("tc_stale"));
+    clock.advance(Duration.ofMinutes(5));
+    // 再做 SWEEP_EVERY - 1 次 complete：第 SWEEP_EVERY 次触发清扫
+    for (int i = 1; i < InMemoryIdempotencyStore.SWEEP_EVERY; i++) {
+      s.claim(SCOPE, "k" + i);
+      s.complete(SCOPE, "k" + i, response("tc_" + i));
+    }
+
+    assertThat(s.find(SCOPE, "stale")).as("第 SWEEP_EVERY 次 complete 应触发清扫").isEmpty();
+    assertThat(s.find(SCOPE, "k1")).isPresent();
   }
 
   private static ToolInvoke.Response response(String toolCallId) {

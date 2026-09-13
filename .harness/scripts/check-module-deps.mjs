@@ -224,6 +224,48 @@ for (const mod of ['spark-rooter-spi', 'spark-rooter-contracts']) {
   }
 }
 
+// Redis 是可选模块，不得倒灌进平台（feat-production-hardening T03）。
+// spark-rooter-redis 依赖平台模块是正常方向；反过来任何平台模块 / provider-starter 依赖它，
+// 就把「多副本才需要的 Redis」强塞给了每个单副本宿主。spring-data-redis 同理。
+{
+  const REDIS_FORBIDDEN_IN = [
+    'spark-rooter-spi', 'spark-rooter-contracts', 'spark-rooter-runtime', 'spark-rooter-registry',
+    'spark-rooter-gateway', 'spark-rooter-web-mvc', 'spark-rooter-spring-boot-starter',
+    'spark-provider-spring-boot-starter',
+  ];
+  for (const mod of REDIS_FORBIDDEN_IN) {
+    const pom = join(sparkRooterDir, mod, 'pom.xml');
+    if (!existsSync(pom)) continue;
+    const text = await readFile(pom, 'utf-8');
+    const depsBlock = (text.match(/<dependencies>([\s\S]*?)<\/dependencies>/g) ?? []).join('\n');
+    if (depsBlock.includes('<artifactId>spark-rooter-redis</artifactId>')) {
+      fail(`${mod}/pom.xml must not depend on spark-rooter-redis (optional storage must not flow back into the platform)`);
+    }
+    for (const m of depsBlock.matchAll(/<artifactId>((?:spring-boot-starter-data-redis|spring-data-redis|lettuce-core|jedis)[\w-]*)<\/artifactId>/g)) {
+      fail(`${mod}/pom.xml must not depend on "${m[1]}" (Redis lives only in spark-rooter-redis)`);
+    }
+  }
+}
+
+// examples/* 不得直接出现在 <modules>（feat-production-hardening T06）。
+// 它们在 examples profile 里（默认激活）：别人 `mvn deploy -P '!examples'` 才能只发 8 个平台 artifact，
+// 不把 order-service 这类示例领域推进自己的私服。
+{
+  const parent = join(sparkRooterDir, 'pom.xml');
+  if (existsSync(parent)) {
+    const text = await readFile(parent, 'utf-8');
+    // 去掉所有 <profile>…</profile> 后，顶层 <modules> 里不该再有 examples/
+    const withoutProfiles = text.replace(/<profiles>[\s\S]*?<\/profiles>/g, '');
+    const top = withoutProfiles.match(/<modules>([\s\S]*?)<\/modules>/);
+    if (top && /<module>examples\//.test(top[1])) {
+      fail('spark-rooter/pom.xml: examples/* modules must live in the "examples" profile, not the top-level <modules> (otherwise `mvn deploy -P !examples` still publishes them)');
+    }
+    if (!/<profile>\s*<id>examples<\/id>/.test(text)) {
+      fail('spark-rooter/pom.xml: missing <profile><id>examples</id> (self-publishing path relies on it)');
+    }
+  }
+}
+
 // 平台 Bean 不靠包扫描：平台模块源码不得出现 Spring 组件注解（starter 与 examples 除外）
 // 简名与 FQN 内联都抓（`@org.springframework.stereotype.Service` 不能绕过）
 const STEREOTYPES =

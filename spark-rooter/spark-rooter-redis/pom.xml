@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.sparkrooter</groupId>
+    <artifactId>spark-rooter-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>spark-rooter-redis</artifactId>
+  <name>spark-rooter-redis</name>
+  <!--
+    可选模块：hub 多副本部署时把四个进程内存储（Run / 确认令牌 / 幂等 / 会话记忆）换成 Redis。
+    宿主引入本坐标 + 配 spark.storage=redis + spring.data.redis.* 即可；不引则一切照旧在内存里。
+    依赖方向：只依赖四个端口所在的模块（runtime / gateway / spi / contracts），平台模块反过来不得依赖本模块
+    （check-module-deps 守这一点——可选能力不能倒灌进平台）。
+    spring-boot-starter-data-redis 不设 optional：引本模块就是要 Redis。
+  -->
+  <dependencies>
+    <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-spi</artifactId></dependency>
+    <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-contracts</artifactId></dependency>
+    <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-runtime</artifactId></dependency>
+    <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-gateway</artifactId></dependency>
+    <!-- 取 spark.* 属性与自动装配顺序锚点；starter 不反向依赖本模块（check-module-deps 守） -->
+    <dependency><groupId>com.sparkrooter</groupId><artifactId>spark-rooter-spring-boot-starter</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-data-redis</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-autoconfigure</artifactId></dependency>
+    <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-api</artifactId></dependency>
+    <!-- 单元测试：版本由 spring-boot-dependencies 管理。Redis 契约测试需要本机 redis-cli ping 通，否则跳过 -->
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.assertj</groupId><artifactId>assertj-core</artifactId><scope>test</scope></dependency>
+  </dependencies>
+</project>
