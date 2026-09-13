@@ -14,7 +14,7 @@ FRONT_PORT="${SPARK_FRONT_PORT:-5199}"
 JAR="$ROOT/spark-rooter/examples/host-demo/target/host-demo.jar"
 OUT="$DEPLOY/e2e-frontend"
 
-# shellcheck disable=SC2329  # 由下一行的 trap 调用，shellcheck 不把 trap 算作调用点
+# shellcheck disable=SC2317,SC2329  # 由下一行的 trap 调用，shellcheck 不把 trap 算作调用点（0.9 报 2317，0.10+ 改名 2329）
 cleanup() { pkill -f "host-demo.jar --server.port=$PORT" 2>/dev/null; }
 trap cleanup EXIT
 

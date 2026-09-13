@@ -10,7 +10,7 @@
 # 单体链路由 e2e-backend.sh 验，这里不重复。
 #
 # 写法注意：变量一律 ${VAR}。首版 `$REDIS_DB；`（全角分号紧跟）被 bash 当成变量名 `REDIS_DB；`，set -u 报 unbound；
-# shellcheck 对非 ASCII 相邻字符不报，这是它的已知盲区。
+# 静态检查（ShellCheck）对紧邻非 ASCII 字符的变量名不报，这是它的已知盲区。
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$ROOT/.harness/scripts/lib/change-dir.sh"
