@@ -33,8 +33,6 @@ export SPARK_LLM_API_KEY=...
 export SPARK_LLM_MODEL=...
 ```
 
-密钥只应来自环境变量或密钥管理系统。没有模型时服务会明确返回未配置提示，不会偷偷走规则兜底。
-
 ## 接入自己的 Spring Boot 服务
 
 添加 `spark-rooter-spring-boot-starter`（当前版本为 `0.1.0-SNAPSHOT`），再在 Service 方法上声明 `@SparkTool`。只有标注 `@SparkParam` 的参数会进入输入 schema；带副作用的方法还应声明 `@SparkRisk`，并提供确认界面和确认重校验逻辑。完整示例见 [`host-demo`](spark-rooter/examples/host-demo/README.md)。
